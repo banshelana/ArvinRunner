@@ -1,0 +1,81 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55320a51a4f8d5340b289c7fe2272bbf, type: 3}
+  m_Name: PlayerAnimations
+  m_EditorClassIdentifier: 
+  fallback:
+    anim: 0
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 1
+    loop: 1
+  clips:
+  - anim: 0
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 1
+  - anim: 1
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 1
+  - anim: 2
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 3
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 4
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 5
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 6
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 7
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 8
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 1
+  - anim: 9
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 10
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0
+  - anim: 11
+    frames:
+    - {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+    fps: 12
+    loop: 0

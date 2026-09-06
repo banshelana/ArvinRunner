@@ -1,0 +1,47 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 46b623033e5433d40bc4cfea75e0cfdd, type: 3}
+  m_Name: PlayerConfig
+  m_EditorClassIdentifier: 
+  runSpeed: 9
+  speedRampPerSecond: 0.12
+  maxRunSpeed: 15
+  acceleration: 30
+  jumpHeight: 3.2
+  doubleJumpHeight: 2.6
+  riseGravity: 4.5
+  fallGravity: 7
+  maxFallSpeed: 25
+  coyoteTime: 0.12
+  slideDuration: 0.7
+  slideSpeedMultiplier: 1.15
+  slideHeightFraction: 0.45
+  airDiveSpeed: 22
+  hardLandingSpeed: 16
+  rollDuration: 0.5
+  rollHeightFraction: 0.5
+  maxVaultHeight: 1.6
+  vaultProbeDistance: 1.1
+  vaultDuration: 0.35
+  vaultArcHeight: 0.55
+  wallRunEnabled: 1
+  wallRunDuration: 0.85
+  wallRunSpeed: 7
+  wallRunGravity: 6
+  wallProbeDistance: 0.45
+  wallJumpImpulse: {x: 6, y: 11}
+  ledgeGrabEnabled: 1
+  ledgeGrabTolerance: 0.6
+  ledgeClimbDuration: 0.45
+  maxLedgeGrabRiseSpeed: 2
+  deathSlowMoDuration: 0.6
+  deathTimeScale: 0.25

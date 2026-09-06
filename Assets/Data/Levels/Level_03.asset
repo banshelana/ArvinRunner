@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_03
+  m_EditorClassIdentifier: 
+  levelNumber: 3
+  displayName: Construction
+  hint: Jump into a wall to run up it, then grab the ledge.
+  mode: 0
+  sequence:
+  - {fileID: 2795623526034263498, guid: fa8654bb773fbd84ab3f81e827f67c42, type: 3}
+  - {fileID: 4444769750933086764, guid: a1a287c06890d9c4794df42e0509f366, type: 3}
+  - {fileID: 2970665918316092734, guid: 37b51ddb180cd3f498d43624ef7efca1, type: 3}
+  - {fileID: 4084456740832203166, guid: 753598850aedb134ea13160504f0be21, type: 3}
+  - {fileID: 8283624897202180562, guid: 1e2dec20e1cf31749a4a715db6aedd93, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: 028e3acb6bf471049bdf677866f621e0, type: 2}
+  music: {fileID: 0}
+  parTime: 80
