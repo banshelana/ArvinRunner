@@ -55,6 +55,9 @@ namespace ArvinRunner.EditorTools
             // Layouts built from the hand-made prop art.
             chunks.AddRange(CreatePropChunks());
 
+            // Obstacles that accept either a jump or a slide.
+            chunks.AddRange(CreateRouteChunks());
+
             return chunks.ToArray();
         }
 

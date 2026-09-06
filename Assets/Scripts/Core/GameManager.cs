@@ -19,8 +19,9 @@ namespace ArvinRunner
 
         [Header("Content")]
         [SerializeField] private LevelSet campaign;
-        [Tooltip("Which level to load on play. -1 continues from saved progress.")]
-        [SerializeField] private int startLevelIndex = 0;
+        [Tooltip("Forces a level for testing. Leave at -1 so the main menu decides, " +
+                 "falling back to saved progress.")]
+        [SerializeField] private int startLevelIndex = -1;
 
         [Header("Flow")]
         [Tooltip("Delay before the death screen appears, so the fall is readable.")]
@@ -75,7 +76,7 @@ namespace ArvinRunner
 
             player.OnDied += HandlePlayerDied;
 
-            int index = startLevelIndex >= 0 ? startLevelIndex : SaveData.UnlockedLevelIndex;
+            int index = startLevelIndex >= 0 ? startLevelIndex : GameSession.ConsumeRequestedLevel();
             LoadLevel(index);
         }
 

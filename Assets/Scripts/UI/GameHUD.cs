@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace ArvinRunner
@@ -36,7 +37,8 @@ namespace ArvinRunner
         [SerializeField] private Button retryFromFinishButton;
         [SerializeField] private Button pauseButton;
         [SerializeField] private Button resumeButton;
-        [SerializeField] private Button quitToFirstLevelButton;
+        [Tooltip("Any number of back-to-menu buttons, on any panel.")]
+        [SerializeField] private Button[] menuButtons;
 
         private GameManager _game;
 
@@ -84,7 +86,20 @@ namespace ArvinRunner
             if (nextLevelButton != null) nextLevelButton.onClick.AddListener(() => _game.NextLevel());
             if (pauseButton != null) pauseButton.onClick.AddListener(() => _game.SetPaused(true));
             if (resumeButton != null) resumeButton.onClick.AddListener(() => _game.SetPaused(false));
-            if (quitToFirstLevelButton != null) quitToFirstLevelButton.onClick.AddListener(() => _game.LoadLevel(0));
+            if (menuButtons != null)
+                foreach (Button button in menuButtons)
+                    if (button != null) button.onClick.AddListener(ReturnToMenu);
+        }
+
+        /// <summary>
+        /// Back to the front end. Time is restored first because the pause
+        /// screen is the most likely place this is pressed from, and a scene
+        /// loaded at timeScale zero looks broken.
+        /// </summary>
+        private static void ReturnToMenu()
+        {
+            Time.timeScale = 1f;
+            SceneManager.LoadScene(GameSession.MainMenuScene);
         }
 
         private void Update()

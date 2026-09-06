@@ -62,6 +62,17 @@ namespace ArvinRunner.EditorTools
             Apply(target, field, p => p.vector2Value = value);
         }
 
+        /// <summary>Fills a serialized array of object references.</summary>
+        public static void SetObjectArray(Object target, string field, Object[] values)
+        {
+            Apply(target, field, p =>
+            {
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).objectReferenceValue = values[i];
+            });
+        }
+
         public static void SetColor(Object target, string field, Color value)
         {
             Apply(target, field, p => p.colorValue = value);

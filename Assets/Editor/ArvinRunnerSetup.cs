@@ -19,6 +19,7 @@ namespace ArvinRunner.EditorTools
         private const string PrefabFolder = "Assets/Prefabs";
         private const string LevelFolder = "Assets/Data/Levels";
         private const string ScenePath = "Assets/Scenes/Game.unity";
+        private const string MenuScenePath = "Assets/Scenes/MainMenu.unity";
 
         [MenuItem("ArvinRunner/Build Playable Project", priority = 0)]
         public static void BuildAll()
@@ -50,7 +51,8 @@ namespace ArvinRunner.EditorTools
                                                  new Color(1f, 0.82f, 0.72f));
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building prefabs", 0.45f);
-                GameObject player = CreatePlayerPrefab(config, animations);
+                TrickSet tricks = CreateTrickSet();
+                GameObject player = CreatePlayerPrefab(config, animations, tricks);
                 GameObject pad = CreatePadPrefab();
                 GameObject finish = CreateFinishPrefab();
                 GameObject killZone = CreateKillZonePrefab();
@@ -61,8 +63,13 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Authoring levels", 0.75f);
                 LevelSet campaign = CreateLevels(chunks, night, dusk);
 
-                EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the scene", 0.9f);
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the game scene", 0.88f);
                 BuildScene(player, pad, finish, killZone, campaign, night);
+
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Building the main menu", 0.95f);
+                BuildMainMenuScene(campaign);
+
+                SetBuildSettings(MenuScenePath, ScenePath);
 
                 AssetDatabase.SaveAssets();
                 AssetDatabase.Refresh();
@@ -72,9 +79,9 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.ClearProgressBar();
             }
 
-            Debug.Log("[ArvinRunner] Build complete. Open Assets/Scenes/Game.unity and press Play.");
+            Debug.Log("[ArvinRunner] Build complete. MainMenu.unity is open - press Play to start there.");
             EditorUtility.DisplayDialog("ArvinRunner",
-                "Done.\n\nAssets/Scenes/Game.unity is open and ready.\n\n" +
+                "Done.\n\nAssets/Scenes/MainMenu.unity is open and ready - press Play.\n\n" +
                 "Editor controls: W / Up / Space to jump, S / Down to slide, " +
                 "or drag the mouse like a swipe.", "Play");
         }
@@ -148,6 +155,182 @@ namespace ArvinRunner.EditorTools
             return EditorUtil.CreateAsset(set, $"{DataFolder}/PlayerAnimations.asset");
         }
 
+        // ---- Procedural tricks --------------------------------------------- //
+
+        private static AnimationCurve Flat(float value) => AnimationCurve.Constant(0f, 1f, value);
+        private static AnimationCurve Ease(float from, float to) => AnimationCurve.EaseInOut(0f, from, 1f, to);
+
+        /// <summary>Rises to a peak in the middle and settles back.</summary>
+        private static AnimationCurve Hump(float ends, float peak)
+        {
+            var curve = new AnimationCurve(
+                new Keyframe(0f, ends), new Keyframe(0.5f, peak), new Keyframe(1f, ends));
+
+            for (int i = 0; i < curve.length; i++) curve.SmoothTangents(i, 0f);
+            return curve;
+        }
+
+        /// <summary>Snaps to a value and eases back - good for a landing squash.</summary>
+        private static AnimationCurve Punch(float hit, float rest)
+        {
+            var curve = new AnimationCurve(
+                new Keyframe(0f, hit), new Keyframe(0.35f, rest), new Keyframe(1f, rest));
+
+            for (int i = 0; i < curve.length; i++) curve.SmoothTangents(i, 0f);
+            return curve;
+        }
+
+        /// <summary>
+        /// The runner's move list. Several states carry more than one variant,
+        /// and one is drawn at random each time the state is entered - so a
+        /// double jump alternates between a front flip, a back flip and a
+        /// corkscrew instead of looking canned.
+        ///
+        /// Facing is +X, so a NEGATIVE spin rotates forwards (clockwise).
+        /// </summary>
+        private static TrickSet CreateTrickSet()
+        {
+            var set = ScriptableObject.CreateInstance<TrickSet>();
+
+            set.clips = new[]
+            {
+                // ---- grounded -------------------------------------------- //
+                new TrickClip
+                {
+                    name = "idle_breathe", anim = PlayerAnim.Idle, duration = 2.2f, loop = true,
+                    squash = Hump(1f, 1.02f), squashCounter = 0.4f,
+                    spin = Flat(0f)
+                },
+                new TrickClip
+                {
+                    name = "run_stride", anim = PlayerAnim.Run, duration = 0.30f, loop = true,
+                    leanDegrees = -5f, spin = Flat(0f),
+                    squash = Hump(1f, 0.96f), squashCounter = 0.5f,
+                    offset = new Vector2(0f, 0.08f), offsetCurve = Hump(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "run_drive", anim = PlayerAnim.Run, duration = 0.34f, loop = true,
+                    leanDegrees = -8f, spin = Flat(0f),
+                    squash = Hump(1f, 0.94f), squashCounter = 0.6f,
+                    offset = new Vector2(0f, 0.10f), offsetCurve = Hump(0f, 1f)
+                },
+
+                // ---- jumping --------------------------------------------- //
+                new TrickClip
+                {
+                    name = "jump_rise", anim = PlayerAnim.JumpRise, duration = 0.28f,
+                    leanDegrees = -14f, spin = Flat(0f),
+                    squash = Punch(1.16f, 1.04f), squashCounter = 0.8f
+                },
+                new TrickClip
+                {
+                    name = "jump_fall", anim = PlayerAnim.JumpFall, duration = 0.25f,
+                    leanDegrees = 7f, spin = Flat(0f),
+                    squash = Ease(1.04f, 0.97f), squashCounter = 0.6f
+                },
+
+                // The air jump is the showpiece - three ways to spin it.
+                new TrickClip
+                {
+                    name = "air_frontflip", anim = PlayerAnim.DoubleJump, duration = 0.45f,
+                    spinDegrees = -360f, spin = AnimationCurve.Linear(0f, 0f, 1f, 1f),
+                    squash = Hump(1f, 0.90f), squashCounter = 0.5f
+                },
+                new TrickClip
+                {
+                    name = "air_backflip", anim = PlayerAnim.DoubleJump, duration = 0.50f,
+                    spinDegrees = 360f, spin = AnimationCurve.Linear(0f, 0f, 1f, 1f),
+                    squash = Hump(1f, 0.92f), squashCounter = 0.5f
+                },
+                new TrickClip
+                {
+                    name = "air_corkscrew", anim = PlayerAnim.DoubleJump, duration = 0.58f,
+                    spinDegrees = -720f, spin = Ease(0f, 1f),
+                    squash = Hump(1f, 0.88f), squashCounter = 0.6f
+                },
+
+                // ---- going low -------------------------------------------- //
+                new TrickClip
+                {
+                    name = "slide_feet_first", anim = PlayerAnim.Slide, duration = 0.16f,
+                    leanDegrees = 58f, spin = Flat(0f),
+                    squash = Ease(1f, 0.74f), squashCounter = 0.9f,
+                    // Lifted to offset the sink a 58 degree lean causes when the
+                    // body rotates about its centre.
+                    offset = new Vector2(0.05f, 0.22f), offsetCurve = Ease(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "slide_dive", anim = PlayerAnim.Slide, duration = 0.18f,
+                    leanDegrees = -72f, spin = Flat(0f),
+                    squash = Ease(1f, 0.80f), squashCounter = 0.7f,
+                    offset = new Vector2(0.12f, 0.13f), offsetCurve = Ease(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "roll_forward", anim = PlayerAnim.Roll, duration = 0.48f,
+                    spinDegrees = -360f, spin = AnimationCurve.Linear(0f, 0f, 1f, 1f),
+                    squash = Ease(0.84f, 1f), squashCounter = 0.8f,
+                    // A grounded spin needs clearance or the sprite scrapes
+                    // through the floor at the halfway point.
+                    offset = new Vector2(0f, 0.34f), offsetCurve = Hump(0f, 1f)
+                },
+
+                // ---- parkour ---------------------------------------------- //
+                new TrickClip
+                {
+                    name = "vault_swing", anim = PlayerAnim.Vault, duration = 0.34f,
+                    leanDegrees = -38f, spin = Flat(0f),
+                    squash = Hump(1f, 0.92f), squashCounter = 0.6f,
+                    offset = new Vector2(0f, 0.14f), offsetCurve = Hump(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "vault_kong_flip", anim = PlayerAnim.Vault, duration = 0.34f,
+                    spinDegrees = -360f, spin = AnimationCurve.Linear(0f, 0f, 1f, 1f),
+                    squash = Hump(1f, 0.90f), squashCounter = 0.6f
+                },
+                new TrickClip
+                {
+                    name = "wall_run", anim = PlayerAnim.WallRun, duration = 0.26f, loop = true,
+                    leanDegrees = -34f, spin = Flat(0f),
+                    squash = Hump(1f, 0.97f), squashCounter = 0.4f,
+                    offset = new Vector2(0.05f, 0.05f), offsetCurve = Hump(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "ledge_hang", anim = PlayerAnim.LedgeGrab, duration = 0.18f,
+                    leanDegrees = -6f, spin = Flat(0f),
+                    squash = Ease(1f, 1.05f), squashCounter = 0.7f,
+                    offset = new Vector2(0f, -0.12f), offsetCurve = Ease(0f, 1f)
+                },
+                new TrickClip
+                {
+                    name = "ledge_climb", anim = PlayerAnim.LedgeClimb, duration = 0.45f,
+                    leanDegrees = -26f, spin = Flat(0f),
+                    squash = Hump(1f, 0.93f), squashCounter = 0.5f,
+                    offset = new Vector2(0f, 0.18f), offsetCurve = Hump(0f, 1f)
+                },
+
+                // ---- the end ---------------------------------------------- //
+                new TrickClip
+                {
+                    name = "death_tumble", anim = PlayerAnim.Death, duration = 0.9f,
+                    spinDegrees = 540f, spin = Ease(0f, 1f),
+                    squash = Ease(1f, 0.88f), squashCounter = 0.5f
+                },
+                new TrickClip
+                {
+                    name = "death_faceplant", anim = PlayerAnim.Death, duration = 0.7f,
+                    spinDegrees = -430f, spin = Ease(0f, 1f),
+                    squash = Ease(1f, 0.85f), squashCounter = 0.6f
+                }
+            };
+
+            return EditorUtil.CreateAsset(set, $"{DataFolder}/PlayerTricks.asset");
+        }
+
         private static ParallaxTheme CreateTheme(string assetName, Color sky, Color tint)
         {
             var theme = ScriptableObject.CreateInstance<ParallaxTheme>();
@@ -188,7 +371,8 @@ namespace ArvinRunner.EditorTools
         // Prefabs
         // ================================================================= //
 
-        private static GameObject CreatePlayerPrefab(PlayerConfig config, SpriteAnimationSet animations)
+        private static GameObject CreatePlayerPrefab(PlayerConfig config, SpriteAnimationSet animations,
+                                                     TrickSet tricks)
         {
             var root = new GameObject("Player") { layer = GameLayers.Player };
 
@@ -210,24 +394,34 @@ namespace ArvinRunner.EditorTools
             EditorUtil.CreateAsset(material, $"{DataFolder}/PlayerFrictionless.physicsMaterial2D");
             capsule.sharedMaterial = material;
 
+            // Two nested objects, because spinning and squashing need different
+            // origins. "Visual" sits at the body centre and carries the rotation,
+            // so a 360 reads as a somersault rather than the sprite pivoting on
+            // its heels. "Sprite" hangs below it at the feet and carries the
+            // squash, so the runner stays planted on the ground.
             var visual = new GameObject("Visual") { layer = GameLayers.Player };
             visual.transform.SetParent(root.transform, false);
+            visual.transform.localPosition = new Vector3(0f, height * 0.5f, 0f);
+
+            var spriteObject = new GameObject("Sprite") { layer = GameLayers.Player };
+            spriteObject.transform.SetParent(visual.transform, false);
 
             Sprite runner = ArtImport.Load("runner");
 
-            // The imported runner has a bottom-centre pivot, so it sits at the
-            // capsule's base. The generated placeholder is centred, so it needs
-            // lifting by half its height.
-            visual.transform.localPosition = runner != null
-                ? Vector3.zero
-                : new Vector3(0f, height * 0.5f, 0f);
+            // The imported runner has a bottom-centre pivot, so its origin is
+            // its feet. The generated placeholder is centred instead.
+            spriteObject.transform.localPosition = runner != null
+                ? new Vector3(0f, -height * 0.5f, 0f)
+                : Vector3.zero;
 
-            var renderer = visual.AddComponent<SpriteRenderer>();
+            var renderer = spriteObject.AddComponent<SpriteRenderer>();
             renderer.sprite = runner ?? PlaceholderArt.Load("runner");
             renderer.sortingOrder = 20;
 
             var driver = visual.AddComponent<PlayerAnimatorDriver>();
+            EditorUtil.SetObject(driver, "spriteRenderer", renderer);
             EditorUtil.SetObject(driver, "animationSet", animations);
+            EditorUtil.SetObject(driver, "trickSet", tricks);
 
             root.AddComponent<PlayerSensors>();
 
@@ -338,22 +532,22 @@ namespace ArvinRunner.EditorTools
 
             // Level 1 teaches one move at a time, with flat rooftop between each.
             LevelDefinition one = Sequenced(1, "First Steps",
-                "Swipe up to jump. Swipe up again in the air for a double jump.",
-                night, 42f,
+                "Swipe up to jump, again in the air to flip. Swipe down to slide.",
+                night, 45f,
                 Find("Chunk_Flat"), Find("Chunk_Cones"), Find("Chunk_Skip"),
-                Find("Chunk_SlideGate"), Find("Chunk_Gap"), Find("Chunk_Flat"));
+                Find("Chunk_SlideGate"), Find("Chunk_Rails"), Find("Chunk_Flat"));
 
             LevelDefinition two = Sequenced(2, "Rooftops",
-                "Swipe down to slide. Land hard and you will roll.",
-                night, 60f,
-                Find("Chunk_Barriers"), Find("Chunk_Condensers"), Find("Chunk_Spikes"),
+                "Some barriers take either route - hurdle them or slide under.",
+                night, 65f,
+                Find("Chunk_Barriers"), Find("Chunk_Overpass"), Find("Chunk_Spikes"),
                 Find("Chunk_WideGap"), Find("Chunk_StepsDown"), Find("Chunk_Flat"));
 
             LevelDefinition three = Sequenced(3, "Construction",
                 "Jump into a wall to run up it, then grab the ledge.",
-                dusk, 80f,
+                dusk, 85f,
                 Find("Chunk_StreetWorks"), Find("Chunk_Collapsing"), Find("Chunk_WallClimb"),
-                Find("Chunk_Crates"), Find("Chunk_Trampoline"), Find("Chunk_Flat"));
+                Find("Chunk_Crates"), Find("Chunk_Scaffold"), Find("Chunk_Flat"));
 
             // Levels 4 and 5 are assembled from a pool - fast to make, fixed seed
             // so the layout is identical on every attempt.
@@ -458,23 +652,152 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(manager, "background", background);
             EditorUtil.SetObject(manager, "campaign", campaign);
 
+            // -1 means "ask the menu, then fall back to saved progress".
+            EditorUtil.SetInt(manager, "startLevelIndex", -1);
+
             // --- interface -------------------------------------------------
             BuildHud();
 
             EditorUtil.EnsureFolder("Assets/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
-            AddSceneToBuildSettings(ScenePath);
         }
 
-        private static void AddSceneToBuildSettings(string path)
+        /// <summary>
+        /// Replaces the build scene list with exactly these, in this order. The
+        /// menu has to be first so a player build boots into it.
+        /// </summary>
+        private static void SetBuildSettings(params string[] paths)
         {
-            var scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            var scenes = new EditorBuildSettingsScene[paths.Length];
+            for (int i = 0; i < paths.Length; i++)
+                scenes[i] = new EditorBuildSettingsScene(paths[i], true);
 
-            foreach (EditorBuildSettingsScene existing in scenes)
-                if (existing.path == path) return;
+            EditorBuildSettings.scenes = scenes;
+        }
 
-            scenes.Insert(0, new EditorBuildSettingsScene(path, true));
-            EditorBuildSettings.scenes = scenes.ToArray();
+        // ================================================================= //
+        // Main menu
+        // ================================================================= //
+
+        /// <summary>
+        /// The front end. Deliberately its own scene rather than a panel inside
+        /// the game, so nothing about a run has to be torn down to get back here.
+        /// </summary>
+        private static void BuildMainMenuScene(LevelSet campaign)
+        {
+            var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+            var cameraObject = new GameObject("Main Camera") { tag = "MainCamera" };
+            var camera = cameraObject.AddComponent<Camera>();
+            camera.orthographic = true;
+            camera.orthographicSize = 7.5f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.05f, 0.06f, 0.13f);
+            camera.transform.position = new Vector3(0f, 0f, -10f);
+            cameraObject.AddComponent<AudioListener>();
+
+            // The same parallax city as the game, drifting behind the menu.
+            var backgroundObject = new GameObject("Background");
+            var background = backgroundObject.AddComponent<ParallaxBackground>();
+            EditorUtil.SetObject(background, "theme",
+                AssetDatabase.LoadAssetAtPath<ParallaxTheme>($"{DataFolder}/Theme_Night.asset"));
+            EditorUtil.SetObject(background, "camera", camera);
+
+            var eventSystem = new GameObject("EventSystem");
+            eventSystem.AddComponent<EventSystem>();
+            eventSystem.AddComponent<StandaloneInputModule>();
+
+            var canvasObject = new GameObject("Menu");
+            var canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            var scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+
+            canvasObject.AddComponent<GraphicRaycaster>();
+            var controller = canvasObject.AddComponent<MainMenuController>();
+
+            // ---- home ------------------------------------------------------
+            GameObject home = Overlay(canvasObject, "HomePanel", new Color(0f, 0f, 0f, 0.35f));
+
+            Label(home, "Title", CentreAnchor, CentreAnchor, new Vector2(0f, 260f),
+                  new Vector2(1400f, 140f), "ARVIN RUNNER", 108, TextAnchor.MiddleCenter);
+            Label(home, "Subtitle", CentreAnchor, CentreAnchor, new Vector2(0f, 170f),
+                  new Vector2(1400f, 60f), "swipe up to jump  -  swipe down to slide",
+                  34, TextAnchor.MiddleCenter);
+
+            Button play = MakeButton(home, "PlayButton", new Vector2(0f, 30f), "Play");
+            play.GetComponent<RectTransform>().sizeDelta = new Vector2(460f, 110f);
+            Text playLabel = play.GetComponentInChildren<Text>();
+
+            Button levels = MakeButton(home, "LevelsButton", new Vector2(0f, -100f), "Levels");
+            levels.GetComponent<RectTransform>().sizeDelta = new Vector2(460f, 100f);
+
+            Button quit = MakeButton(home, "QuitButton", new Vector2(0f, -230f), "Quit");
+            quit.GetComponent<RectTransform>().sizeDelta = new Vector2(460f, 100f);
+
+            Text pickups = Label(home, "PickupTotal", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+                                 new Vector2(0f, 40f), new Vector2(800f, 50f),
+                                 "0 collected", 30, TextAnchor.LowerCenter);
+
+            // ---- level select ----------------------------------------------
+            GameObject levelsPanel = Overlay(canvasObject, "LevelsPanel", new Color(0f, 0f, 0f, 0.55f));
+
+            Label(levelsPanel, "LevelsTitle", CentreAnchor, CentreAnchor, new Vector2(0f, 300f),
+                  new Vector2(1400f, 100f), "SELECT LEVEL", 72, TextAnchor.MiddleCenter);
+
+            var grid = new GameObject("Grid");
+            grid.transform.SetParent(levelsPanel.transform, false);
+
+            var gridRect = grid.AddComponent<RectTransform>();
+            gridRect.anchorMin = CentreAnchor;
+            gridRect.anchorMax = CentreAnchor;
+            gridRect.pivot = CentreAnchor;
+            gridRect.anchoredPosition = new Vector2(0f, 40f);
+            gridRect.sizeDelta = new Vector2(1400f, 380f);
+
+            var layout = grid.AddComponent<GridLayoutGroup>();
+            layout.cellSize = new Vector2(230f, 180f);
+            layout.spacing = new Vector2(26f, 26f);
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            layout.constraintCount = 5;
+
+            // One button is built as a template; the controller clones it per level.
+            Button template = MakeButton(grid, "LevelButtonTemplate", Vector2.zero, "1");
+            Text templateNumber = template.GetComponentInChildren<Text>();
+            templateNumber.fontSize = 64;
+            templateNumber.alignment = TextAnchor.UpperCenter;
+
+            Text templateCaption = Label(template.gameObject, "Caption",
+                                         new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
+                                         new Vector2(0f, 22f), new Vector2(220f, 40f),
+                                         "", 24, TextAnchor.LowerCenter);
+            templateCaption.color = new Color(1f, 1f, 1f, 0.7f);
+
+            Button back = MakeButton(levelsPanel, "BackButton", new Vector2(-180f, -260f), "Back");
+            Button reset = MakeButton(levelsPanel, "ResetButton", new Vector2(180f, -260f), "Reset");
+
+            levelsPanel.SetActive(false);
+
+            // ---- wiring ----------------------------------------------------
+            EditorUtil.SetObject(controller, "campaign", campaign);
+            EditorUtil.SetObject(controller, "homePanel", home);
+            EditorUtil.SetObject(controller, "levelsPanel", levelsPanel);
+            EditorUtil.SetObject(controller, "playButton", play);
+            EditorUtil.SetObject(controller, "playLabel", playLabel);
+            EditorUtil.SetObject(controller, "levelsButton", levels);
+            EditorUtil.SetObject(controller, "quitButton", quit);
+            EditorUtil.SetObject(controller, "totalPickupsText", pickups);
+            EditorUtil.SetObject(controller, "levelGrid", gridRect);
+            EditorUtil.SetObject(controller, "levelButtonTemplate", template);
+            EditorUtil.SetObject(controller, "backButton", back);
+            EditorUtil.SetObject(controller, "resetProgressButton", reset);
+
+            EditorUtil.EnsureFolder("Assets/Scenes");
+            EditorSceneManager.SaveScene(scene, MenuScenePath);
         }
 
         // ================================================================= //
@@ -572,7 +895,21 @@ namespace ArvinRunner.EditorTools
             GameObject pause = Overlay(canvasObject, "PausePanel", new Color(0f, 0f, 0f, 0.6f));
             Label(pause, "PauseTitle", CentreAnchor, CentreAnchor, new Vector2(0f, 90f),
                   new Vector2(1200f, 90f), "PAUSED", 72, TextAnchor.MiddleCenter);
-            Button resume = MakeButton(pause, "ResumeButton", new Vector2(0f, -40f), "Resume");
+            Button resume = MakeButton(pause, "ResumeButton", new Vector2(-180f, -40f), "Resume");
+
+            // A way out of the run from every panel that stops play.
+            Button menuFromPause = MakeButton(pause, "MenuButton", new Vector2(180f, -40f), "Main Menu");
+            Button menuFromDeath = MakeButton(death, "MenuButton", new Vector2(0f, -190f), "Main Menu");
+            Button menuFromFinish = MakeButton(finish, "MenuButton", new Vector2(0f, -200f), "Main Menu");
+
+            // Corner pause control, always live during a run.
+            Button pauseButton = MakeButton(canvasObject, "PauseButton", Vector2.zero, "II");
+            RectTransform pauseRect = pauseButton.GetComponent<RectTransform>();
+            pauseRect.anchorMin = new Vector2(1f, 0f);
+            pauseRect.anchorMax = new Vector2(1f, 0f);
+            pauseRect.pivot = new Vector2(1f, 0f);
+            pauseRect.anchoredPosition = new Vector2(-40f, 40f);
+            pauseRect.sizeDelta = new Vector2(110f, 96f);
 
             ready.SetActive(false);
             death.SetActive(false);
@@ -598,6 +935,10 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(hud, "nextLevelButton", next);
             EditorUtil.SetObject(hud, "retryFromFinishButton", retry);
             EditorUtil.SetObject(hud, "resumeButton", resume);
+            EditorUtil.SetObject(hud, "pauseButton", pauseButton);
+
+            EditorUtil.SetObjectArray(hud, "menuButtons",
+                                      new Object[] { menuFromPause, menuFromDeath, menuFromFinish });
         }
 
         private static readonly Vector2 CentreAnchor = new Vector2(0.5f, 0.5f);
