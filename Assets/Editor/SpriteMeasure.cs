@@ -54,8 +54,14 @@ namespace ArvinRunner.EditorTools
         /// Measures a frame in one pass over its pixels, returning both the alpha
         /// bounds and the centroid together because walking the texture twice for
         /// them separately would be the expensive part.
+        ///
+        /// <paramref name="threshold"/> decides what counts as drawn. The default
+        /// catches everything, which is what you want for a figure whose outline
+        /// is the whole subject. Raise it to anchor on solid pixels only, and so
+        /// ignore rotor blur, smoke and exhaust - soft effects that belong to the
+        /// picture but should not be allowed to define where the object *is*.
         /// </summary>
-        public static Figure Measure(string path)
+        public static Figure Measure(string path, byte threshold = AlphaThreshold)
         {
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (texture == null) return default;
@@ -83,7 +89,7 @@ namespace ArvinRunner.EditorTools
                 int row = y * width;
                 for (int x = 0; x < width; x++)
                 {
-                    if (pixels[row + x].a <= AlphaThreshold) continue;
+                    if (pixels[row + x].a <= threshold) continue;
 
                     if (x < xMin) xMin = x;
                     if (x > xMax) xMax = x;

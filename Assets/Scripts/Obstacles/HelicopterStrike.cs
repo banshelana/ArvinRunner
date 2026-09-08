@@ -30,10 +30,16 @@ namespace ArvinRunner
         [Tooltip("Where the missile leaves from. Falls back to the aircraft itself.")]
         [SerializeField] private Transform muzzle;
 
-        [Tooltip("Held for a moment as it fires, so the shot reads on the aircraft " +
-                 "as well as on the ground.")]
-        [SerializeField] private Sprite firingFrame;
-        [SerializeField] private float firingFrameHold = 0.35f;
+        [Header("Frames")]
+        [Tooltip("The frames looped while it comes in - the cruise and the dip " +
+                 "onto its firing line.")]
+        [SerializeField] private int approachFirst;
+        [SerializeField] private int approachLast = 1;
+
+        [Tooltip("The frames played once as it shoots: the launch, the missile " +
+                 "clearing the rail, and the pull-up. Held on the last one.")]
+        [SerializeField] private int fireFirst = 2;
+        [SerializeField] private int fireLast = 5;
 
         [Tooltip("Extra lead on top of the strike's own warning, so the fire is " +
                  "alight a fraction before the runner reaches it rather than after.")]
@@ -48,6 +54,13 @@ namespace ArvinRunner
         {
             _travel = GetComponent<MovingObstacle>();
             _flipbook = GetComponentInChildren<SpriteFlipbook>();
+        }
+
+        private void Start()
+        {
+            // Loop the approach until there is a shot to take. Done in Start so
+            // the flipbook has had its own Awake and knows how many frames it has.
+            if (_flipbook != null) _flipbook.PlayRange(approachFirst, approachLast, looping: true);
         }
 
         private void Update()
@@ -75,8 +88,10 @@ namespace ArvinRunner
         {
             _fired = true;
 
-            if (_flipbook != null && firingFrame != null)
-                _flipbook.Hold(firingFrame, firingFrameHold);
+            // The launch is drawn into the frames, so the aircraft tells that
+            // half of the story and the ground tells the other. Played once and
+            // held on the recovery pose, because it never fires twice.
+            if (_flipbook != null) _flipbook.PlayRange(fireFirst, fireLast, looping: false);
 
             strike.Launch(muzzle != null ? muzzle.position : transform.position);
         }

@@ -11,43 +11,50 @@ namespace ArvinRunner.EditorTools
     /// per obstacle, numbered PNGs inside it.
     ///
     /// The measuring is the same job the runner's frames need, and uses the same
-    /// code (<see cref="SpriteMeasure"/>): a pivot on the drawn figure rather
-    /// than the canvas, so a frame's cropping stops mattering. The scaling is
-    /// the part that differs. The runner's clips all share one pixels-per-unit
-    /// because they are all the same character and it must not change size; two
-    /// unrelated vehicles have no such relationship, so each folder here gets
-    /// its own scale from its own declared height.
+    /// code (<see cref="SpriteMeasure"/>). The scaling is the part that differs.
+    /// The runner's clips all share one pixels-per-unit because they are all the
+    /// same character and it must not change size; two unrelated vehicles have no
+    /// such relationship, so each folder here gets its own scale.
     ///
     /// Heights are chosen against the runner rather than against the real
     /// machines. The bike is 1.55 so it reads as something to clear against a
-    /// 1.75 standing runner and a 3.20 jump; the helicopter is 3.20 at the top
-    /// of its rotor so it has the presence of a real aircraft next to the 10.6
-    /// unit bus, without filling the screen.
+    /// 1.75 standing runner and a 3.20 jump; the helicopter is 2.85 across
+    /// airframe and rotor, which puts it about 6.8 long - the scale of the bus,
+    /// so it has the presence of a real aircraft without filling the screen.
+    ///
+    /// How a folder is anchored depends on how it was drawn. See <see cref="Apply"/>.
     /// </summary>
     public static class MovingObstacleImport
     {
         public const string RootFolder = "Assets/Art/MovingObstacles";
 
-        /// <summary>The frames top out at 363x287, so 512 never downscales one.</summary>
-        private const int MaxTextureSize = 512;
+        /// <summary>The helicopter frames are 1547x854, so 2048 never downscales one.</summary>
+        private const int MaxTextureSize = 2048;
+
+        /// <summary>
+        /// Anchors and scales are measured on solid pixels rather than on any
+        /// drawn pixel at all. Rotor blur, exhaust and a missile's smoke trail
+        /// belong to the picture but not to where the object is, and letting them
+        /// into the measurement moves the machine around to follow its own smoke.
+        /// </summary>
+        private const byte SolidAlpha = 128;
 
         private struct SetSpec
         {
             public string Folder;
 
-            /// <summary>World height of the tallest frame in the folder.</summary>
-            public float TallestHeight;
+            /// <summary>World height of the subject, measured on solid pixels.</summary>
+            public float Height;
         }
 
         private static readonly SetSpec[] Sets =
         {
-            // 1.55 tall, and 1.67-1.96 long depending on how far the rider is
+            // 1.55 tall and 1.67-1.96 long depending on how far the rider is
             // leaned over. Comfortably under the 3.20 jump.
-            new SetSpec { Folder = "moto", TallestHeight = 1.55f },
+            new SetSpec { Folder = "moto", Height = 1.55f },
 
-            // Measured at the rotor's full extent, which is the tallest frame -
-            // so the fuselage lands around 2.33 and the aircraft about 6.8 long.
-            new SetSpec { Folder = "helli", TallestHeight = 3.20f }
+            // Airframe and rotor together.
+            new SetSpec { Folder = "helli", Height = 2.85f }
         };
 
         private static readonly Dictionary<string, Sprite[]> Cache =
@@ -92,33 +99,10 @@ namespace ArvinRunner.EditorTools
                     SpriteMeasure.MakeReadable(path, MaxTextureSize);
                 }
 
-                // --- pass two: one scale per folder, pivots per frame ----------
+                // --- pass two: scale and anchor, one folder at a time ----------
                 done = 0;
                 foreach (KeyValuePair<SetSpec, string[]> set in found)
-                {
-                    float pixelsPerUnit = ScaleFor(set.Key, set.Value);
-
-                    foreach (string path in set.Value)
-                    {
-                        EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
-                                                         0.5f + 0.5f * done++ / total);
-
-                        var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
-                        if (texture == null) continue;
-
-                        Figure figure = SpriteMeasure.Measure(path);
-                        if (figure.IsEmpty)
-                        {
-                            Debug.LogWarning($"[ArvinRunner] {path} looks fully transparent.");
-                            continue;
-                        }
-
-                        SpriteMeasure.ApplyFrame(
-                            path,
-                            SpriteMeasure.PivotFor(figure, texture.width, texture.height),
-                            pixelsPerUnit);
-                    }
-                }
+                    Apply(set.Key, set.Value, ref done, total);
             }
             finally
             {
@@ -127,28 +111,149 @@ namespace ArvinRunner.EditorTools
 
             AssetDatabase.Refresh();
 
-            string summary = string.Join(", ", found.Select(f => $"{f.Key.Folder} {f.Value.Length}"));
-            Debug.Log($"[ArvinRunner] Moving obstacles imported ({summary}).");
+            string summary = string.Join(", ",
+                found.Select(f => $"{f.Key.Folder} {f.Value.Length}" +
+                                  (SharesOneCanvas(f.Value) ? " (aligned)" : "")));
+
+            Debug.Log($"[ArvinRunner] Moving obstacles imported: {summary}.");
         }
 
-        /// <summary>Pixels-per-unit that brings the folder's tallest frame out at
-        /// its declared height.</summary>
-        private static float ScaleFor(SetSpec spec, string[] paths)
+        /// <summary>
+        /// Scales and anchors one folder.
+        ///
+        /// <b>How the anchor is chosen depends on how the frames were drawn, and
+        /// getting it the wrong way round is very visible.</b>
+        ///
+        /// Frames cropped individually - the bike, at 344x286, 310x285, 363x246 -
+        /// share no frame of reference, so each has to be measured and pinned on
+        /// its own or the object jumps about as the crop changes under it.
+        ///
+        /// Frames drawn on one shared canvas are the opposite case. The helicopter
+        /// is six 1547x854 frames with the aircraft in the same place in every one;
+        /// what moves in that sequence is the missile leaving and the smoke
+        /// trailing behind it. Measuring those per frame would pin each to its own
+        /// centre of mass - and the missile drags that centre 59px sideways and
+        /// 96px down as it flies, so the aircraft would lurch across the sky
+        /// chasing its own missile. One anchor for the whole folder keeps it still
+        /// and lets the missile be the thing that moves.
+        ///
+        /// The two cases are told apart by the canvases rather than by a flag
+        /// somebody has to remember to set: frames that share a size were laid
+        /// out together.
+        /// </summary>
+        private static void Apply(SetSpec spec, string[] paths, ref int done, int total)
         {
-            int tallest = 0;
-            foreach (string path in paths)
+            bool aligned = SharesOneCanvas(paths);
+            float pixelsPerUnit = ScaleFor(spec, paths, aligned);
+
+            Vector2 shared = Vector2.zero;
+
+            if (aligned)
             {
-                Figure figure = SpriteMeasure.Measure(path);
-                if (figure.Bounds.height > tallest) tallest = figure.Bounds.height;
+                var reference = AssetDatabase.LoadAssetAtPath<Texture2D>(paths[0]);
+                Figure figure = SpriteMeasure.Measure(paths[0], SolidAlpha);
+
+                if (reference == null || figure.IsEmpty)
+                {
+                    Debug.LogWarning($"[ArvinRunner] Could not measure the first frame of " +
+                                     $"{spec.Folder}, so it keeps its previous import.");
+                    return;
+                }
+
+                // Centre of the solid box across, its bottom down. The box rather
+                // than the centre of mass, because on a shared canvas there is no
+                // cropping to correct for and the box is the steadier of the two.
+                shared = new Vector2(
+                    (figure.Bounds.x + figure.Bounds.width * 0.5f) / reference.width,
+                    figure.Bounds.y / (float)reference.height);
             }
 
-            if (tallest <= 0)
+            foreach (string path in paths)
+            {
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
+                                                 0.5f + 0.5f * done++ / total);
+
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (texture == null) continue;
+
+                Vector2 pivot;
+
+                if (aligned)
+                {
+                    pivot = shared;
+                }
+                else
+                {
+                    Figure figure = SpriteMeasure.Measure(path, SolidAlpha);
+                    if (figure.IsEmpty)
+                    {
+                        Debug.LogWarning($"[ArvinRunner] {path} looks fully transparent.");
+                        continue;
+                    }
+
+                    pivot = SpriteMeasure.PivotFor(figure, texture.width, texture.height);
+                }
+
+                SpriteMeasure.ApplyFrame(path, pivot, pixelsPerUnit);
+            }
+        }
+
+        /// <summary>True when every frame was drawn on the same size canvas.</summary>
+        private static bool SharesOneCanvas(string[] paths)
+        {
+            int width = 0, height = 0;
+
+            foreach (string path in paths)
+            {
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (texture == null) return false;
+
+                if (width == 0)
+                {
+                    width = texture.width;
+                    height = texture.height;
+                    continue;
+                }
+
+                if (texture.width != width || texture.height != height) return false;
+            }
+
+            return width > 0;
+        }
+
+        /// <summary>
+        /// Pixels-per-unit that brings the subject out at its declared height.
+        ///
+        /// Which frame defines "the subject" follows the same split as the anchor.
+        /// On a shared canvas it is the reference frame, because the later frames
+        /// grow to hold a missile and its smoke trail and would drive the scale
+        /// down until the aircraft shrank to fit its own exhaust. Individually
+        /// cropped frames have no reference frame, so the tallest stands in.
+        /// </summary>
+        private static float ScaleFor(SetSpec spec, string[] paths, bool aligned)
+        {
+            int measured = 0;
+
+            if (aligned)
+            {
+                measured = SpriteMeasure.Measure(paths[0], SolidAlpha).Bounds.height;
+            }
+            else
+            {
+                foreach (string path in paths)
+                {
+                    int height = SpriteMeasure.Measure(path, SolidAlpha).Bounds.height;
+                    if (height > measured) measured = height;
+                }
+            }
+
+            if (measured <= 0)
             {
                 Debug.LogWarning($"[ArvinRunner] Could not measure {spec.Folder}; using 100 PPU.");
                 return 100f;
             }
 
-            return tallest / Mathf.Max(0.05f, spec.TallestHeight);
+            return measured / Mathf.Max(0.05f, spec.Height);
         }
 
         // ================================================================= //
@@ -173,10 +278,7 @@ namespace ArvinRunner.EditorTools
             return result;
         }
 
-        /// <summary>
-        /// One frame by index, clamped. Used for the poses a component needs to
-        /// hold rather than cycle - the helicopter's firing frame, for instance.
-        /// </summary>
+        /// <summary>One frame by index, clamped, or null if the folder is empty.</summary>
         public static Sprite Frame(string folder, int index)
         {
             Sprite[] frames = Frames(folder);
@@ -194,7 +296,7 @@ namespace ArvinRunner.EditorTools
 
             return Directory.GetFiles(found, "*.png", SearchOption.TopDirectoryOnly)
                             .Select(p => p.Replace('\\', '/'))
-                            .OrderBy(TrailingNumber)
+                            .OrderBy(LeadingNumber)
                             .ThenBy(p => p)
                             .ToArray();
         }
@@ -213,18 +315,31 @@ namespace ArvinRunner.EditorTools
             return null;
         }
 
-        /// <summary>Orders by the number at the end of the name, so frame 10
-        /// plays after frame 9 rather than after frame 1.</summary>
-        private static int TrailingNumber(string path)
+        /// <summary>
+        /// Orders by the first number in the file name.
+        ///
+        /// Not the trailing number, which is the obvious rule and the wrong one
+        /// here: these frames are named for what they do rather than numbered on
+        /// the end - frame_03_fire_launch, frame_04_missile_away - so a
+        /// trailing-digit rule finds no number at all and quietly leaves the
+        /// sequence to alphabetical order. That happens to be right while the
+        /// numbers are zero-padded, and wrong the moment there are ten frames.
+        /// </summary>
+        private static int LeadingNumber(string path)
         {
             string name = Path.GetFileNameWithoutExtension(path);
-            int end = name.Length;
 
-            while (end > 0 && char.IsDigit(name[end - 1])) end--;
+            for (int i = 0; i < name.Length; i++)
+            {
+                if (!char.IsDigit(name[i])) continue;
 
-            return end < name.Length && int.TryParse(name.Substring(end), out int value)
-                ? value
-                : 0;
+                int end = i;
+                while (end < name.Length && char.IsDigit(name[end])) end++;
+
+                return int.TryParse(name.Substring(i, end - i), out int value) ? value : 0;
+            }
+
+            return 0;
         }
     }
 }

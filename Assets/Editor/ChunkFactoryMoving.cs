@@ -72,11 +72,18 @@ namespace ArvinRunner.EditorTools
         /// five units outside what the camera shows, so the shot happened off
         /// screen and only the marker ever appeared.
         ///
-        /// These four numbers are solved against the whole 9-to-15 speed range
-        /// instead: the helicopter is between 9 and 16 units ahead of the runner
-        /// when it fires, and always still short of the target. It drifts at 1.7
-        /// because that is what keeps both ends of that range true - it is a
-        /// gunship steadying for a shot, not a jet going past.
+        /// These numbers are solved against the whole 9-to-15 speed range
+        /// instead. The helicopter starts at 27 and drifts at 1.2, which puts it
+        /// 8.7 units ahead of a slow runner when it fires and 15.5 ahead of a
+        /// fast one - both inside the ~18 the camera shows - and still right of
+        /// the target either way, so the missile goes down and forward as the art
+        /// draws it rather than backwards over its own shoulder.
+        ///
+        /// Slowing it down tightens the fast end rather than the slow one, which
+        /// is the counter-intuitive part: the less ground the aircraft covers
+        /// before the trigger, the further ahead it still is when it fires. 1.2
+        /// is about as slow as it goes before the shot starts leaving the screen
+        /// at top speed.
         /// </summary>
         private static GameObject AirStrike()
         {
@@ -85,7 +92,7 @@ namespace ArvinRunner.EditorTools
             Ground(root, 0f, 0f, 40f);
 
             GameObject strike = Strike(root, 24f, 0f);
-            Helicopter(root, 28f, 6f, strike);
+            Helicopter(root, 27f, 6f, strike);
 
             // Over the strike point, so the line that clears the fire is the
             // line that collects.
@@ -135,42 +142,60 @@ namespace ArvinRunner.EditorTools
             go.transform.SetParent(parent.transform, false);
             go.transform.localPosition = new Vector3(x, flyHeight, 0f);
 
-            // The fuselage only. The rotor is drawn above this and is not part of
-            // what the runner could ever touch.
+            // Fuselage and skids, not the rotor. Measured off the art: the solid
+            // pixels are dense up to 1.95 above the pivot and then thin out into
+            // the blade disc above 2.14, which spans nearly the full width but is
+            // mostly air.
             var box = go.AddComponent<BoxCollider2D>();
-            box.size = new Vector2(5.5f, 2f);
-            box.offset = new Vector2(0f, 1f);
+            box.size = new Vector2(5.8f, 1.9f);
+            box.offset = new Vector2(-0.2f, 0.97f);
             box.isTrigger = true;
 
             go.AddComponent<Hazard>();
 
-            // Solved, not chosen - see the note on AirStrike. Slow enough that
-            // it is still short of the target when a fast runner triggers the
-            // shot, and still closes on a slow one. They pass at 10.7 to 16.7.
+            // Solved, not chosen - see the note on AirStrike. Slow enough that it
+            // is still short of the target when a fast runner triggers the shot,
+            // and still closing on a slow one. At 1.2 it is 8.7 units ahead of a
+            // runner doing 9 when it fires and 15.5 ahead of one doing 15, both
+            // inside what the camera shows, and it is still right of the target in
+            // either case so the missile goes down and forward as the art draws it.
             var travel = go.AddComponent<MovingObstacle>();
-            EditorUtil.SetFloat(travel, "speed", 1.7f);
+            EditorUtil.SetFloat(travel, "speed", 1.2f);
             EditorUtil.SetFloat(travel, "activationDistance", 30f);
 
-            Frames(go, MovingObstacleImport.Frames("helli"), 18f,
-                   fallbackSize: new Vector2(6.78f, 2.33f),
+            // 5.5fps, so the four firing frames play across 0.73s against the
+            // strike's 0.75 warning - the drawn missile leaves the frame on the
+            // same beat as the fire arrives. The approach loops the first two,
+            // which differ by three pixels and read as rotor rather than motion.
+            Sprite[] frames = MovingObstacleImport.Frames("helli");
+            Frames(go, frames, 5.5f,
+                   fallbackSize: new Vector2(6.84f, 2.85f),
                    fallbackTint: new Color(0.28f, 0.32f, 0.24f));
 
-            // Under the fuselage, at the pylons the art draws there, rather than
-            // at the nose flash. The helicopter is only a couple of units short
-            // of its target when it shoots, so the missile goes down rather than
-            // forward - launching it from the belly is what makes that read as
-            // aimed rather than as a mistake.
+            // The stub pylon the art launches from, a little right of centre and
+            // just under the fuselage. Only the gizmo and the strike's record of
+            // where the shot came from use it now that the frames draw the missile.
             var muzzle = new GameObject("Muzzle");
             muzzle.transform.SetParent(go.transform, false);
-            muzzle.transform.localPosition = new Vector3(0f, -0.2f, 0f);
+            muzzle.transform.localPosition = new Vector3(0.2f, 0.85f, 0f);
 
             var gun = go.AddComponent<HelicopterStrike>();
             EditorUtil.SetObject(gun, "strike", strike.GetComponent<MissileStrike>());
             EditorUtil.SetObject(gun, "muzzle", muzzle.transform);
 
-            // heli5 is the drawn firing pose - held for a moment as it shoots so
-            // the flash lands on the same beat as the marker.
-            EditorUtil.SetObject(gun, "firingFrame", MovingObstacleImport.Frame("helli", 4));
+            // The folder is a storyboard, not a cycle: fly, descend, fire_launch,
+            // missile_away, missile_far, recover. So the shot starts at index 2,
+            // and that is a fact about these six drawings rather than a fraction
+            // of however many there happen to be - splitting down the middle puts
+            // fire_launch inside the approach loop, and the aircraft then flashes
+            // its launch pose over and over while it is still only cruising.
+            const int launchFrame = 2;
+
+            int fire = Mathf.Clamp(launchFrame, 1, Mathf.Max(1, frames.Length - 1));
+            EditorUtil.SetInt(gun, "approachFirst", 0);
+            EditorUtil.SetInt(gun, "approachLast", fire - 1);
+            EditorUtil.SetInt(gun, "fireFirst", fire);
+            EditorUtil.SetInt(gun, "fireLast", Mathf.Max(fire, frames.Length - 1));
 
             return go;
         }
@@ -207,13 +232,13 @@ namespace ArvinRunner.EditorTools
             SpriteRenderer blast = StrikePart(go, "Blast", "blast",
                                               new Color(1f, 0.85f, 0.55f), 15, 0.8f);
 
-            SpriteRenderer missile = StrikePart(go, "Missile", "missile",
-                                                Color.white, 15, 1f);
-
+            // No procedural missile. The helicopter's frames draw the launch and
+            // the missile clearing the rail, and a second one flying the same
+            // shot would be two missiles for one shot. MissileStrike null-guards
+            // the renderer, so leaving it unset simply skips that part.
             var strike = go.AddComponent<MissileStrike>();
             EditorUtil.SetObject(strike, "marker", marker);
             EditorUtil.SetObject(strike, "blast", blast);
-            EditorUtil.SetObject(strike, "missile", missile);
             EditorUtil.SetFloat(strike, "warnDuration", 0.75f);
             EditorUtil.SetFloat(strike, "blastDuration", 0.9f);
             EditorUtil.SetFloat(strike, "blastRadius", radius);

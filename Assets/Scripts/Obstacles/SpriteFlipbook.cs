@@ -24,7 +24,9 @@ namespace ArvinRunner
 
         private float _timer;
         private int _index;
-        private float _holdRemaining;
+        private int _first;
+        private int _last;
+        private bool _finished;
 
         private void Awake()
         {
@@ -32,35 +34,44 @@ namespace ArvinRunner
             if (target == null) target = GetComponentInChildren<SpriteRenderer>();
 
             _timer = startOffset;
-            if (HasFrames) target.sprite = frames[0];
+            _first = 0;
+            _last = frames != null && frames.Length > 0 ? frames.Length - 1 : 0;
+
+            if (HasFrames) target.sprite = frames[_index = _first];
         }
 
         private bool HasFrames => target != null && frames != null && frames.Length > 0;
 
         /// <summary>
-        /// Shows one frame for a while, then picks the cycle back up. The
-        /// helicopter uses it to sit on its muzzle-flash pose at the moment it
-        /// fires, without needing a second animation system to do it.
+        /// Plays a slice of the frames and stops on the last one.
+        ///
+        /// This exists because the helicopter's frames are a storyboard rather
+        /// than a cycle - fly, descend, fire, missile away, missile far, recover.
+        /// Looping the whole folder would have it firing on a timer forever; the
+        /// approach loops the first frames and the shot plays the rest, once.
         /// </summary>
-        public void Hold(Sprite sprite, float seconds)
+        public void PlayRange(int first, int last, bool looping)
         {
-            if (target == null || sprite == null) return;
+            if (frames == null || frames.Length == 0) return;
 
-            target.sprite = sprite;
-            _holdRemaining = seconds;
+            _first = Mathf.Clamp(first, 0, frames.Length - 1);
+            _last = Mathf.Clamp(last, _first, frames.Length - 1);
+
+            loop = looping;
+            _index = _first;
+            _timer = 0f;
+            _finished = false;
+
+            if (target != null) target.sprite = frames[_index];
         }
+
+        /// <summary>True once a non-looping range has reached its last frame.</summary>
+        public bool Finished => _finished;
 
         private void Update()
         {
-            if (!HasFrames) return;
-
-            if (_holdRemaining > 0f)
-            {
-                _holdRemaining -= Time.deltaTime;
-                return;
-            }
-
-            if (frames.Length == 1) return;
+            if (!HasFrames || _finished) return;
+            if (_last <= _first) return;
 
             _timer += Time.deltaTime;
             float frameDuration = 1f / Mathf.Max(1f, fps);
@@ -69,8 +80,18 @@ namespace ArvinRunner
             _timer -= frameDuration;
             _index++;
 
-            if (_index >= frames.Length)
-                _index = loop ? 0 : frames.Length - 1;
+            if (_index > _last)
+            {
+                if (loop)
+                {
+                    _index = _first;
+                }
+                else
+                {
+                    _index = _last;
+                    _finished = true;
+                }
+            }
 
             target.sprite = frames[_index];
         }

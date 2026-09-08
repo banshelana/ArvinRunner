@@ -196,7 +196,7 @@ Transform:
   - {fileID: 7450468625035966533}
   - {fileID: 8974103611907562484}
   m_Father: {fileID: 0}
-  m_RootOrder: 4
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &3330248270129339464
 MonoBehaviour:

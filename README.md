@@ -318,8 +318,8 @@ sharing a tag never get placed back to back.
 | `Collectible` | pickup, feeds the score |
 | `MovingObstacle` | travels leftward once the runner is near; despawns behind them |
 | `HelicopterStrike` | fires one missile at a marked point as it passes |
-| `MissileStrike` | the marker, the missile and the fire it leaves |
-| `SpriteFlipbook` | cycles an obstacle's frames |
+| `MissileStrike` | the marker and the fire it leaves |
+| `SpriteFlipbook` | cycles an obstacle's frames, or plays a slice of them once |
 
 ### Obstacles that come the other way
 
@@ -345,15 +345,31 @@ just as the runner arrives whatever speed they are doing. That has one
 consequence worth knowing before retuning it: a faster runner triggers the shot
 from *further back*, while the helicopter has had *less* time to close. The first
 numbers here fired it from 23 units ahead at full run speed — five units off
-screen, so only the marker ever appeared. The four numbers in `Chunk_AirStrike`
-are solved against the whole 9-to-15 range instead, which keeps it 9 to 16 units
-ahead when it shoots, and still short of its target.
+screen, so only the marker ever appeared.
+
+**Slowing the aircraft tightens the fast end, not the slow one**, which is the
+counter-intuitive half: the less ground it covers before the trigger, the further
+ahead it still is when it fires. At its current drift of 1.2 it shoots from 8.6
+units ahead of a runner doing 9 and 15.4 ahead of one doing 15 — both inside what
+the camera shows — and stays right of its target at every speed, so the missile
+goes down and forward as the art draws it. That is close to as slow as it goes
+before the shot starts happening off screen.
 
 The marker is what makes the strike fair rather than memorised, and it is drawn
 to the same radius as the blast that follows — a marker smaller than the fire
-would be a lie. There is no drawn art for the shot itself (the helicopter frames
-only carry a muzzle flash), so the marker, missile and fireball are generated in
-`PlaceholderArt` alongside the spikes and coins.
+would be a lie. The marker and fireball are generated in `PlaceholderArt`
+alongside the spikes and coins; the missile is not, because the helicopter's own
+frames draw the launch and a second one would be two missiles for one shot.
+
+The helicopter's frames are a **storyboard, not a cycle** — fly, descend,
+fire_launch, missile_away, missile_far, recover. `SpriteFlipbook.PlayRange` plays
+a slice, so the first two loop on the way in and the last four play once, on the
+shot, holding on the recovery pose. They run at 5.5fps so those four span 0.73s
+against the strike's 0.75s warning: the drawn missile leaves the frame on the
+same beat the fire arrives. The split is a fact about these six drawings and is
+written as one — dividing the folder in half instead would put the launch pose
+inside the approach loop, and the aircraft would flash its muzzle over and over
+while still only cruising.
 
 Animated obstacle art lives in `Assets/Art/MovingObstacles/`, one folder per
 obstacle, and is imported by **ArvinRunner → Re-import Moving Obstacles**. The
@@ -361,6 +377,22 @@ measuring is shared with the runner's frames (`SpriteMeasure`), but the scaling
 is not: the runner's clips all share one pixels-per-unit because they are the
 same character and it must not resize, whereas two unrelated vehicles get their
 own scale each from a declared height in `MovingObstacleImport`.
+
+**How a folder is anchored depends on how it was drawn, and the importer works
+that out rather than being told.** Frames cropped individually — the bike, at
+344x286, 310x285, 363x246 — share no frame of reference, so each is measured and
+pinned on its own or the object jumps about as the crop changes under it. Frames
+drawn on one shared canvas are the opposite case: the helicopter is six 1547x854
+frames with the aircraft in the same place in every one, and what moves is the
+missile leaving and the smoke trailing. Measuring those per frame would pin each
+to its own centre of mass, and since the missile drags that centre 59px sideways
+and 96px down, the aircraft would lurch across the sky chasing its own missile.
+Frames that share a canvas size were laid out together, so that is the test, and
+a shared canvas gets one anchor for the whole folder.
+
+Both the anchor and the scale are measured on **solid pixels only**. Rotor blur,
+exhaust and a smoke trail belong to the picture but not to where the object is,
+and letting them into the measurement lets a machine follow its own smoke.
 
 Their colliders are authored in world units rather than derived from the sprite,
 because these frames change shape as the rider leans and the rotor turns — a
