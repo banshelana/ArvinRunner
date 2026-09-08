@@ -39,7 +39,15 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 3a436d8ac2b45624099f65a35e06fbab, type: 3}
     - {fileID: 21300000, guid: b1585c230ab9cb548a7e652aa036641c, type: 3}
     - {fileID: 21300000, guid: 83d8ba19cece28345b01dbe55bb66116, type: 3}
-    fps: 16
+    - {fileID: 21300000, guid: d1d5f9e8d65edc24a8321bfedd688fc2, type: 3}
+    - {fileID: 21300000, guid: 25bd6906ea0756542877e42d2084691e, type: 3}
+    - {fileID: 21300000, guid: 01e624817303201498e26c0d158ad462, type: 3}
+    - {fileID: 21300000, guid: 8232da1a562645144a97d59c5d35b571, type: 3}
+    - {fileID: 21300000, guid: e8b116866bacff141ae7a65eb97a5279, type: 3}
+    - {fileID: 21300000, guid: eb98fc9f968606f40840381fbc26be52, type: 3}
+    - {fileID: 21300000, guid: 2b2cd9e7f3a93cc4aa7c58c2f534bc8f, type: 3}
+    - {fileID: 21300000, guid: 10f620de85c17c74591174e90583129b, type: 3}
+    fps: 32
     loop: 1
   - anim: 2
     frames:

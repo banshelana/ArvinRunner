@@ -184,6 +184,16 @@ namespace ArvinRunner.EditorTools
             float groundRise = RiseTime(config.jumpHeight);
             float airRise = RiseTime(config.doubleJumpHeight);
 
+            // One full stride cycle - two footfalls - in half a second. That is
+            // not a look-at-it-and-pick number: at the 9 the runner starts a
+            // level on, it puts a footfall every 2.25 units against a figure
+            // 1.80 tall, which is about the 1.2x height a person covers per step
+            // at a run. Spread across however many frames the folder holds, so
+            // redrawing the cycle smoother changes how finely it is sampled and
+            // not how fast the runner appears to be moving. At 16 frames that is
+            // 32fps; the same 0.5s it was at 8 frames and 16fps.
+            const float strideCycle = 0.5f;
+
             SpriteAnimationClip Clip(PlayerAnim anim, Sprite[] frames, float fps, bool loop)
             {
                 return new SpriteAnimationClip
@@ -201,7 +211,7 @@ namespace ArvinRunner.EditorTools
             {
                 // --- drawn as flip-books -----------------------------------
                 Clip(PlayerAnim.Idle, idle, 8f, true),
-                Clip(PlayerAnim.Run, run, 16f, true),
+                Clip(PlayerAnim.Run, run, Over(strideCycle, run), true),
                 Clip(PlayerAnim.JumpRise, jump, Over(groundRise, jump), false),
                 Clip(PlayerAnim.DoubleJump, bigJump, Over(airRise, bigJump), false),
                 Clip(PlayerAnim.JumpFall, fall, 10f, true),

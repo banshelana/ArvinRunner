@@ -64,8 +64,7 @@ importing them as-is makes the runner change size and hop about:
 
 - **One pixels-per-unit for every frame**, taken from the tallest `Idle` pose so
   the standing runner comes out at 1.80 units. Scaling each clip to its own
-  tallest frame would make the runner grow whenever a limb extends — `Run` is
-  188px tall against `Idle`'s 174 for exactly that reason.
+  tallest frame would make the runner grow whenever a limb extends.
 - **A pivot measured on the figure, not the canvas** — the bottom of the alpha
   bounds vertically, the alpha centroid horizontally. `Tackle1` carries 30
   transparent pixels below the body, so a canvas pivot would leave the runner
@@ -76,18 +75,43 @@ importing them as-is makes the runner change size and hop about:
 - **An exception to the shared scale**, for folders drawn at a different
   resolution. One scale for everything is what stops the runner resizing between
   clips, but it assumes every folder was drawn at the same size — and `lowFlip`
-  was drawn at roughly twice the linear size of the others, so on the shared
-  scale it would render 3.8 units tall. `ScaleOverrides` in
-  `PlayerAnimationImport.cs` gives such a folder the height its tallest frame
-  should come out at. Anything off-scale and unlisted gets a warning rather than
-  silence.
+  and `Run` were not, both arriving at roughly twice the linear size of the
+  others. Left alone, `Run` would render 3.1–3.5 units tall against a 1.80
+  runner. `ScaleOverrides` in `PlayerAnimationImport.cs` gives such a folder the
+  height its tallest frame should come out at; both are set to 1.94, which is
+  what `Run` came out at before it was redrawn. Anything off-scale and unlisted
+  gets a warning rather than silence.
+- **An exception to that exception**, in `LevelFrameHeights`, for a folder whose
+  own frames disagree with each other. `Run`'s 16 frames arrived as two batches:
+  1–8 average 330px tall, 9–16 average 300px, each batch internally consistent
+  to within a few percent with a flat **10% step between them**. That is not
+  gait — gait varies smoothly across a cycle rather than sitting on two plateaus
+  — and on one scale the runner would shrink a tenth of their height halfway
+  through every stride and snap back, twice a second. Frames in a levelled clip
+  are scaled individually so each comes out at exactly the target height. It
+  costs the ~4% of genuine head movement through a stride and removes the 10% of
+  pulsing, and the importer logs the spread it corrected so the underlying art
+  problem stays visible.
 
-Every clip is paced by the state it plays over, not by a hand-picked number.
+Every clip is paced by the thing it plays over, not by a hand-picked number.
 `Slide` and `Roll` come from `slideDuration` and `rollDuration`; the jump clips
 come from how long the rise actually lasts, which `TickAirborne` ends the instant
 upward speed hits zero. That matters most for the eight-frame somersault: at a
 plausible-looking 14fps it would be cut off three frames short of landing
 upright on every single jump.
+
+`Run` is paced by a **stride cycle of 0.5s** rather than a frame rate, so
+redrawing it smoother changes how finely the cycle is sampled and not how fast
+the runner appears to move — going from 8 frames to 16 took it from 16fps to
+32fps and left the cadence alone. Half a second per cycle puts a footfall every
+2.25 units at the 9 a level starts at, about the 1.2x of body height a person
+covers per step at a run.
+
+One thing that cadence does not do is follow the run speed, which ramps from 9
+to 15 across a level. At the top of that the stride stretches to 3.75 units per
+footfall and the feet visibly slide. Scaling the frame rate by
+`PlayerController.CurrentSpeed` in `PlayerAnimatorDriver` would fix it for every
+looping clip at once; it has not been done because nothing has asked for it yet.
 
 **Slots can hold more than one clip, and one is picked at random each time.**
 That is how the jumps stop looking canned — `flipJump` sits alongside the plain
@@ -106,7 +130,7 @@ The thirteen slots the game drives:
 | Slot | When it plays | Source |
 | --- | --- | --- |
 | `Idle` | on the start line, and after crossing the finish | `Idle`, 6 frames |
-| `Run` | normal running | `Run`, 8 frames |
+| `Run` | normal running | `Run`, 16 frames |
 | `JumpRise` | rising after a ground jump | `jump` 6 **or** `flipJump` 8, at random |
 | `LowFlip` | a ground jump over something small | `lowFlip`, 6 frames |
 | `JumpFall` | falling | `Fall`, 4 frames |

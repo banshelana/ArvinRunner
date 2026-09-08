@@ -10,8 +10,8 @@ namespace ArvinRunner.EditorTools
     /// Imports the drawn runner frames in Art/Player/PlayerAnimations.
     ///
     /// One folder per animation, one PNG per frame. The frames arrive as
-    /// individually cropped images - Run is 183x213, Idle 100x176, and the
-    /// figure does not sit in the same place on every canvas - so importing
+    /// individually cropped images - Run is around 250x330, Idle 100x176, and
+    /// the figure does not sit in the same place on every canvas - so importing
     /// them with Unity's defaults would make the runner change size and hop
     /// about between frames. Two measurements fix that:
     ///
@@ -43,8 +43,11 @@ namespace ArvinRunner.EditorTools
     ///  3. An exception to (1) for any folder drawn at a different resolution,
     ///     listed in <see cref="ScaleOverrides"/>. One shared scale is what stops
     ///     the runner changing size between clips, but it only works while every
-    ///     folder was drawn at the same size, and lowFlip was not. Anything that
-    ///     is off-scale and unlisted gets a warning rather than silence.
+    ///     folder was drawn at the same size, and lowFlip and Run were not.
+    ///     Anything off-scale and unlisted gets a warning rather than silence.
+    ///
+    ///  4. An exception to the exception, in <see cref="LevelFrameHeights"/>, for
+    ///     a folder whose own frames disagree with each other about scale.
     ///
     /// The result is a set of sprites that can be swapped frame to frame with
     /// nothing else moving.
@@ -62,7 +65,7 @@ namespace ArvinRunner.EditorTools
         /// <summary>The clip whose height defines the scale of all the others.</summary>
         private const string ReferenceSet = "Idle";
 
-        /// <summary>The frames top out at 291x369, so 512 never downscales one.</summary>
+        /// <summary>The frames top out at 291x369 (lowFlip), so 512 never downscales one.</summary>
         private const int MaxTextureSize = 512;
 
         /// <summary>
@@ -92,8 +95,33 @@ namespace ArvinRunner.EditorTools
         private static readonly Dictionary<string, float> ScaleOverrides =
             new Dictionary<string, float>(System.StringComparer.OrdinalIgnoreCase)
         {
-            ["LowFlip"] = 1.94f
+            ["LowFlip"] = 1.94f,
+
+            // Redrawn larger and smoother, at roughly twice the linear size of
+            // Idle, so it needs the same treatment. 1.94 is the height Run came
+            // out at before, which keeps the runner the size it has always been.
+            ["Run"] = 1.94f
         };
+
+        /// <summary>
+        /// Clips brought out at exactly the override height frame by frame,
+        /// rather than sharing one scale across the whole clip.
+        ///
+        /// One scale per clip is the right default: it keeps the figure's own
+        /// rise and fall, so the head lifts through a stride instead of being
+        /// ironed flat.
+        ///
+        /// Run is here because its frames were not all drawn at one size. The 16
+        /// arrived as two batches - frames 1-8 average 330px tall, frames 9-16
+        /// average 300px, each batch internally consistent to within a few
+        /// percent, with a flat 10% step between them. That is not gait; gait
+        /// varies smoothly across a cycle rather than sitting on two plateaus.
+        /// On one shared scale the runner would shrink a tenth of their height
+        /// halfway through every stride and snap back, twice a second. Levelling
+        /// costs the ~4% of real head movement and removes the 10% of pulsing.
+        /// </summary>
+        private static readonly HashSet<string> LevelFrameHeights =
+            new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "Run" };
 
         /// <summary>
         /// How far a set's tallest frame may sit from the standing height before
@@ -154,11 +182,21 @@ namespace ArvinRunner.EditorTools
                 {
                     float pixelsPerUnit = ScaleFor(set.Key, set.Value, shared);
 
+                    // A levelled clip resolves its scale per frame instead, so
+                    // every frame lands on the same drawn height.
+                    float levelTo = 0f;
+                    if (LevelFrameHeights.Contains(set.Key) &&
+                        ScaleOverrides.TryGetValue(set.Key, out float target))
+                    {
+                        levelTo = target;
+                        ReportLevelling(set.Key, set.Value);
+                    }
+
                     foreach (string path in set.Value)
                     {
                         EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
                                                          0.5f + 0.5f * done++ / TotalFrames(sets));
-                        Finalise(path, pixelsPerUnit);
+                        Finalise(path, pixelsPerUnit, levelTo);
                     }
                 }
             }
@@ -348,8 +386,12 @@ namespace ArvinRunner.EditorTools
         /// Gives one frame its pivot and its scale. The measuring and the import
         /// settings both live in SpriteMeasure, which the moving-obstacle frames
         /// share - they arrive cropped just as inconsistently.
+        ///
+        /// <paramref name="levelTo"/> above zero means this frame gets its own
+        /// scale, so the drawn figure comes out exactly that tall - see
+        /// <see cref="LevelFrameHeights"/> for when that is the right thing.
         /// </summary>
-        private static void Finalise(string path, float pixelsPerUnit)
+        private static void Finalise(string path, float pixelsPerUnit, float levelTo = 0f)
         {
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (texture == null) return;
@@ -361,9 +403,41 @@ namespace ArvinRunner.EditorTools
                 return;
             }
 
+            if (levelTo > 0.01f) pixelsPerUnit = figure.Bounds.height / levelTo;
+
             SpriteMeasure.ApplyFrame(path,
                                      SpriteMeasure.PivotFor(figure, texture.width, texture.height),
                                      pixelsPerUnit);
+        }
+
+        /// <summary>
+        /// Says what levelling corrected, so a clip being quietly adjusted on
+        /// every import does not stay quiet about it. A small spread is the
+        /// drawing breathing; a large one means the frames were not all drawn at
+        /// one size, and the art is the better place to fix that.
+        /// </summary>
+        private static void ReportLevelling(string setName, string[] paths)
+        {
+            int shortest = int.MaxValue, tallest = 0;
+
+            foreach (string path in paths)
+            {
+                int height = SpriteMeasure.Measure(path).Bounds.height;
+                if (height <= 0) continue;
+
+                if (height < shortest) shortest = height;
+                if (height > tallest) tallest = height;
+            }
+
+            if (tallest <= 0 || shortest == int.MaxValue) return;
+
+            float spread = (float)tallest / shortest - 1f;
+            if (spread < 0.05f) return;
+
+            Debug.Log($"[ArvinRunner] The '{setName}' frames vary {spread:P0} in drawn height " +
+                      $"({shortest}-{tallest}px) and are being levelled to one size. Much above " +
+                      "5% is usually two batches drawn at different scales rather than the figure " +
+                      "moving - worth re-exporting them to match.");
         }
     }
 }
