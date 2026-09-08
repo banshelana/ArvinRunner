@@ -34,7 +34,7 @@ Transform:
   m_Children:
   - {fileID: 6103107331231045386}
   m_Father: {fileID: 0}
-  m_RootOrder: 6
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!50 &5648880830439557108
 Rigidbody2D:
@@ -89,6 +89,7 @@ MonoBehaviour:
   groundProbeInset: 0.06
   ceilingProbeDistance: 0.15
   kneeHeight: 0.35
+  lowObstacleLookAhead: 4
   drawGizmos: 1
 --- !u!114 &460032275098851291
 MonoBehaviour:
@@ -114,7 +115,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6103107331231045386}
-  - component: {fileID: 4011703115100601507}
   - component: {fileID: 3398786430635334440}
   m_Layer: 12
   m_Name: Visual
@@ -131,20 +131,72 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5064630064354887226}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 0.875, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1185843901900555953}
   m_Father: {fileID: 897846790791816976}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!212 &4011703115100601507
-SpriteRenderer:
+--- !u!114 &3398786430635334440
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5064630064354887226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dbed5f0b617667146991cf518156fc37, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  spriteRenderer: {fileID: 4504978376143475036}
+  animationSet: {fileID: 11400000, guid: 7d4ab53612dd58541a92538ac28e1652, type: 2}
+  trickSet: {fileID: 11400000, guid: 55e07309c956b0e4b87322e54151e674, type: 2}
+  tricksYieldToFrames: 1
+  animator: {fileID: 0}
+  stateParameter: State
+  speedParameter: Speed
+--- !u!1 &5941352162924795532
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1185843901900555953}
+  - component: {fileID: 4504978376143475036}
+  m_Layer: 12
+  m_Name: Sprite
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1185843901900555953
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5941352162924795532}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.875, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 6103107331231045386}
+  m_RootOrder: -1
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!212 &4504978376143475036
+SpriteRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5941352162924795532}
   m_Enabled: 1
   m_CastShadows: 0
   m_ReceiveShadows: 0
@@ -179,36 +231,14 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 20
-  m_Sprite: {fileID: -4215804184226180500, guid: 107d7d7752a6e4b47a8b003519905371, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 9a6f1a3b2623abf4580778061100c609, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1.5639681, y: 1.8}
+  m_Size: {x: 1.0344827, y: 1.7586206}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &3398786430635334440
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5064630064354887226}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dbed5f0b617667146991cf518156fc37, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  animationSet: {fileID: 11400000, guid: 7d4ab53612dd58541a92538ac28e1652, type: 2}
-  animator: {fileID: 0}
-  stateParameter: State
-  speedParameter: Speed
-  proceduralSquash: 1
-  squashAmount: 0.12
-  animateStillFrames: 1
-  bobHeight: 0.07
-  bobSpeed: 11
-  runLean: 4

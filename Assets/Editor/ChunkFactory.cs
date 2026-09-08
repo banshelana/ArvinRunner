@@ -58,6 +58,12 @@ namespace ArvinRunner.EditorTools
             // Obstacles that accept either a jump or a slide.
             chunks.AddRange(CreateRouteChunks());
 
+            // Street level: the vehicles and site props.
+            chunks.AddRange(CreateVehicleChunks());
+
+            // Obstacles that come the other way.
+            chunks.AddRange(CreateMovingChunks());
+
             return chunks.ToArray();
         }
 

@@ -35,6 +35,14 @@ namespace ArvinRunner.EditorTools
             /// <summary>Fallback size in world units if the sprite is missing.</summary>
             public Vector2 FallbackSize;
             public Color FallbackTint;
+
+            /// <summary>
+            /// Mirror the prop, art and colliders together. The runner only ever
+            /// arrives from the left, so which way a lopsided prop faces decides
+            /// what it plays like: the digger approached cab-first is a wall,
+            /// approached arm-first it is a climb.
+            /// </summary>
+            public bool Flip;
         }
 
         // Everything solid but climbable sits on Vaultable rather than Ground or
@@ -222,7 +230,8 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static GameObject Prop(GameObject parent, string propName, float leftX, float groundY)
         {
-            if (!Props.TryGetValue(propName, out PropSpec spec))
+            if (!Props.TryGetValue(propName, out PropSpec spec) &&
+                !VehicleProps.TryGetValue(propName, out spec))
             {
                 Debug.LogWarning($"[ArvinRunner] Unknown prop '{propName}'.");
                 return null;
@@ -244,6 +253,8 @@ namespace ArvinRunner.EditorTools
 
             var renderer = visual.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = 10;
+
+            renderer.flipX = spec.Flip;
 
             if (sprite != null)
             {
@@ -274,10 +285,14 @@ namespace ArvinRunner.EditorTools
         {
             foreach (PropBox definition in spec.Boxes)
             {
+                // Mirroring a normalised box is just reflecting its left edge:
+                // a box at x with width w starts at 1 - x - w once flipped.
+                float x = spec.Flip ? 1f - definition.X - definition.Width : definition.X;
+
                 var box = go.AddComponent<BoxCollider2D>();
                 box.size = new Vector2(definition.Width * size.x, definition.Height * size.y);
                 box.offset = new Vector2(
-                    (definition.X + definition.Width * 0.5f - 0.5f) * size.x,
+                    (x + definition.Width * 0.5f - 0.5f) * size.x,
                     (definition.Y + definition.Height * 0.5f) * size.y);
             }
         }

@@ -33,6 +33,19 @@ namespace ArvinRunner.EditorTools
             public string[] Slices;
             /// <summary>World height, in units, of the tallest slice in the image.</summary>
             public float TallestHeight;
+
+            /// <summary>
+            /// Skip the column scan and take the whole image as one sprite,
+            /// trimmed to its alpha bounds.
+            ///
+            /// The scan exists to split multi-prop sheets, but it cuts at any
+            /// transparent gap wider than <see cref="MinGapWidth"/> and then
+            /// keeps only the widest group. A chain-link mesh, a scaffold frame
+            /// and a digger arm held clear of its body all read as several
+            /// objects to it, so a single prop with daylight through it would
+            /// come back cropped to its bulkiest part.
+            /// </summary>
+            public bool WholeImage;
         }
 
         private static readonly ArtSpec[] Specs =
@@ -58,7 +71,83 @@ namespace ArvinRunner.EditorTools
                           Slices = new[] { "barrier" }, TallestHeight = 1.05f },
 
             new ArtSpec { Path = "Assets/Art/Obstacles/acunit.png",
-                          Slices = new[] { "acunit" }, TallestHeight = 1.40f }
+                          Slices = new[] { "acunit" }, TallestHeight = 1.40f },
+
+            // ---------------------------------------------------------------
+            // The vehicles and site props in Art/OstaclesNew.
+            //
+            // Every height below is picked against the runner's four windows
+            // rather than against the real vehicle, so each prop lands on one
+            // side of a threshold deliberately:
+            //
+            //     sliding height   0.79    what fits under an overhang
+            //     maxVaultHeight   1.60    the ceiling the vault probe accepts
+            //     standing height  1.75    what blocks you outright
+            //     jumpHeight       3.20    the top of a single jump
+            //
+            // Anything at or under 1.60 gets vaulted, and the vault lands the
+            // runner ON the obstacle rather than past it, so a long car becomes
+            // a stretch of roof to run along. Anything above it has to be
+            // jumped onto instead.
+            //
+            // Widths are never authored. The importer derives pixels-per-unit
+            // from the height, so each prop keeps its drawn proportions and the
+            // layouts read the finished size back off the sprite.
+            // ---------------------------------------------------------------
+
+            // -- under the vault ceiling: taken in stride -------------------
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_pallet.png",
+                          Slices = new[] { "pallet" }, TallestHeight = 1.15f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_motorbike.png",
+                          Slices = new[] { "motorbike" }, TallestHeight = 1.30f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_tires.png",
+                          Slices = new[] { "tires" }, TallestHeight = 1.45f, WholeImage = true },
+
+            // -- cars: vaulted onto, then run along -------------------------
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_limo.png",
+                          Slices = new[] { "limo" }, TallestHeight = 1.40f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_sedan.png",
+                          Slices = new[] { "sedan" }, TallestHeight = 1.45f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_taxi.png",
+                          Slices = new[] { "taxi" }, TallestHeight = 1.45f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_coupe.png",
+                          Slices = new[] { "coupe" }, TallestHeight = 1.45f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_hatchback.png",
+                          Slices = new[] { "hatchback" }, TallestHeight = 1.50f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_pickup.png",
+                          Slices = new[] { "pickup" }, TallestHeight = 1.55f, WholeImage = true },
+
+            // -- above it: jumped onto, or jumped over ----------------------
+            // 2.10 is the one height here that was solved rather than picked.
+            // The fence is the only new prop meant to be cleared outright, and
+            // the jump arc only stays above 2.10 for about 0.40s - 3.6 units at
+            // running speed - against a fence 2.96 wide at that height. At the
+            // 2.40 it was first drawn to, the margin ran out entirely.
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_fence.png",
+                          Slices = new[] { "fence" }, TallestHeight = 2.10f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_van.png",
+                          Slices = new[] { "van" }, TallestHeight = 2.50f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_fire_truck.png",
+                          Slices = new[] { "firetruck" }, TallestHeight = 2.70f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_bus.png",
+                          Slices = new[] { "bus" }, TallestHeight = 2.90f, WholeImage = true },
+
+            // -- set pieces: climbed in stages ------------------------------
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_excavator.png",
+                          Slices = new[] { "excavator" }, TallestHeight = 3.40f, WholeImage = true },
+
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_scaffold.png",
+                          Slices = new[] { "scaffold" }, TallestHeight = 4.40f, WholeImage = true }
         };
 
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();
@@ -176,7 +265,10 @@ namespace ArvinRunner.EditorTools
                 return;
             }
 
-            List<RectInt> rects = FindSlices(texture, spec.Slices.Length, spec.Path);
+            List<RectInt> rects = spec.WholeImage
+                ? TrimWhole(texture, spec.Path)
+                : FindSlices(texture, spec.Slices.Length, spec.Path);
+
             if (rects.Count == 0) return;
 
             // --- pass two: apply the slices and the derived scale ------------
@@ -212,6 +304,53 @@ namespace ArvinRunner.EditorTools
             importer.SetTextureSettings(settings);
 
             importer.SaveAndReimport();
+        }
+
+        /// <summary>
+        /// The whole image as a single rect, trimmed to its alpha bounds. Used
+        /// for props a column scan would take apart - see ArtSpec.WholeImage.
+        /// </summary>
+        private static List<RectInt> TrimWhole(Texture2D texture, string path)
+        {
+            var result = new List<RectInt>();
+
+            Color32[] pixels;
+            try
+            {
+                pixels = texture.GetPixels32();
+            }
+            catch (UnityException e)
+            {
+                Debug.LogWarning($"[ArvinRunner] {path} is not readable: {e.Message}");
+                return result;
+            }
+
+            int width = texture.width;
+            int height = texture.height;
+            int xMin = width, yMin = height, xMax = -1, yMax = -1;
+
+            for (int y = 0; y < height; y++)
+            {
+                int row = y * width;
+                for (int x = 0; x < width; x++)
+                {
+                    if (pixels[row + x].a <= AlphaThreshold) continue;
+
+                    if (x < xMin) xMin = x;
+                    if (x > xMax) xMax = x;
+                    if (y < yMin) yMin = y;
+                    if (y > yMax) yMax = y;
+                }
+            }
+
+            if (xMax < xMin)
+            {
+                Debug.LogWarning($"[ArvinRunner] {path} looks fully transparent.");
+                return result;
+            }
+
+            result.Add(new RectInt(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1));
+            return result;
         }
 
         /// <summary>

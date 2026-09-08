@@ -17,6 +17,10 @@ namespace ArvinRunner
         [SerializeField] private CameraFollow cameraFollow;
         [SerializeField] private ParallaxBackground background;
 
+        [Tooltip("The scene's music. Levels that name their own track swap it " +
+                 "here; the rest keep playing whatever the scene started with.")]
+        [SerializeField] private MusicPlayer music;
+
         [Header("Content")]
         [SerializeField] private LevelSet campaign;
         [Tooltip("Forces a level for testing. Leave at -1 so the main menu decides, " +
@@ -44,6 +48,14 @@ namespace ArvinRunner
         public int Pickups { get; private set; }
         public float RunTime { get; private set; }
         public bool HasNextLevel => campaign != null && !campaign.IsLastLevel(CurrentLevelIndex);
+
+        /// <summary>
+        /// The runner. Exposed for the obstacles that have to act on where it is
+        /// rather than wait to be touched by it - a bike closing head-on has to
+        /// start moving before it is on screen, and the helicopter has to know
+        /// how long the runner is from its target before it fires.
+        /// </summary>
+        public PlayerController Player => player;
 
         /// <summary>How far through the level the runner is, 0 to 1.</summary>
         public float Progress
@@ -138,6 +150,11 @@ namespace ArvinRunner
             player.ResetForLevel(builder.SpawnPoint);
             if (cameraFollow != null) cameraFollow.SnapToTarget();
             if (background != null && level.theme != null) background.SetTheme(level.theme);
+
+            // LevelDefinition has carried a music field since the start and
+            // nothing ever read it. A level that names a track gets it; one that
+            // does not keeps the scene's own, rather than falling silent.
+            if (music != null && level.music != null) music.Play(level.music);
 
             SetState(GameState.Ready);
             OnLevelStarted?.Invoke(level);

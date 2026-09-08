@@ -14,14 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelNumber: 1
   displayName: First Steps
-  hint: Swipe up to jump. Swipe up again in the air for a double jump.
+  hint: Swipe up to jump, again in the air to flip. Swipe down to slide.
   mode: 0
   sequence:
   - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
   - {fileID: 6085210395400455381, guid: d64052b8d15d46b45a2c7b8e8aa97fcb, type: 3}
   - {fileID: 2415847885865782023, guid: 2d2c18d940635064597fed05e8a253e4, type: 3}
+  - {fileID: 5827498253427295346, guid: 3146c5964716ad34aacbec6485ea0563, type: 3}
   - {fileID: 7649613292800829701, guid: 21bf9c2dd0e77fa42bba1eeadb9d2654, type: 3}
-  - {fileID: 6596801426346354745, guid: 3c3eeed4b0e1b0247969ac894581a719, type: 3}
+  - {fileID: 571427619453288779, guid: 333f960b684b5fc40923bfc116d34030, type: 3}
   - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
   pool: []
   targetLength: 400
@@ -54,4 +55,4 @@ MonoBehaviour:
   finishPadLength: 16
   theme: {fileID: 11400000, guid: 27452e06c2cd13a4495733ceb2b9fa48, type: 2}
   music: {fileID: 0}
-  parTime: 42
+  parTime: 45

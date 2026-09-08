@@ -53,37 +53,48 @@
     <UnityVersion>2022.1.24f1</UnityVersion>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\Input\SwipeInput.cs" />
-    <Compile Include="Assets\Scripts\Core\GameEnums.cs" />
-    <Compile Include="Assets\Scripts\Core\GameLayers.cs" />
-    <Compile Include="Assets\Scripts\Player\PlayerConfig.cs" />
-    <Compile Include="Assets\Scripts\Player\PlayerSensors.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\Trampoline.cs" />
-    <Compile Include="Assets\Scripts\Player\SpriteAnimationSet.cs" />
+    <Analyzer Include="C:\Program Files\Microsoft Visual Studio\18\Enterprise\Common7\IDE\Extensions\Microsoft\Visual Studio Tools for Unity\Analyzers\Microsoft.Unity.Analyzers.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Assets\Scripts\Camera\ParallaxTheme.cs" />
+    <Compile Include="Assets\Scripts\UI\GameHUD.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\Hazard.cs" />
+    <Compile Include="Assets\Scripts\UI\MainMenuController.cs" />
+    <Compile Include="Assets\Scripts\Camera\CameraFollow.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\Collectible.cs" />
+    <Compile Include="Assets\Scripts\Camera\ParallaxBackground.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\MovingObstacle.cs" />
     <Compile Include="Assets\Scripts\Obstacles\SwingingCrane.cs" />
+    <Compile Include="Assets\Scripts\Player\SpriteAnimationSet.cs" />
+    <Compile Include="Assets\Scripts\Core\GameSession.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\CollapsingPlatform.cs" />
+    <Compile Include="Assets\Scripts\Core\GameManager.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\MissileStrike.cs" />
+    <Compile Include="Assets\Scripts\Core\MusicPlayer.cs" />
+    <Compile Include="Assets\Scripts\Player\PlayerSensors.cs" />
+    <Compile Include="Assets\Scripts\Core\GameEnums.cs" />
+    <Compile Include="Assets\Scripts\Level\FinishLine.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\HelicopterStrike.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\CrusherPress.cs" />
     <Compile Include="Assets\Scripts\Obstacles\BreakableGlass.cs" />
     <Compile Include="Assets\Scripts\Level\LevelChunk.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\Hazard.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\LaserGate.cs" />
-    <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\CollapsingPlatform.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\CrusherPress.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\GustZone.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\MovingPlatform.cs" />
-    <Compile Include="Assets\Scripts\Level\LevelDefinition.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\Collectible.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerAnimatorDriver.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\KillZone.cs" />
-    <Compile Include="Assets\Scripts\Level\FinishLine.cs" />
-    <Compile Include="Assets\Scripts\Level\LevelBuilder.cs" />
-    <Compile Include="Assets\Scripts\Camera\ParallaxTheme.cs" />
-    <Compile Include="Assets\Scripts\Camera\ParallaxBackground.cs" />
-    <Compile Include="Assets\Scripts\Level\GroundStrip.cs" />
-    <Compile Include="Assets\Scripts\Core\GameManager.cs" />
     <Compile Include="Assets\Scripts\Level\LevelSet.cs" />
-    <Compile Include="Assets\Scripts\Camera\CameraFollow.cs" />
+    <Compile Include="Assets\Scripts\Input\SwipeInput.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\SpriteFlipbook.cs" />
+    <Compile Include="Assets\Scripts\Core\GameLayers.cs" />
+    <Compile Include="Assets\Scripts\Level\LevelDefinition.cs" />
+    <Compile Include="Assets\Scripts\Level\GroundStrip.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\MovingPlatform.cs" />
+    <Compile Include="Assets\Scripts\Player\TrickSet.cs" />
     <Compile Include="Assets\Scripts\Core\SaveData.cs" />
-    <Compile Include="Assets\Scripts\UI\GameHUD.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\KillZone.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\LaserGate.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\Trampoline.cs" />
+    <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\GustZone.cs" />
+    <Compile Include="Assets\Scripts\Level\LevelBuilder.cs" />
+    <Compile Include="Assets\Scripts\Player\PlayerConfig.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
@@ -355,6 +366,12 @@
     </Reference>
     <Reference Include="Newtonsoft.Json">
       <HintPath>Library\PackageCache\com.unity.nuget.newtonsoft-json@3.0.2\Runtime\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Android.Types">
+      <HintPath>C:\Program Files\Unity 2022.1.24f1\Editor\Data\PlaybackEngines\AndroidPlayer\Unity.Android.Types.dll</HintPath>
+    </Reference>
+    <Reference Include="Unity.Android.Gradle">
+      <HintPath>C:\Program Files\Unity 2022.1.24f1\Editor\Data\PlaybackEngines\AndroidPlayer\Unity.Android.Gradle.dll</HintPath>
     </Reference>
     <Reference Include="netstandard">
       <HintPath>C:\Program Files\Unity 2022.1.24f1\Editor\Data\NetStandard\ref\2.1.0\netstandard.dll</HintPath>

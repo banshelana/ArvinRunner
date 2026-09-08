@@ -43,9 +43,18 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Importing artwork", 0.2f);
                 ArtImport.ImportAll();
 
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing player frames", 0.24f);
+                PlayerAnimationImport.ImportAll();
+
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing moving obstacles", 0.27f);
+                MovingObstacleImport.ImportAll();
+
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing audio", 0.3f);
+                AudioImport.ImportAll();
+
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Creating tuning assets", 0.3f);
                 PlayerConfig config = CreatePlayerConfig();
-                SpriteAnimationSet animations = CreateAnimationSet();
+                SpriteAnimationSet animations = CreateAnimationSet(config);
                 ParallaxTheme night = CreateTheme("Theme_Night", new Color(0.05f, 0.06f, 0.13f), Color.white);
                 ParallaxTheme dusk = CreateTheme("Theme_Dusk", new Color(0.16f, 0.09f, 0.14f),
                                                  new Color(1f, 0.82f, 0.72f));
@@ -118,40 +127,134 @@ namespace ArvinRunner.EditorTools
         }
 
         /// <summary>
-        /// An animation set with one empty slot per state, pre-filled with the
-        /// placeholder runner so something shows up straight away.
+        /// The runner's animation set, filled from the drawn frames in
+        /// Art/Player/PlayerAnimations.
+        ///
+        /// Six clips were drawn and there are twelve slots, which is the useful
+        /// part rather than a shortfall. A slot holding more than one frame plays
+        /// as a flip-book and the procedural tricks stand down for it; a slot
+        /// holding a single pose keeps the tricks, so the spins and squashes in
+        /// TrickSet.asset still carry the vault, the wall run and the ledge work.
+        /// Every slot below is therefore deliberate about which of the two it
+        /// wants - see PlayerAnimatorDriver.TricksAllowed.
+        ///
+        /// Frame rates are set from the durations in PlayerConfig rather than
+        /// picked, so a clip finishes as its state does instead of holding its
+        /// last frame or being cut off mid-way.
         /// </summary>
-        private static SpriteAnimationSet CreateAnimationSet()
+        private static SpriteAnimationSet CreateAnimationSet(PlayerConfig config)
         {
             var set = ScriptableObject.CreateInstance<SpriteAnimationSet>();
 
-            // The hand-made runner if it has been imported, otherwise the
-            // generated silhouette.
-            Sprite runner = ArtImport.Load("runner") ?? PlaceholderArt.Load("runner");
+            Sprite[] idle = PlayerAnimationImport.Frames("Idle");
+            Sprite[] run = PlayerAnimationImport.Frames("Run");
+            Sprite[] jump = PlayerAnimationImport.Frames("Jump");
+            Sprite[] flipJump = PlayerAnimationImport.Frames("FlipJump");
+            Sprite[] bigJump = PlayerAnimationImport.Frames("BigJump");
+            Sprite[] lowFlip = PlayerAnimationImport.Frames("LowFlip");
+            Sprite[] fall = PlayerAnimationImport.Frames("Fall");
+            Sprite[] tackle = PlayerAnimationImport.Frames("Tackle");
 
-            set.fallback = new SpriteAnimationClip
+            // Whatever we can stand on if a folder is missing: the hand-made
+            // runner, then the generated silhouette.
+            Sprite still = PlayerAnimationImport.Frame("Idle", 0)
+                           ?? ArtImport.Load("runner")
+                           ?? PlaceholderArt.Load("runner");
+
+            Sprite[] held = { still };
+
+            // A rate that spreads the frames across the state's own duration.
+            float Over(float seconds, Sprite[] frames)
             {
-                anim = PlayerAnim.Idle,
-                frames = new[] { runner },
-                fps = 1f,
-                loop = true
-            };
+                return frames.Length > 1 ? frames.Length / Mathf.Max(0.05f, seconds) : 12f;
+            }
 
-            var values = System.Enum.GetValues(typeof(PlayerAnim));
-            var clips = new List<SpriteAnimationClip>();
-
-            foreach (PlayerAnim anim in values)
+            // How long a rise actually lasts. TickAirborne swaps to Falling the
+            // moment upward speed reaches zero, and the driver changes clip with
+            // it - so a rise clip has until the apex and not a frame longer. The
+            // somersault is eight frames against a 0.38s rise; at a hand-picked
+            // 14fps it would be cut off three frames short of landing upright,
+            // every single jump.
+            float RiseTime(float height)
             {
-                clips.Add(new SpriteAnimationClip
+                float gravity = Mathf.Abs(Physics2D.gravity.y) * config.riseGravity;
+                return gravity > 0.01f ? config.JumpVelocityFor(height) / gravity : 0.4f;
+            }
+
+            float groundRise = RiseTime(config.jumpHeight);
+            float airRise = RiseTime(config.doubleJumpHeight);
+
+            SpriteAnimationClip Clip(PlayerAnim anim, Sprite[] frames, float fps, bool loop)
+            {
+                return new SpriteAnimationClip
                 {
                     anim = anim,
-                    frames = new[] { runner },   // replace with your own frames
-                    fps = 12f,
-                    loop = anim == PlayerAnim.Idle || anim == PlayerAnim.Run || anim == PlayerAnim.WallRun
-                });
+                    frames = frames != null && frames.Length > 0 ? frames : held,
+                    fps = fps,
+                    loop = loop
+                };
+            }
+
+            set.fallback = Clip(PlayerAnim.Idle, held, 1f, true);
+
+            var clips = new List<SpriteAnimationClip>
+            {
+                // --- drawn as flip-books -----------------------------------
+                Clip(PlayerAnim.Idle, idle, 8f, true),
+                Clip(PlayerAnim.Run, run, 16f, true),
+                Clip(PlayerAnim.JumpRise, jump, Over(groundRise, jump), false),
+                Clip(PlayerAnim.DoubleJump, bigJump, Over(airRise, bigJump), false),
+                Clip(PlayerAnim.JumpFall, fall, 10f, true),
+
+                // The somersault, over something small. Picked instead of
+                // JumpRise - not alongside it - when the sensors see a low
+                // obstacle within four units of a ground jump.
+                Clip(PlayerAnim.LowFlip, lowFlip, Over(groundRise, lowFlip), false),
+
+                // The dive reads as both the slide and the hard-landing roll -
+                // same pose along the ground, different lengths of time in it.
+                Clip(PlayerAnim.Slide, tackle, Over(config.slideDuration, tackle), false),
+                Clip(PlayerAnim.Roll, tackle, Over(config.rollDuration, tackle), false),
+
+                // --- single poses, left to the procedural tricks ------------
+                // Nothing was drawn for these four, and a held pose is the way
+                // to say so: the trick set spins the vault, leans the wall run
+                // and hauls the runner over the ledge.
+                Clip(PlayerAnim.Vault, new[] { PlayerAnimationImport.Frame("Jump", 1) ?? still }, 12f, false),
+                Clip(PlayerAnim.WallRun, new[] { PlayerAnimationImport.Frame("Run", 3) ?? still }, 12f, true),
+                Clip(PlayerAnim.LedgeGrab, new[] { PlayerAnimationImport.Frame("Fall", 1) ?? still }, 12f, false),
+                Clip(PlayerAnim.LedgeClimb, new[] { PlayerAnimationImport.Frame("BigJump", 2) ?? still }, 12f, false),
+
+                // The last frame of the dive, held: face down and not getting up.
+                Clip(PlayerAnim.Death, new[] { PlayerAnimationImport.Frame("Tackle", 5) ?? still }, 12f, false)
+            };
+
+            // --- variants: a second clip on a slot already filled -------------
+            //
+            // SpriteAnimationSet.Get picks at random between every clip on a
+            // slot, so adding the somersault to both jumps is all it takes for
+            // repeated jumps to stop looking canned - sometimes the plain rise,
+            // sometimes the flip, on the ground jump and the air jump alike.
+            //
+            // Guarded, unlike the slots above, because the two cases differ. An
+            // empty slot wants the held pose so the runner still draws; an empty
+            // *variant* would put that held pose into the draw against a real
+            // clip, and every other jump would freeze on one frame.
+            if (flipJump.Length > 1)
+            {
+                clips.Add(Clip(PlayerAnim.JumpRise, flipJump, Over(groundRise, flipJump), false));
+                clips.Add(Clip(PlayerAnim.DoubleJump, flipJump, Over(airRise, flipJump), false));
             }
 
             set.clips = clips.ToArray();
+
+            if (!PlayerAnimationImport.IsAvailable)
+            {
+                Debug.LogWarning("[ArvinRunner] No drawn player frames were found, so every slot is " +
+                                 "holding one pose and the runner is animated procedurally. Check " +
+                                 $"{PlayerAnimationImport.RootFolder}.");
+            }
+
             return EditorUtil.CreateAsset(set, $"{DataFolder}/PlayerAnimations.asset");
         }
 
@@ -406,10 +509,13 @@ namespace ArvinRunner.EditorTools
             var spriteObject = new GameObject("Sprite") { layer = GameLayers.Player };
             spriteObject.transform.SetParent(visual.transform, false);
 
-            Sprite runner = ArtImport.Load("runner");
+            // The first idle frame, so the prefab looks right in the inspector
+            // before anything has played. Both it and the older single-pose
+            // runner are imported with their pivot on the figure's feet, so the
+            // sprite hangs a half-height below the body centre; only the
+            // generated placeholder is centred on itself.
+            Sprite runner = PlayerAnimationImport.Frame("Idle", 0) ?? ArtImport.Load("runner");
 
-            // The imported runner has a bottom-centre pivot, so its origin is
-            // its feet. The generated placeholder is centred instead.
             spriteObject.transform.localPosition = runner != null
                 ? new Vector3(0f, -height * 0.5f, 0f)
                 : Vector3.zero;
@@ -535,19 +641,23 @@ namespace ArvinRunner.EditorTools
                 "Swipe up to jump, again in the air to flip. Swipe down to slide.",
                 night, 45f,
                 Find("Chunk_Flat"), Find("Chunk_Cones"), Find("Chunk_Skip"),
-                Find("Chunk_SlideGate"), Find("Chunk_Rails"), Find("Chunk_Flat"));
+                Find("Chunk_Wreckers"), Find("Chunk_SlideGate"), Find("Chunk_Rails"),
+                Find("Chunk_Flat"));
 
             LevelDefinition two = Sequenced(2, "Rooftops",
-                "Some barriers take either route - hurdle them or slide under.",
-                night, 65f,
-                Find("Chunk_Barriers"), Find("Chunk_Overpass"), Find("Chunk_Spikes"),
+                "Not everything waits for you. Some of it is coming the other way.",
+                night, 95f,
+                Find("Chunk_Barriers"), Find("Chunk_Traffic"), Find("Chunk_Overpass"),
+                Find("Chunk_Spikes"), Find("Chunk_Oncoming"), Find("Chunk_FenceLine"),
                 Find("Chunk_WideGap"), Find("Chunk_StepsDown"), Find("Chunk_Flat"));
 
             LevelDefinition three = Sequenced(3, "Construction",
                 "Jump into a wall to run up it, then grab the ledge.",
-                dusk, 85f,
-                Find("Chunk_StreetWorks"), Find("Chunk_Collapsing"), Find("Chunk_WallClimb"),
-                Find("Chunk_Crates"), Find("Chunk_Scaffold"), Find("Chunk_Flat"));
+                dusk, 130f,
+                Find("Chunk_StreetWorks"), Find("Chunk_DeliveryYard"), Find("Chunk_Collapsing"),
+                Find("Chunk_WallClimb"), Find("Chunk_Crates"), Find("Chunk_ScaffoldTower"),
+                Find("Chunk_AirStrike"), Find("Chunk_DigSite"), Find("Chunk_Scaffold"),
+                Find("Chunk_Flat"));
 
             // Levels 4 and 5 are assembled from a pool - fast to make, fixed seed
             // so the layout is identical on every attempt.
@@ -645,7 +755,10 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(builder, "finishLinePrefab", finishPrefab.GetComponent<FinishLine>());
             EditorUtil.SetObject(builder, "killZonePrefab", killZonePrefab.GetComponent<KillZone>());
 
+            MusicPlayer music = Music(AudioImport.GameplayTrack, 0.5f);
+
             var manager = systems.AddComponent<GameManager>();
+            EditorUtil.SetObject(manager, "music", music);
             EditorUtil.SetObject(manager, "builder", builder);
             EditorUtil.SetObject(manager, "player", controller);
             EditorUtil.SetObject(manager, "cameraFollow", follow);
@@ -660,6 +773,35 @@ namespace ArvinRunner.EditorTools
 
             EditorUtil.EnsureFolder("Assets/Scenes");
             EditorSceneManager.SaveScene(scene, ScenePath);
+        }
+
+        /// <summary>
+        /// The scene's looping track. Returns the player so the GameManager can
+        /// be handed it, for levels that name their own music.
+        ///
+        /// Built even when the clip is missing - an AudioSource with nothing in
+        /// it is harmless, and it means dropping a file into Assets/Audio and
+        /// re-importing is all it takes to give a scene music later.
+        /// </summary>
+        private static MusicPlayer Music(string track, float volume)
+        {
+            var go = new GameObject("Music");
+
+            var source = go.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = true;
+
+            AudioClip clip = AudioImport.Load(track);
+
+            var music = go.AddComponent<MusicPlayer>();
+            EditorUtil.SetObject(music, "clip", clip);
+            EditorUtil.SetFloat(music, "volume", volume);
+
+            if (clip == null)
+                Debug.LogWarning($"[ArvinRunner] No '{track}' track, so that scene is silent. " +
+                                 $"Drop one into {AudioImport.RootFolder} and build again.");
+
+            return music;
         }
 
         /// <summary>
@@ -702,6 +844,8 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(background, "theme",
                 AssetDatabase.LoadAssetAtPath<ParallaxTheme>($"{DataFolder}/Theme_Night.asset"));
             EditorUtil.SetObject(background, "camera", camera);
+
+            Music(AudioImport.MenuTrack, 0.6f);
 
             var eventSystem = new GameObject("EventSystem");
             eventSystem.AddComponent<EventSystem>();

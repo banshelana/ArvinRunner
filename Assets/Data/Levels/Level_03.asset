@@ -18,10 +18,14 @@ MonoBehaviour:
   mode: 0
   sequence:
   - {fileID: 2795623526034263498, guid: fa8654bb773fbd84ab3f81e827f67c42, type: 3}
+  - {fileID: 7078279140154924604, guid: 370ccf75243c62041a57eacb5754e4f9, type: 3}
   - {fileID: 4444769750933086764, guid: a1a287c06890d9c4794df42e0509f366, type: 3}
   - {fileID: 2970665918316092734, guid: 37b51ddb180cd3f498d43624ef7efca1, type: 3}
   - {fileID: 4084456740832203166, guid: 753598850aedb134ea13160504f0be21, type: 3}
-  - {fileID: 8283624897202180562, guid: 1e2dec20e1cf31749a4a715db6aedd93, type: 3}
+  - {fileID: 1712995033769208183, guid: 94ef57b323f6894449e2a0710ce0fd63, type: 3}
+  - {fileID: 5951802779864337043, guid: 35ec0f7f129e701488d0a462b0073fdd, type: 3}
+  - {fileID: 5827618894001065659, guid: 340d9888e4230944795b9d01719fc625, type: 3}
+  - {fileID: 5184677082378997555, guid: 248dbe4f9a6882d4c80047c84316b88e, type: 3}
   - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
   pool: []
   targetLength: 400
@@ -54,4 +58,4 @@ MonoBehaviour:
   finishPadLength: 16
   theme: {fileID: 11400000, guid: 028e3acb6bf471049bdf677866f621e0, type: 2}
   music: {fileID: 0}
-  parTime: 80
+  parTime: 130

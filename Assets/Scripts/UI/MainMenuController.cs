@@ -145,6 +145,18 @@ namespace ArvinRunner
             if (levelsPanel != null) levelsPanel.SetActive(show);
         }
 
+        /// <summary>
+        /// Escape is what leaves the run, so on the menu it should keep meaning
+        /// "back" rather than nothing at all: out of the level list to the home
+        /// panel, and no further - quitting stays behind its own button.
+        /// </summary>
+        private void Update()
+        {
+            if (!Input.GetKeyDown(KeyCode.Escape)) return;
+
+            if (levelsPanel != null && levelsPanel.activeSelf) ShowLevels(false);
+        }
+
         private void ResetProgress()
         {
             SaveData.ResetAll();

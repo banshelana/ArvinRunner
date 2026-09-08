@@ -19,6 +19,11 @@ namespace ArvinRunner
         [Tooltip("Height above the feet used for the low (vault) probe.")]
         [SerializeField] private float kneeHeight = 0.35f;
 
+        [Tooltip("How far ahead we look for something small the runner is about " +
+                 "to jump over. Well beyond the vault probe, because a jump is " +
+                 "usually committed to several units early.")]
+        [SerializeField] private float lowObstacleLookAhead = 4f;
+
         [Header("Gizmos")]
         [SerializeField] private bool drawGizmos = true;
 
@@ -42,6 +47,19 @@ namespace ArvinRunner
         public bool VaultAhead { get; private set; }
         public float VaultTopY { get; private set; }
         public Collider2D VaultCollider { get; private set; }
+
+        /// <summary>
+        /// Something small in front, further out than the vault probe reaches.
+        ///
+        /// This is the "what am I jumping over" question, and it is not the same
+        /// as <see cref="VaultAhead"/>. A vault only offers itself within
+        /// vaultProbeDistance and only when there is room to land on top, so by
+        /// the time it says yes the choice has already been made for you. Jumps,
+        /// meanwhile, get committed to several units out. Looking further gives
+        /// the animation a chance to know a crate is coming while the runner is
+        /// still deciding.
+        /// </summary>
+        public bool LowObstacleAhead { get; private set; }
 
         private CapsuleCollider2D _capsule;
         private PlayerConfig _config;
@@ -77,6 +95,7 @@ namespace ArvinRunner
             SampleCeiling();
             SampleWallAndLedge();
             SampleVault();
+            SampleLowObstacle();
         }
 
         // ---------------------------------------------------------------- //
@@ -203,6 +222,33 @@ namespace ArvinRunner
             VaultTopY = top;
         }
 
+        /// <summary>
+        /// Looks a jump's worth ahead for the nearest solid and asks whether it
+        /// is a small one. "Small" reuses maxVaultHeight rather than inventing a
+        /// second number: it is already the line the game draws between things
+        /// you take in stride and things you have to deal with.
+        ///
+        /// The ray sits at knee height, so level ground - whose surface is at
+        /// the feet - never registers. A step up does, which is correct.
+        /// </summary>
+        private void SampleLowObstacle()
+        {
+            LowObstacleAhead = false;
+
+            if (_config == null || !Grounded) return;
+
+            Bounds b = _capsule.bounds;
+            Vector2 feet = FeetPosition;
+
+            RaycastHit2D hit = Physics2D.Raycast(new Vector2(b.max.x, feet.y + kneeHeight),
+                                                 Vector2.right, lowObstacleLookAhead,
+                                                 GameLayers.SolidMask);
+
+            if (hit.collider == null) return;
+
+            LowObstacleAhead = hit.collider.bounds.max.y - feet.y <= _config.maxVaultHeight;
+        }
+
         // ---------------------------------------------------------------- //
 
         private void OnDrawGizmosSelected()
@@ -221,8 +267,13 @@ namespace ArvinRunner
                 Gizmos.DrawLine(new Vector2(b.max.x, b.center.y),
                                 new Vector2(b.max.x + _config.wallProbeDistance, b.center.y));
 
-                Gizmos.color = VaultAhead ? Color.yellow : Color.grey;
                 Vector2 knee = new Vector2(b.max.x, b.min.y + kneeHeight);
+
+                // The long look-ahead first, so the short vault probe draws over it.
+                Gizmos.color = LowObstacleAhead ? new Color(1f, 0.55f, 0.1f) : Color.grey;
+                Gizmos.DrawLine(knee, knee + Vector2.right * lowObstacleLookAhead);
+
+                Gizmos.color = VaultAhead ? Color.yellow : Color.grey;
                 Gizmos.DrawLine(knee, knee + Vector2.right * _config.vaultProbeDistance);
             }
         }

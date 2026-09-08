@@ -39,50 +39,95 @@ namespace ArvinRunner
 
         public SpriteAnimationClip[] clips;
 
-        /// <summary>Returns the clip for a slot, or the fallback if it is empty.</summary>
+        /// <summary>
+        /// A clip for a slot, or the fallback if nothing fills it.
+        ///
+        /// A slot may hold several clips, and one is picked at random each time
+        /// - so listing both the plain jump and the somersault under JumpRise
+        /// makes repeated jumps stop looking canned. This mirrors what
+        /// TrickSet.Pick already does for the procedural moves, and it is called
+        /// only when the state changes, so the cost is a handful of comparisons
+        /// per jump rather than per frame.
+        /// </summary>
         public SpriteAnimationClip Get(PlayerAnim anim)
         {
+            SpriteAnimationClip chosen = null;
+            int matches = 0;
+
             if (clips != null)
             {
                 for (int i = 0; i < clips.Length; i++)
                 {
                     SpriteAnimationClip clip = clips[i];
-                    if (clip != null && clip.anim == anim && clip.frames != null && clip.frames.Length > 0)
-                        return clip;
+                    if (clip == null || clip.anim != anim) continue;
+                    if (clip.frames == null || clip.frames.Length == 0) continue;
+
+                    matches++;
+
+                    // Reservoir sampling: the nth match wins with probability
+                    // 1/n, which leaves every variant equally likely without
+                    // building a list of them first. Qualified because this file
+                    // has `using System`, so a bare Random is ambiguous.
+                    if (UnityEngine.Random.Range(0, matches) == 0) chosen = clip;
                 }
             }
+
+            if (chosen != null) return chosen;
 
             return (fallback != null && fallback.frames != null && fallback.frames.Length > 0)
                 ? fallback
                 : null;
         }
 
+        /// <summary>How many variants fill a slot. Handy when checking a set by hand.</summary>
+        public int VariantCount(PlayerAnim anim)
+        {
+            int matches = 0;
+            if (clips == null) return 0;
+
+            foreach (SpriteAnimationClip clip in clips)
+                if (clip != null && clip.anim == anim &&
+                    clip.frames != null && clip.frames.Length > 0)
+                    matches++;
+
+            return matches;
+        }
+
 #if UNITY_EDITOR
-        /// <summary>Fills in one empty slot per PlayerAnim so the list is easy to populate.</summary>
+        /// <summary>
+        /// Adds an empty clip for any PlayerAnim that has none, so the list is
+        /// easy to populate by hand.
+        ///
+        /// Every existing clip is kept, including duplicates: a slot is allowed
+        /// several variants and this must not be the thing that quietly deletes
+        /// the second one.
+        /// </summary>
         [ContextMenu("Create Empty Slots For All Animations")]
         private void CreateEmptySlots()
         {
-            Array values = Enum.GetValues(typeof(PlayerAnim));
-            var built = new SpriteAnimationClip[values.Length];
+            var built = new System.Collections.Generic.List<SpriteAnimationClip>();
 
-            for (int i = 0; i < values.Length; i++)
+            if (clips != null)
+                foreach (SpriteAnimationClip clip in clips)
+                    if (clip != null) built.Add(clip);
+
+            foreach (PlayerAnim anim in Enum.GetValues(typeof(PlayerAnim)))
             {
-                var anim = (PlayerAnim)values.GetValue(i);
-                SpriteAnimationClip existing = null;
+                bool filled = false;
+                foreach (SpriteAnimationClip clip in built)
+                    if (clip.anim == anim) { filled = true; break; }
 
-                if (clips != null)
-                    foreach (SpriteAnimationClip c in clips)
-                        if (c != null && c.anim == anim) { existing = c; break; }
+                if (filled) continue;
 
-                built[i] = existing ?? new SpriteAnimationClip
+                built.Add(new SpriteAnimationClip
                 {
                     anim = anim,
                     fps = 12f,
                     loop = anim == PlayerAnim.Idle || anim == PlayerAnim.Run || anim == PlayerAnim.WallRun
-                };
+                });
             }
 
-            clips = built;
+            clips = built.ToArray();
             UnityEditor.EditorUtility.SetDirty(this);
         }
 #endif

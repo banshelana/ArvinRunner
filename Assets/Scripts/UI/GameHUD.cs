@@ -104,6 +104,16 @@ namespace ArvinRunner
 
         private void Update()
         {
+            // Escape goes back to the front end. It is checked before the null
+            // guard below so it still works on a scene with no GameManager, and
+            // it uses unscaled input rather than anything time-dependent so it
+            // works from the pause screen too.
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                ReturnToMenu();
+                return;
+            }
+
             if (_game == null) return;
 
             if (timeText != null) timeText.text = FormatTime(_game.RunTime);

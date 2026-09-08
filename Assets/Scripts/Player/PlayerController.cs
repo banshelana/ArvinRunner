@@ -189,7 +189,11 @@ namespace ArvinRunner
 
                 case PlayerState.Jumping:
                     _rb.velocity = new Vector2(_rb.velocity.x, config.JumpVelocityFor(config.jumpHeight));
-                    PlayAnim(PlayerAnim.JumpRise);
+
+                    // Read while the sensors still have a ground reading - they
+                    // stop sampling the vault and low-obstacle probes the moment
+                    // the runner leaves the roof, and this runs on that frame.
+                    PlayAnim(_sensors.LowObstacleAhead ? PlayerAnim.LowFlip : PlayerAnim.JumpRise);
                     OnJumped?.Invoke();
                     break;
 

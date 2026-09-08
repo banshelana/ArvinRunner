@@ -14,12 +14,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelNumber: 2
   displayName: Rooftops
-  hint: Swipe down to slide. Land hard and you will roll.
+  hint: Not everything waits for you. Some of it is coming the other way.
   mode: 0
   sequence:
   - {fileID: 865573049458130827, guid: aee78308ff63eb745887a794f08c4020, type: 3}
-  - {fileID: 2891361842157734366, guid: 371d7d9a6f122804ab131f40b2434236, type: 3}
+  - {fileID: 2986558271687000459, guid: 79ff4205c909eea4eab07b654a4bdabf, type: 3}
+  - {fileID: 2483768076575560991, guid: f1c71fb5f4686654e99d5366e88bdfa0, type: 3}
   - {fileID: 3794440029438690977, guid: 79a05fe30d955724f8db611a3aa1d99c, type: 3}
+  - {fileID: 442924526593982120, guid: 18682b668875df145adeb471ec774e93, type: 3}
+  - {fileID: 1767530814389136135, guid: e5c6e70ffb566cc4b9105b89c63b4ee0, type: 3}
   - {fileID: 5007303371377669954, guid: 2c058c44b8aab3640a98f980c94237e0, type: 3}
   - {fileID: 2729181136997441213, guid: 6107681552fc29040a99b00003be2726, type: 3}
   - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
@@ -54,4 +57,4 @@ MonoBehaviour:
   finishPadLength: 16
   theme: {fileID: 11400000, guid: 27452e06c2cd13a4495733ceb2b9fa48, type: 2}
   music: {fileID: 0}
-  parTime: 60
+  parTime: 95

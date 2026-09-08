@@ -29,6 +29,12 @@ namespace ArvinRunner.EditorTools
             WriteSprite("glass", Glass(48, 48));
             WriteSprite("finish", Checker(32, 64, 16), tileable: true);
 
+            // The helicopter strike. No art was drawn for the shot itself - the
+            // heli frames only carry the muzzle flash - so these three stand in.
+            WriteSprite("target", Target(64));
+            WriteSprite("missile", Missile(28, 10));
+            WriteSprite("blast", Blast(96));
+
             WriteSprite("sky", Gradient(64, 256,
                 new Color(0.05f, 0.06f, 0.14f), new Color(0.16f, 0.10f, 0.26f)), tileable: true);
             WriteSprite("skyline_far", Skyline(512, 200, seed: 11,
@@ -198,6 +204,88 @@ namespace ArvinRunner.EditorTools
                 }
 
                 x += buildingWidth + random.Next(3, 14);
+            }
+
+            tex.Apply();
+            return tex;
+        }
+
+        // ================================================================= //
+        // The helicopter strike
+        // ================================================================= //
+
+        /// <summary>
+        /// The warning marker: a ring with cross-hairs, drawn as an outline so it
+        /// reads on top of the roof without hiding what is underneath it.
+        /// </summary>
+        private static Texture2D Target(int size)
+        {
+            var tex = NewTexture(size, size);
+            Color ink = new Color(1f, 0.35f, 0.15f, 1f);
+
+            int centre = size / 2;
+            int outer = centre - 2;
+            int inner = outer - 4;
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                int dx = x - centre, dy = y - centre;
+                int distance = dx * dx + dy * dy;
+
+                bool ring = distance <= outer * outer && distance >= inner * inner;
+
+                // Cross-hairs, broken at the centre so the ring stays the shape
+                // the eye catches first.
+                bool spoke = (Mathf.Abs(dx) <= 1 || Mathf.Abs(dy) <= 1) &&
+                             distance <= outer * outer &&
+                             distance >= (inner - 8) * (inner - 8);
+
+                if (ring || spoke) tex.SetPixel(x, y, ink);
+            }
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>A blunt dart, pointing +X so the code can just rotate it.</summary>
+        private static Texture2D Missile(int w, int h)
+        {
+            var tex = NewTexture(w, h);
+            Color body = new Color(0.85f, 0.85f, 0.88f, 1f);
+            Color tip = new Color(1f, 0.5f, 0.2f, 1f);
+
+            FillRect(tex, 0, h / 2 - 2, w - 8, 4, body);
+            FillRect(tex, 0, 0, 5, h, body * 0.7f);        // fins at the tail
+            FillCircle(tex, w - 8, h / 2, 4, tip);         // nose
+
+            tex.Apply();
+            return tex;
+        }
+
+        /// <summary>
+        /// The impact: a hot core falling off to a soft edge. Drawn with the
+        /// falloff baked in so the sprite can simply be scaled and faded rather
+        /// than needing a particle system.
+        /// </summary>
+        private static Texture2D Blast(int size)
+        {
+            var tex = NewTexture(size, size);
+
+            int centre = size / 2;
+            float radius = centre - 1f;
+
+            Color core = new Color(1f, 0.95f, 0.70f, 1f);
+            Color edge = new Color(0.95f, 0.30f, 0.08f, 0f);
+
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float dx = x - centre, dy = y - centre;
+                float distance = Mathf.Sqrt(dx * dx + dy * dy) / radius;
+                if (distance > 1f) continue;
+
+                tex.SetPixel(x, y, Color.Lerp(core, edge, distance * distance));
             }
 
             tex.Apply();
