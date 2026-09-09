@@ -69,6 +69,7 @@
     <Compile Include="Assets\Editor\PlayerAnimationImport.cs" />
     <Compile Include="Assets\Editor\AudioImport.cs" />
     <Compile Include="Assets\Editor\MovingObstacleImport.cs" />
+    <Compile Include="Assets\Editor\ChunkFactoryAdvanced.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

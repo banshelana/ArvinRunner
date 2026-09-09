@@ -55,9 +55,23 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Creating tuning assets", 0.3f);
                 PlayerConfig config = CreatePlayerConfig();
                 SpriteAnimationSet animations = CreateAnimationSet(config);
+                // One look per level for the first stretch of the campaign, so a
+                // level is recognisable before a single obstacle has appeared.
+                // The tint runs through every parallax layer, which is why a
+                // colour alone is enough to change the city completely.
                 ParallaxTheme night = CreateTheme("Theme_Night", new Color(0.05f, 0.06f, 0.13f), Color.white);
                 ParallaxTheme dusk = CreateTheme("Theme_Dusk", new Color(0.16f, 0.09f, 0.14f),
                                                  new Color(1f, 0.82f, 0.72f));
+                ParallaxTheme sodium = CreateTheme("Theme_Sodium", new Color(0.13f, 0.08f, 0.06f),
+                                                   new Color(1f, 0.74f, 0.45f));
+                ParallaxTheme smog = CreateTheme("Theme_Smog", new Color(0.16f, 0.15f, 0.12f),
+                                                 new Color(0.86f, 0.82f, 0.66f));
+                ParallaxTheme storm = CreateTheme("Theme_Storm", new Color(0.07f, 0.09f, 0.14f),
+                                                  new Color(0.62f, 0.72f, 0.86f));
+                ParallaxTheme dawn = CreateTheme("Theme_Dawn", new Color(0.20f, 0.13f, 0.16f),
+                                                 new Color(1f, 0.72f, 0.62f));
+                ParallaxTheme blackout = CreateTheme("Theme_Blackout", new Color(0.02f, 0.02f, 0.05f),
+                                                      new Color(0.55f, 0.58f, 0.72f));
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building prefabs", 0.45f);
                 TrickSet tricks = CreateTrickSet();
@@ -70,7 +84,8 @@ namespace ArvinRunner.EditorTools
                 LevelChunk[] chunks = ChunkFactory.CreateAll();
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Authoring levels", 0.75f);
-                LevelSet campaign = CreateLevels(chunks, night, dusk);
+                LevelSet campaign = CreateLevels(chunks, night, dusk, sodium,
+                                                 smog, storm, dawn, blackout);
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the game scene", 0.88f);
                 BuildScene(player, pad, finish, killZone, campaign, night);
@@ -184,24 +199,49 @@ namespace ArvinRunner.EditorTools
             float groundRise = RiseTime(config.jumpHeight);
             float airRise = RiseTime(config.doubleJumpHeight);
 
-            // One full stride cycle - two footfalls - in half a second. That is
-            // not a look-at-it-and-pick number: at the 9 the runner starts a
-            // level on, it puts a footfall every 2.25 units against a figure
-            // 1.80 tall, which is about the 1.2x height a person covers per step
-            // at a run. Spread across however many frames the folder holds, so
-            // redrawing the cycle smoother changes how finely it is sampled and
-            // not how fast the runner appears to be moving. At 16 frames that is
-            // 32fps; the same 0.5s it was at 8 frames and 16fps.
-            const float strideCycle = 0.5f;
+            // How far the ground moves under one full cycle of the run frames.
+            // This is the dial for how the running reads, so it is worth the
+            // paragraph.
+            //
+            // The art draws a stride of 2.44 units: across the 24 frames the
+            // planting foot travels from 0.44 ahead of the body to 0.78 behind
+            // it, so the body covers 1.22 units per footfall and 2.44 over the
+            // two of a full cycle. Setting this to exactly that would lock the
+            // drawn feet to the ground with no skating at all.
+            //
+            // It is not set to that, because the drawn stride is short for the
+            // speed this game runs at. Matching it exactly means a cycle every
+            // 0.27s at the opening speed of 9 - about 7.4 footfalls a second,
+            // roughly half again as fast as a sprinter, and it reads as a
+            // scramble. The old fixed 0.5s cycle had the opposite problem and
+            // worse: it implied a 4.5 unit stride at that same speed, so the
+            // ground moved 84% further than the feet did and the runner glided.
+            //
+            // 3.0 sits between them - six footfalls a second, and 23% of skate
+            // instead of 84%. <b>Raise it for longer, slower strides and more
+            // sliding; lower it for faster legs and less.</b> Whatever it is set
+            // to, the relationship now holds at every speed rather than at one:
+            // the old cycle was tuned for 9 and degraded to 207% of skate by the
+            // time the runner ramped to 15.
+            const float runStride = 3.0f;
 
-            SpriteAnimationClip Clip(PlayerAnim anim, Sprite[] frames, float fps, bool loop)
+            // The rate the clip falls back to when there is no runner to measure
+            // - a prefab preview, mostly. Matched to the stride at the opening
+            // run speed so the two paths agree rather than quietly differing.
+            float runFallbackFps = run.Length > 1
+                ? run.Length * config.runSpeed / runStride
+                : 12f;
+
+            SpriteAnimationClip Clip(PlayerAnim anim, Sprite[] frames, float fps, bool loop,
+                                     float strideDistance = 0f)
             {
                 return new SpriteAnimationClip
                 {
                     anim = anim,
                     frames = frames != null && frames.Length > 0 ? frames : held,
                     fps = fps,
-                    loop = loop
+                    loop = loop,
+                    strideDistance = strideDistance
                 };
             }
 
@@ -211,7 +251,7 @@ namespace ArvinRunner.EditorTools
             {
                 // --- drawn as flip-books -----------------------------------
                 Clip(PlayerAnim.Idle, idle, 8f, true),
-                Clip(PlayerAnim.Run, run, Over(strideCycle, run), true),
+                Clip(PlayerAnim.Run, run, runFallbackFps, true, runStride),
                 Clip(PlayerAnim.JumpRise, jump, Over(groundRise, jump), false),
                 Clip(PlayerAnim.DoubleJump, bigJump, Over(airRise, bigJump), false),
                 Clip(PlayerAnim.JumpFall, fall, 10f, true),
@@ -635,7 +675,11 @@ namespace ArvinRunner.EditorTools
         // Levels
         // ================================================================= //
 
-        private static LevelSet CreateLevels(LevelChunk[] chunks, ParallaxTheme night, ParallaxTheme dusk)
+        private static LevelSet CreateLevels(LevelChunk[] chunks,
+                                             ParallaxTheme night, ParallaxTheme dusk,
+                                             ParallaxTheme sodium, ParallaxTheme smog,
+                                             ParallaxTheme storm, ParallaxTheme dawn,
+                                             ParallaxTheme blackout)
         {
             LevelChunk Find(string name)
             {
@@ -679,8 +723,64 @@ namespace ArvinRunner.EditorTools
                 night, 120f, chunks, 480f, seed: 8823,
                 curve: AnimationCurve.EaseInOut(0f, 3f, 1f, 5f));
 
+            // ---- the second half ----------------------------------------
+            //
+            // Each of these is built around one idea rather than a difficulty
+            // number, which is what stops the back half feeling like the front
+            // half with more in it. Hand-sequenced for the same reason: the
+            // pacing of a level about traffic is not the pacing of a level about
+            // demolition, and a pool cannot know that.
+            //
+            // The shape inside each is deliberate and the same throughout: open
+            // with the level's own idea stated plainly, complicate it in the
+            // middle, and put the one chunk that combines it with something else
+            // at the end. Chunk_Flat between the hardest pairs is not padding -
+            // it is where the player gets to breathe and see what is coming.
+
+            LevelDefinition six = Sequenced(6, "Rush Hour",
+                "The street is full. Vault the low ones, run the roofs of the rest.",
+                sodium, 95f,
+                Find("Chunk_Traffic"), Find("Chunk_Wreckers"), Find("Chunk_BusStop"),
+                Find("Chunk_LimoGap"), Find("Chunk_Flat"), Find("Chunk_BusJump"),
+                Find("Chunk_DeliveryYard"), Find("Chunk_Oncoming"), Find("Chunk_FireLane"),
+                Find("Chunk_Condensers"), Find("Chunk_Flat"));
+
+            LevelDefinition seven = Sequenced(7, "Demolition",
+                "Nothing here holds still. Read the rhythm before you commit to it.",
+                smog, 105f,
+                Find("Chunk_Crusher"), Find("Chunk_Collapsing"), Find("Chunk_WreckingBall"),
+                Find("Chunk_Flat"), Find("Chunk_PressAlley"), Find("Chunk_DigSite"),
+                Find("Chunk_Trampoline"), Find("Chunk_Glass"), Find("Chunk_StreetWorks"),
+                Find("Chunk_Lasers"), Find("Chunk_Spikes"), Find("Chunk_Barriers"),
+                Find("Chunk_Flat"));
+
+            LevelDefinition eight = Sequenced(8, "Air Support",
+                "The gunship marks the roof before it fires. Be somewhere else.",
+                storm, 100f,
+                Find("Chunk_Oncoming"), Find("Chunk_AirStrike"), Find("Chunk_Flat"),
+                Find("Chunk_BikeGauntlet"), Find("Chunk_FireLane"), Find("Chunk_StrikeRun"),
+                Find("Chunk_Flat"), Find("Chunk_LaserGap"), Find("Chunk_Collapsing"),
+                Find("Chunk_WideGap"), Find("Chunk_Flat"));
+
+            LevelDefinition nine = Sequenced(9, "The Towers",
+                "Jump into a wall to run up it, grab the ledge, and keep going.",
+                dawn, 100f,
+                Find("Chunk_WallClimb"), Find("Chunk_Scaffold"), Find("Chunk_ScaffoldTower"),
+                Find("Chunk_Flat"), Find("Chunk_LiftBeam"), Find("Chunk_TowerLasers"),
+                Find("Chunk_Crates"), Find("Chunk_Flat"), Find("Chunk_WideGap"),
+                Find("Chunk_CraneGap"), Find("Chunk_MovingPlatforms"), Find("Chunk_Flat"));
+
+            LevelDefinition ten = Sequenced(10, "Blackout",
+                "Everything the city has, one after another. Do not stop moving.",
+                blackout, 115f,
+                Find("Chunk_LaserGap"), Find("Chunk_Glass"), Find("Chunk_Gust"),
+                Find("Chunk_Flat"), Find("Chunk_MovingPlatforms"), Find("Chunk_CraneGap"),
+                Find("Chunk_GustLift"), Find("Chunk_Flat"), Find("Chunk_StrikeRun"),
+                Find("Chunk_PressAlley"), Find("Chunk_BikeGauntlet"), Find("Chunk_TowerLasers"),
+                Find("Chunk_Flat"));
+
             var campaign = ScriptableObject.CreateInstance<LevelSet>();
-            campaign.levels = new[] { one, two, three, four, five };
+            campaign.levels = new[] { one, two, three, four, five, six, seven, eight, nine, ten };
             return EditorUtil.CreateAsset(campaign, $"{DataFolder}/Campaign.asset");
         }
 
@@ -910,7 +1010,10 @@ namespace ArvinRunner.EditorTools
             gridRect.anchorMax = CentreAnchor;
             gridRect.pivot = CentreAnchor;
             gridRect.anchoredPosition = new Vector2(0f, 40f);
-            gridRect.sizeDelta = new Vector2(1400f, 380f);
+            // Two rows of five at 180 tall plus 26 of spacing needs 386, so the
+            // 380 this was would have clipped the second row the moment the
+            // campaign passed five levels.
+            gridRect.sizeDelta = new Vector2(1400f, 420f);
 
             var layout = grid.AddComponent<GridLayoutGroup>();
             layout.cellSize = new Vector2(230f, 180f);

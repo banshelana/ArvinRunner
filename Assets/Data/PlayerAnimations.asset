@@ -18,6 +18,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 9a6f1a3b2623abf4580778061100c609, type: 3}
     fps: 1
     loop: 1
+    strideDistance: 0
   clips:
   - anim: 0
     frames:
@@ -29,26 +30,36 @@ MonoBehaviour:
     - {fileID: 21300000, guid: f737457a55069cc47ae8cf31bd6def82, type: 3}
     fps: 8
     loop: 1
+    strideDistance: 0
   - anim: 1
     frames:
-    - {fileID: 21300000, guid: e4f7ab8e21d607648833cf1c58d8b3bb, type: 3}
-    - {fileID: 21300000, guid: 3ee1515a36729f0479cc2f052a6fc2f5, type: 3}
-    - {fileID: 21300000, guid: 3c934523c12752b4d80d8bb43b49cb72, type: 3}
-    - {fileID: 21300000, guid: f981bd9303d76c24c9c797c785a03c69, type: 3}
-    - {fileID: 21300000, guid: a6203a383427e0341a94075d773555b4, type: 3}
-    - {fileID: 21300000, guid: 3a436d8ac2b45624099f65a35e06fbab, type: 3}
-    - {fileID: 21300000, guid: b1585c230ab9cb548a7e652aa036641c, type: 3}
-    - {fileID: 21300000, guid: 83d8ba19cece28345b01dbe55bb66116, type: 3}
-    - {fileID: 21300000, guid: d1d5f9e8d65edc24a8321bfedd688fc2, type: 3}
-    - {fileID: 21300000, guid: 25bd6906ea0756542877e42d2084691e, type: 3}
-    - {fileID: 21300000, guid: 01e624817303201498e26c0d158ad462, type: 3}
-    - {fileID: 21300000, guid: 8232da1a562645144a97d59c5d35b571, type: 3}
-    - {fileID: 21300000, guid: e8b116866bacff141ae7a65eb97a5279, type: 3}
-    - {fileID: 21300000, guid: eb98fc9f968606f40840381fbc26be52, type: 3}
-    - {fileID: 21300000, guid: 2b2cd9e7f3a93cc4aa7c58c2f534bc8f, type: 3}
-    - {fileID: 21300000, guid: 10f620de85c17c74591174e90583129b, type: 3}
-    fps: 32
+    - {fileID: 21300000, guid: 66bf5056edce31144adcc76abd45cc4c, type: 3}
+    - {fileID: 21300000, guid: cd5e819baab147a40a4b7512d77c8aae, type: 3}
+    - {fileID: 21300000, guid: 367f689685f3ff04babb3a4e38d2a90c, type: 3}
+    - {fileID: 21300000, guid: ffd9ffd2d290adf47b581de5f3d6e340, type: 3}
+    - {fileID: 21300000, guid: 7e7e84d8ed50c1a4eaf5b86c04b4830d, type: 3}
+    - {fileID: 21300000, guid: 60b1b6baecf1e1740b6ae76ead16ffe8, type: 3}
+    - {fileID: 21300000, guid: 7dbee619b2b8d8b40b16eee1469348b9, type: 3}
+    - {fileID: 21300000, guid: d5c516db2af0a754ba70c4fcdd6749ae, type: 3}
+    - {fileID: 21300000, guid: c5dcfd7941439164898b4b2419d7e177, type: 3}
+    - {fileID: 21300000, guid: 3458f261880b02a499af21dfb9156e82, type: 3}
+    - {fileID: 21300000, guid: 0637ebd08f239ea48acef5b4dbb1cb79, type: 3}
+    - {fileID: 21300000, guid: 120e578147eb4014aac355f442cf61f6, type: 3}
+    - {fileID: 21300000, guid: 7bb7b32c185261e4fbcf806cfd26683a, type: 3}
+    - {fileID: 21300000, guid: 7034706e906bc6d45ba1a1fe1faf0a5e, type: 3}
+    - {fileID: 21300000, guid: 6a3674d4ef1629f409806bf602f74a43, type: 3}
+    - {fileID: 21300000, guid: 1a1061075f3ac3e45b39768eeaa4277e, type: 3}
+    - {fileID: 21300000, guid: eba299ecc5a63da42bedbc55ed238b49, type: 3}
+    - {fileID: 21300000, guid: e9734cb3942155c479f1b8312e7676d8, type: 3}
+    - {fileID: 21300000, guid: 779be2b79aad92b40bac7faf0fefcd71, type: 3}
+    - {fileID: 21300000, guid: 94cb08e98f0f81e4da89edc50a22e843, type: 3}
+    - {fileID: 21300000, guid: ea50ae097e4c2be42b78bb63372339c9, type: 3}
+    - {fileID: 21300000, guid: 0b50f20d424bd3f4aa07eea97c076669, type: 3}
+    - {fileID: 21300000, guid: 96551e812f73d554ea64d68924e4ccae, type: 3}
+    - {fileID: 21300000, guid: 82698470725057c43b63d22b66c79f32, type: 3}
+    fps: 72
     loop: 1
+    strideDistance: 3
   - anim: 2
     frames:
     - {fileID: 21300000, guid: ffa56aae574b06440aaa8d8993fd4f85, type: 3}
@@ -59,6 +70,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 29b3b131feb91ba4eb586c58e605f4a7, type: 3}
     fps: 15.758034
     loop: 0
+    strideDistance: 0
   - anim: 4
     frames:
     - {fileID: 21300000, guid: 4909f73fe63c11d4d8849c0fc8d62e10, type: 3}
@@ -67,6 +79,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 672a5f94f8b33d34b99577cff64343f0, type: 3}
     fps: 11.654646
     loop: 0
+    strideDistance: 0
   - anim: 3
     frames:
     - {fileID: 21300000, guid: 6c0f1ffc584804743af0c5db46ed3496, type: 3}
@@ -75,6 +88,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 0e4974ac8d6279a40bf2033d8f37ff93, type: 3}
     fps: 10
     loop: 1
+    strideDistance: 0
   - anim: 12
     frames:
     - {fileID: 21300000, guid: 427218fcd03e0a74e9965820964ae479, type: 3}
@@ -85,6 +99,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: 7a4c7dfa0290edf40b0695a8d1ca8b59, type: 3}
     fps: 15.758034
     loop: 0
+    strideDistance: 0
   - anim: 5
     frames:
     - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
@@ -95,6 +110,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
     fps: 8.571428
     loop: 0
+    strideDistance: 0
   - anim: 6
     frames:
     - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
@@ -105,31 +121,37 @@ MonoBehaviour:
     - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
     fps: 12
     loop: 0
+    strideDistance: 0
   - anim: 7
     frames:
     - {fileID: 21300000, guid: f1297b6858030ee459369a932aec92a6, type: 3}
     fps: 12
     loop: 0
+    strideDistance: 0
   - anim: 8
     frames:
-    - {fileID: 21300000, guid: f981bd9303d76c24c9c797c785a03c69, type: 3}
+    - {fileID: 21300000, guid: ffd9ffd2d290adf47b581de5f3d6e340, type: 3}
     fps: 12
     loop: 1
+    strideDistance: 0
   - anim: 9
     frames:
     - {fileID: 21300000, guid: 23da5bd147c878f438693308d9a3098a, type: 3}
     fps: 12
     loop: 0
+    strideDistance: 0
   - anim: 10
     frames:
     - {fileID: 21300000, guid: 8d738daa4ff018c45834abf8a4b9cb42, type: 3}
     fps: 12
     loop: 0
+    strideDistance: 0
   - anim: 11
     frames:
     - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
     fps: 12
     loop: 0
+    strideDistance: 0
   - anim: 2
     frames:
     - {fileID: 21300000, guid: fde869a0715051d49bc3541edb30aedb, type: 3}
@@ -142,6 +164,7 @@ MonoBehaviour:
     - {fileID: 21300000, guid: b469a294dcfe14549b2b216130cdd8cf, type: 3}
     fps: 21.010712
     loop: 0
+    strideDistance: 0
   - anim: 4
     frames:
     - {fileID: 21300000, guid: fde869a0715051d49bc3541edb30aedb, type: 3}
@@ -154,3 +177,4 @@ MonoBehaviour:
     - {fileID: 21300000, guid: b469a294dcfe14549b2b216130cdd8cf, type: 3}
     fps: 23.309292
     loop: 0
+    strideDistance: 0

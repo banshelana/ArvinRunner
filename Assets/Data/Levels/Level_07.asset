@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_07
+  m_EditorClassIdentifier: 
+  levelNumber: 7
+  displayName: Demolition
+  hint: Nothing here holds still. Read the rhythm before you commit to it.
+  mode: 0
+  sequence:
+  - {fileID: 3330248270129339464, guid: 06df2d1eb1201194c93c1a7fb1daae85, type: 3}
+  - {fileID: 4444769750933086764, guid: a1a287c06890d9c4794df42e0509f366, type: 3}
+  - {fileID: 1693252648873666625, guid: 234c0cfeba7d145489ebb1192d74d176, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 243968403798284233, guid: d99d69fabcd0707429f2d9c4783f9932, type: 3}
+  - {fileID: 5827618894001065659, guid: 340d9888e4230944795b9d01719fc625, type: 3}
+  - {fileID: 8283624897202180562, guid: 1e2dec20e1cf31749a4a715db6aedd93, type: 3}
+  - {fileID: 1526553979276238434, guid: 0be44c1ad19a9bb449eececd6ab502d3, type: 3}
+  - {fileID: 2795623526034263498, guid: fa8654bb773fbd84ab3f81e827f67c42, type: 3}
+  - {fileID: 635255298652535036, guid: 1abed1d75c3b78e44a4143068c79af70, type: 3}
+  - {fileID: 3794440029438690977, guid: 79a05fe30d955724f8db611a3aa1d99c, type: 3}
+  - {fileID: 865573049458130827, guid: aee78308ff63eb745887a794f08c4020, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: b1b1cc6d8183926478e0aebbba330452, type: 2}
+  music: {fileID: 0}
+  parTime: 105

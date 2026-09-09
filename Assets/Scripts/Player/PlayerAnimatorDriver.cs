@@ -131,19 +131,47 @@ namespace ArvinRunner
 
         // ---------------------------------------------------------------- //
 
+        /// <summary>
+        /// Steps the drawn frames.
+        ///
+        /// A clip with a <see cref="SpriteAnimationClip.strideDistance"/> is
+        /// advanced by <b>ground covered rather than by time</b>, which is the
+        /// only way a run cycle can hold together in this game. The runner's
+        /// speed ramps from 9 to 15 across a level, so any fixed frame rate is
+        /// correct at exactly one speed and wrong either side of it - the feet
+        /// skate forwards as the run gets faster. Tying the cycle to distance
+        /// makes the cadence rise with the speed on its own, and the feet keep
+        /// whatever relationship to the ground the artist drew.
+        /// </summary>
         private void AdvanceFlipbook()
         {
             if (_clip == null || _clip.frames == null || _clip.frames.Length <= 1) return;
 
-            _frameTimer += Time.deltaTime;
-            float frameDuration = 1f / Mathf.Max(1f, _clip.fps);
-            if (_frameTimer < frameDuration) return;
+            int count = _clip.frames.Length;
+            bool byDistance = _clip.strideDistance > 0.01f && _player != null;
 
-            _frameTimer -= frameDuration;
-            _frameIndex++;
+            // What one frame is worth, and how much of it this update earned.
+            float perFrame = byDistance
+                ? _clip.strideDistance / count
+                : 1f / Mathf.Max(1f, _clip.fps);
 
-            if (_frameIndex >= _clip.frames.Length)
-                _frameIndex = _clip.loop ? 0 : _clip.frames.Length - 1;
+            float earned = byDistance
+                ? Mathf.Abs(_player.CurrentSpeed) * Time.deltaTime
+                : Time.deltaTime;
+
+            _frameTimer += earned;
+            if (_frameTimer < perFrame) return;
+
+            // Whole frames at once, rather than one per update. The old single
+            // step could not keep up whenever an update was longer than a frame
+            // - at speed, or on a slower device - and the clip then played in
+            // permanent slow motion instead of dropping frames to stay in time.
+            int steps = (int)(_frameTimer / perFrame);
+            _frameTimer -= steps * perFrame;
+            _frameIndex += steps;
+
+            if (_frameIndex >= count)
+                _frameIndex = _clip.loop ? _frameIndex % count : count - 1;
 
             spriteRenderer.sprite = _clip.frames[_frameIndex];
         }

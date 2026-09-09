@@ -13,8 +13,8 @@ Unity **2022.1.24f1**, Built-in Render Pipeline, legacy Input Manager.
 2. Menu bar → **ArvinRunner → Build Playable Project**.
 3. It opens `Assets/Scenes/MainMenu.unity`. Press **Play**.
 
-That one command generates the art, layers, prefabs, 37 obstacle chunks, the
-runner's trick list, 5 levels, and both scenes — wired and added to the build
+That one command generates the art, layers, prefabs, 46 obstacle chunks, the
+runner's trick list, 10 levels, and both scenes — wired and added to the build
 settings with the menu first. It is safe to run again; it overwrites only what
 it generated.
 
@@ -81,17 +81,32 @@ importing them as-is makes the runner change size and hop about:
   height its tallest frame should come out at; both are set to 1.94, which is
   what `Run` came out at before it was redrawn. Anything off-scale and unlisted
   gets a warning rather than silence.
-- **An exception to that exception**, in `LevelFrameHeights`, for a folder whose
-  own frames disagree with each other. `Run`'s 16 frames arrived as two batches:
-  1–8 average 330px tall, 9–16 average 300px, each batch internally consistent
-  to within a few percent with a flat **10% step between them**. That is not
-  gait — gait varies smoothly across a cycle rather than sitting on two plateaus
-  — and on one scale the runner would shrink a tenth of their height halfway
-  through every stride and snap back, twice a second. Frames in a levelled clip
-  are scaled individually so each comes out at exactly the target height. It
-  costs the ~4% of genuine head movement through a stride and removes the 10% of
-  pulsing, and the importer logs the spread it corrected so the underlying art
-  problem stays visible.
+- **An exception to the pivot rule**, for a folder drawn on one shared canvas
+  instead of cropped frame by frame. This is the important one, and getting it
+  the wrong way round is very visible.
+
+  Cropped frames share no frame of reference, so each has to be measured and
+  pinned on its own — that is what the two rules above are for. Frames sharing a
+  canvas have already been positioned against each other by whoever drew them,
+  and **the movement between them is the animation**. `Run` is 24 frames of one
+  stride on a 772×897 canvas: the figure's lowest pixel sits on the canvas floor
+  through the contact frames and lifts 35px through the flight phase, which is
+  the runner leaving the ground. Measuring that per frame would pin the flight
+  frames back down to the floor and delete the bounce from the run.
+
+  So a shared-canvas clip gets **one anchor for the whole clip**: horizontally
+  the mean centre of mass, which is where the body is across the cycle and lets
+  the limbs swing around it; vertically the lowest pixel the clip ever reaches,
+  which is the ground the runner stands on in the frames where they touch it.
+  The importer tells the two cases apart by the canvases themselves rather than
+  by a flag someone has to remember to set.
+
+- **`LevelFrameHeights`** is a third exception, and is currently empty. `Run`
+  needed it once, when its 16 frames arrived as two batches drawn 10% apart in
+  size and the runner pulsed twice a second; it was redrawn on a shared canvas
+  and the problem went with it. Levelling irons out a clip's genuine rise and
+  fall, so it is only ever the lesser evil — reach for it when the importer
+  complains about a spread it had to correct.
 
 Every clip is paced by the thing it plays over, not by a hand-picked number.
 `Slide` and `Roll` come from `slideDuration` and `rollDuration`; the jump clips
@@ -100,18 +115,47 @@ upward speed hits zero. That matters most for the eight-frame somersault: at a
 plausible-looking 14fps it would be cut off three frames short of landing
 upright on every single jump.
 
-`Run` is paced by a **stride cycle of 0.5s** rather than a frame rate, so
-redrawing it smoother changes how finely the cycle is sampled and not how fast
-the runner appears to move — going from 8 frames to 16 took it from 16fps to
-32fps and left the cadence alone. Half a second per cycle puts a footfall every
-2.25 units at the 9 a level starts at, about the 1.2x of body height a person
-covers per step at a run.
+**`Run` is not paced by a frame rate at all.** It is advanced by *ground
+covered* — `SpriteAnimationClip.strideDistance` — because a run cycle on a fixed
+frame rate is correct at exactly one speed and wrong either side of it, and this
+runner ramps from 9 to 15 across every level.
 
-One thing that cadence does not do is follow the run speed, which ramps from 9
-to 15 across a level. At the top of that the stride stretches to 3.75 units per
-footfall and the feet visibly slide. Scaling the frame rate by
-`PlayerController.CurrentSpeed` in `PlayerAnimatorDriver` would fix it for every
-looping clip at once; it has not been done because nothing has asked for it yet.
+The numbers are worth having, because this is the dial for how the running
+reads. The art draws a stride of **2.44 units**: across the 24 frames the
+planting foot travels from 0.44 ahead of the body to 0.78 behind it, so the body
+covers 1.22 units per footfall and 2.44 over a full cycle. Setting
+`runStride` to exactly that locks the feet to the ground with no skating at all.
+
+It is set to **3.0** instead, because the drawn stride is short for the speed
+this game runs at:
+
+| `runStride` | cycle at 9 u/s | footfalls/s | feet skate |
+| --- | --- | --- | --- |
+| 2.44 (as drawn) | 0.27s | 7.4 | none |
+| **3.0 (current)** | **0.33s** | **6.0** | **+23%** |
+| 3.5 | 0.39s | 5.1 | +43% |
+| 4.5 (the old fixed cycle) | 0.50s | 4.0 | +84% |
+
+Matching the art exactly reads as a scramble — 7.4 footfalls a second is about
+half again as fast as a sprinter. The fixed 0.5s cycle this replaced had the
+opposite problem and worse: the ground moved 84% further than the feet did at the
+opening speed, and **207% by the time the runner ramped to 15**, which is where
+the gliding came from. Raise `runStride` for longer, slower strides and more
+slide; lower it for faster legs and less. Whatever it is set to, the relationship
+now holds at every speed rather than at one.
+
+The 24 frames are **one full cycle, not two**. The vertical extents repeat with
+a period of 12 while the horizontal silhouettes do not, which is the signature of
+two footfalls in one cycle — worth re-checking if the folder is redrawn, since
+reading it wrong halves or doubles the apparent stride.
+
+Two related things the flip-book does now. It steps **whole frames at a time**
+rather than one per update, so a cycle that wants more frames per second than the
+display can show drops frames to stay in time instead of falling behind and
+playing in permanent slow motion — which matters here, since at 15 u/s the cycle
+asks for 148fps and a 60Hz screen shows 10 of the 24. And clips with no
+`strideDistance` are untouched: everything that is not locomotion still runs on
+its own duration.
 
 **Slots can hold more than one clip, and one is picked at random each time.**
 That is how the jumps stop looking canned — `flipJump` sits alongside the plain
@@ -130,7 +174,7 @@ The thirteen slots the game drives:
 | Slot | When it plays | Source |
 | --- | --- | --- |
 | `Idle` | on the start line, and after crossing the finish | `Idle`, 6 frames |
-| `Run` | normal running | `Run`, 16 frames |
+| `Run` | normal running | `Run`, 24 frames |
 | `JumpRise` | rising after a ground jump | `jump` 6 **or** `flipJump` 8, at random |
 | `LowFlip` | a ground jump over something small | `lowFlip`, 6 frames |
 | `JumpFall` | falling | `Fall`, 4 frames |
@@ -307,14 +351,44 @@ first sound effect arrives.
 
 A level is a `LevelDefinition` asset (`Assets/Data/Levels/`). Two modes:
 
-- **Sequenced** — you list chunk prefabs in order. Used for levels 1–3, where
-  each one teaches a move.
+- **Sequenced** — you list chunk prefabs in order. Used for levels 1–3 and 6–10.
 - **Assembled** — you give a pool, a target length and a difficulty curve, and
   the builder picks a varied mix. The seed is fixed, so a level is identical on
   every retry. Used for levels 4–5.
 
 Add a level by creating the asset (**Create → ArvinRunner → Level**) and dropping
-it into `Assets/Data/Campaign.asset`. Nothing else needs changing.
+it into `Assets/Data/Campaign.asset`. Nothing else needs changing — the menu grid
+and the save data are both driven off `LevelSet.Count`.
+
+### The campaign
+
+| # | Name | Theme | Idea | Length | Difficulty |
+| --- | --- | --- | --- | --- | --- |
+| 1 | First Steps | Night | one move at a time | 222 | 2.0 |
+| 2 | Rooftops | Night | obstacles with two answers | 306 | 2.4 |
+| 3 | Construction | Dusk | wall run and ledge grab | 356 | 3.7 |
+| 4 | Skyline | Dusk | assembled endurance | 414 | ~3 |
+| 5 | Storm | Night | assembled, wind | 514 | ~4 |
+| 6 | Rush Hour | Sodium | traffic and vehicle roofs | 382 | 2.9 |
+| 7 | Demolition | Smog | nothing holds still | 420 | 3.3 |
+| 8 | Air Support | Storm | the gunship | 398 | 3.6 |
+| 9 | The Towers | Dawn | vertical, wall run throughout | 392 | 4.0 |
+| 10 | Blackout | Blackout | everything at once | 454 | 4.4 |
+
+Difficulty is the mean of a level's chunks **excluding the `Chunk_Flat` rests**,
+which is the number worth watching — counting the rests in flatters a hard level
+simply for giving the player somewhere to breathe.
+
+Levels 6–10 each open by stating their own idea plainly, complicate it in the
+middle, and close on the one chunk that combines it with something else. The
+`Chunk_Flat` between the hardest pairs is not padding; it is where the player
+gets to see what is coming.
+
+Two things about the shape of the campaign are worth knowing before retuning it.
+**Level 6 opens a new act, so it deliberately drops back** from level 5 — it has
+to teach vehicle traffic before it can complicate it. And **level 3 is harder
+than levels 6 and 7** at 3.7, which is inherited rather than designed; if the
+early campaign ever feels like it spikes, that is where.
 
 ### Authoring a new obstacle chunk
 
@@ -344,6 +418,20 @@ sharing a tag never get placed back to back.
 | `HelicopterStrike` | fires one missile at a marked point as it passes |
 | `MissileStrike` | the marker and the fire it leaves |
 | `SpriteFlipbook` | cycles an obstacle's frames, or plays a slice of them once |
+
+### Chunks that stack two mechanics
+
+`ChunkFactoryAdvanced.cs` holds the chunks that put two demands on the same beat
+— a beam standing in the middle of a gap, a wrecking ball swinging across one,
+two presses half a cycle apart, a gunship strike that lands just before the roof
+starts giving way. They exist because a library that teaches one thing per chunk
+runs out of room to escalate: before them there was a single difficulty-5 chunk
+in the whole game and only two that used the wall run.
+
+The rule they follow: **two demands may overlap, but only one of them may be
+invisible.** A beam over a gap is fair because both are on screen while there is
+still time to act on either. What is avoided is stacking two things that each
+need the same second of warning.
 
 ### Obstacles that come the other way
 

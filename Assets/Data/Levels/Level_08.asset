@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_08
+  m_EditorClassIdentifier: 
+  levelNumber: 8
+  displayName: Air Support
+  hint: The gunship marks the roof before it fires. Be somewhere else.
+  mode: 0
+  sequence:
+  - {fileID: 442924526593982120, guid: 18682b668875df145adeb471ec774e93, type: 3}
+  - {fileID: 5951802779864337043, guid: 35ec0f7f129e701488d0a462b0073fdd, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 5131461155866821545, guid: f780f99c636b3544693ef43c9fe7f3e9, type: 3}
+  - {fileID: 6569397698157752754, guid: 78e25eecd7f0e2143b05b5baeabf14d9, type: 3}
+  - {fileID: 5139887444061969860, guid: aa80e9f05835fcb4a895e2cc49fee4ac, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 3716246271323557952, guid: d0eb2728e6650a94897399f47bc0d68b, type: 3}
+  - {fileID: 4444769750933086764, guid: a1a287c06890d9c4794df42e0509f366, type: 3}
+  - {fileID: 5007303371377669954, guid: 2c058c44b8aab3640a98f980c94237e0, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: b0e16d72c1bf24246b90fd8ec1c7a8c2, type: 2}
+  music: {fileID: 0}
+  parTime: 100

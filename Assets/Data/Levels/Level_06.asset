@@ -1,0 +1,62 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_06
+  m_EditorClassIdentifier: 
+  levelNumber: 6
+  displayName: Rush Hour
+  hint: The street is full. Vault the low ones, run the roofs of the rest.
+  mode: 0
+  sequence:
+  - {fileID: 2986558271687000459, guid: 79ff4205c909eea4eab07b654a4bdabf, type: 3}
+  - {fileID: 5827498253427295346, guid: 3146c5964716ad34aacbec6485ea0563, type: 3}
+  - {fileID: 9092495690387477764, guid: 280d7da9fda3dca4cbb8a17ec2803ef6, type: 3}
+  - {fileID: 8782615760594158327, guid: 0a63753e997358f4387ea37893925459, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 7582960393801782468, guid: 5ff851bad2ad04845915a54cd9c6b6a1, type: 3}
+  - {fileID: 7078279140154924604, guid: 370ccf75243c62041a57eacb5754e4f9, type: 3}
+  - {fileID: 442924526593982120, guid: 18682b668875df145adeb471ec774e93, type: 3}
+  - {fileID: 6569397698157752754, guid: 78e25eecd7f0e2143b05b5baeabf14d9, type: 3}
+  - {fileID: 2891361842157734366, guid: 371d7d9a6f122804ab131f40b2434236, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: ed5a40d343624774599f6a98ab2d964b, type: 2}
+  music: {fileID: 0}
+  parTime: 95

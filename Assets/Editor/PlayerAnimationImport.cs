@@ -9,11 +9,12 @@ namespace ArvinRunner.EditorTools
     /// <summary>
     /// Imports the drawn runner frames in Art/Player/PlayerAnimations.
     ///
-    /// One folder per animation, one PNG per frame. The frames arrive as
-    /// individually cropped images - Run is around 250x330, Idle 100x176, and
-    /// the figure does not sit in the same place on every canvas - so importing
-    /// them with Unity's defaults would make the runner change size and hop
-    /// about between frames. Two measurements fix that:
+    /// One folder per animation, one PNG per frame. Most arrive as individually
+    /// cropped images - Idle is 100x176 and the figure does not sit in the same
+    /// place on any two canvases - so importing them with Unity's defaults would
+    /// make the runner change size and hop about between frames. Run is the
+    /// exception and is drawn on one shared 772x897 canvas, which needs the
+    /// opposite treatment; see (5). Two measurements fix the common case:
     ///
     ///  1. One pixels-per-unit for every frame in every clip, derived from the
     ///     Idle pose. Idle is the standing pose, so it is the honest reference
@@ -49,6 +50,10 @@ namespace ArvinRunner.EditorTools
     ///  4. An exception to the exception, in <see cref="LevelFrameHeights"/>, for
     ///     a folder whose own frames disagree with each other about scale.
     ///
+    ///  5. An exception to (2) for a folder drawn on one shared canvas rather
+    ///     than cropped frame by frame, where the movement between frames is the
+    ///     animation and must not be measured away. See <see cref="AlignedPivot"/>.
+    ///
     /// The result is a set of sprites that can be swapped frame to frame with
     /// nothing else moving.
     /// </summary>
@@ -65,8 +70,11 @@ namespace ArvinRunner.EditorTools
         /// <summary>The clip whose height defines the scale of all the others.</summary>
         private const string ReferenceSet = "Idle";
 
-        /// <summary>The frames top out at 291x369 (lowFlip), so 512 never downscales one.</summary>
-        private const int MaxTextureSize = 512;
+        /// <summary>
+        /// Run is drawn at 772x897 now, so 512 would quietly downscale it - and
+        /// the measurements below would then be taken off the downscaled copy.
+        /// </summary>
+        private const int MaxTextureSize = 1024;
 
         /// <summary>
         /// Folder names to look for, in the order they are reported. Matched
@@ -97,9 +105,9 @@ namespace ArvinRunner.EditorTools
         {
             ["LowFlip"] = 1.94f,
 
-            // Redrawn larger and smoother, at roughly twice the linear size of
-            // Idle, so it needs the same treatment. 1.94 is the height Run came
-            // out at before, which keeps the runner the size it has always been.
+            // Drawn much larger than Idle - 772x897 a frame - so it needs its own
+            // scale. 1.94 is the height Run has come out at through every redraw,
+            // which is what keeps the runner the size they have always been.
             ["Run"] = 1.94f
         };
 
@@ -107,21 +115,17 @@ namespace ArvinRunner.EditorTools
         /// Clips brought out at exactly the override height frame by frame,
         /// rather than sharing one scale across the whole clip.
         ///
-        /// One scale per clip is the right default: it keeps the figure's own
-        /// rise and fall, so the head lifts through a stride instead of being
-        /// ironed flat.
+        /// Empty, and worth keeping that way. One scale per clip is the right
+        /// default because it preserves the figure's own rise and fall through a
+        /// stride; levelling irons that flat, and is only ever the lesser evil.
         ///
-        /// Run is here because its frames were not all drawn at one size. The 16
-        /// arrived as two batches - frames 1-8 average 330px tall, frames 9-16
-        /// average 300px, each batch internally consistent to within a few
-        /// percent, with a flat 10% step between them. That is not gait; gait
-        /// varies smoothly across a cycle rather than sitting on two plateaus.
-        /// On one shared scale the runner would shrink a tenth of their height
-        /// halfway through every stride and snap back, twice a second. Levelling
-        /// costs the ~4% of real head movement and removes the 10% of pulsing.
+        /// Run needed it once, when its 16 frames arrived as two batches drawn
+        /// 10% apart in size and the runner pulsed twice a second. It was redrawn
+        /// on a single shared canvas and the problem went with it. Put a clip in
+        /// here if <see cref="ReportLevelling"/> ever has cause to complain again.
         /// </summary>
         private static readonly HashSet<string> LevelFrameHeights =
-            new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "Run" };
+            new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// How far a set's tallest frame may sit from the standing height before
@@ -192,11 +196,16 @@ namespace ArvinRunner.EditorTools
                         ReportLevelling(set.Key, set.Value);
                     }
 
+                    // A clip drawn on one shared canvas is anchored once for the
+                    // whole clip rather than frame by frame - see AlignedPivot.
+                    bool aligned = SharesOneCanvas(set.Value);
+                    Vector2 anchor = aligned ? AlignedPivot(set.Key, set.Value) : Vector2.zero;
+
                     foreach (string path in set.Value)
                     {
                         EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
                                                          0.5f + 0.5f * done++ / TotalFrames(sets));
-                        Finalise(path, pixelsPerUnit, levelTo);
+                        Finalise(path, pixelsPerUnit, levelTo, aligned, anchor);
                     }
                 }
             }
@@ -391,7 +400,8 @@ namespace ArvinRunner.EditorTools
         /// scale, so the drawn figure comes out exactly that tall - see
         /// <see cref="LevelFrameHeights"/> for when that is the right thing.
         /// </summary>
-        private static void Finalise(string path, float pixelsPerUnit, float levelTo = 0f)
+        private static void Finalise(string path, float pixelsPerUnit, float levelTo = 0f,
+                                     bool aligned = false, Vector2 anchor = default)
         {
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (texture == null) return;
@@ -405,9 +415,86 @@ namespace ArvinRunner.EditorTools
 
             if (levelTo > 0.01f) pixelsPerUnit = figure.Bounds.height / levelTo;
 
-            SpriteMeasure.ApplyFrame(path,
-                                     SpriteMeasure.PivotFor(figure, texture.width, texture.height),
-                                     pixelsPerUnit);
+            Vector2 pivot = aligned
+                ? anchor
+                : SpriteMeasure.PivotFor(figure, texture.width, texture.height);
+
+            SpriteMeasure.ApplyFrame(path, pivot, pixelsPerUnit);
+        }
+
+        /// <summary>True when every frame of a clip was drawn on the same canvas.</summary>
+        private static bool SharesOneCanvas(string[] paths)
+        {
+            int width = 0, height = 0;
+
+            foreach (string path in paths)
+            {
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (texture == null) return false;
+
+                if (width == 0)
+                {
+                    width = texture.width;
+                    height = texture.height;
+                    continue;
+                }
+
+                if (texture.width != width || texture.height != height) return false;
+            }
+
+            return width > 0;
+        }
+
+        /// <summary>
+        /// The one anchor a clip drawn on a shared canvas gets.
+        ///
+        /// <b>This is the opposite of what individually cropped frames need, and
+        /// using either rule on the other kind of art is very visible.</b>
+        ///
+        /// Cropped frames carry no common frame of reference, so each has to be
+        /// measured and pinned on its own - that is what the per-frame pivot is
+        /// for, and what the note at the top of this file is about.
+        ///
+        /// Frames sharing a canvas have already been positioned against each
+        /// other by whoever drew them, and the movement between them *is* the
+        /// animation. Run is 24 frames of one stride on a 772x897 canvas: the
+        /// figure's lowest pixel sits on the canvas floor through the contact
+        /// frames and lifts 35px through the flight phase, which is the runner
+        /// leaving the ground. Measuring that per frame would pin the flight
+        /// frames back down to the floor and delete the bounce from the run.
+        ///
+        /// So: horizontally the mean centre of mass, which is where the body is
+        /// across the cycle and lets the limbs swing around it; vertically the
+        /// lowest pixel the clip ever reaches, which is the ground the runner is
+        /// standing on in the frames where they are touching it.
+        /// </summary>
+        private static Vector2 AlignedPivot(string setName, string[] paths)
+        {
+            var reference = AssetDatabase.LoadAssetAtPath<Texture2D>(paths[0]);
+            if (reference == null) return new Vector2(0.5f, 0f);
+
+            int lowest = int.MaxValue;
+            float centroidSum = 0f;
+            int counted = 0;
+
+            foreach (string path in paths)
+            {
+                Figure figure = SpriteMeasure.Measure(path);
+                if (figure.IsEmpty) continue;
+
+                if (figure.Bounds.y < lowest) lowest = figure.Bounds.y;
+                centroidSum += figure.CentroidX;
+                counted++;
+            }
+
+            if (counted == 0)
+            {
+                Debug.LogWarning($"[ArvinRunner] Could not measure any frame of '{setName}'.");
+                return new Vector2(0.5f, 0f);
+            }
+
+            return new Vector2(centroidSum / counted / reference.width,
+                               lowest / (float)reference.height);
         }
 
         /// <summary>

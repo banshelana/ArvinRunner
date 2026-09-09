@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_10
+  m_EditorClassIdentifier: 
+  levelNumber: 10
+  displayName: Blackout
+  hint: Everything the city has, one after another. Do not stop moving.
+  mode: 0
+  sequence:
+  - {fileID: 3716246271323557952, guid: d0eb2728e6650a94897399f47bc0d68b, type: 3}
+  - {fileID: 1526553979276238434, guid: 0be44c1ad19a9bb449eececd6ab502d3, type: 3}
+  - {fileID: 2057505790781418091, guid: 74ca2ce0741251f429799213ae62fc12, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 5268817162406953382, guid: b561642c4ad722048b0863cfc5bf9786, type: 3}
+  - {fileID: 656297995974382635, guid: faeb074d9d2987346983c17f86817ff4, type: 3}
+  - {fileID: 3372829326897414830, guid: a560a0af758649c49ac33e930f36ae8f, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 5139887444061969860, guid: aa80e9f05835fcb4a895e2cc49fee4ac, type: 3}
+  - {fileID: 243968403798284233, guid: d99d69fabcd0707429f2d9c4783f9932, type: 3}
+  - {fileID: 5131461155866821545, guid: f780f99c636b3544693ef43c9fe7f3e9, type: 3}
+  - {fileID: 988300086123868358, guid: e1cb4ed02d25b6a4db118edadfda1eb0, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: e93d0ba1cf073e445b83b3f25ff7d49d, type: 2}
+  music: {fileID: 0}
+  parTime: 115

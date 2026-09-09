@@ -64,6 +64,9 @@ namespace ArvinRunner.EditorTools
             // Obstacles that come the other way.
             chunks.AddRange(CreateMovingChunks());
 
+            // Two mechanics at once - the escalation the late levels need.
+            chunks.AddRange(CreateAdvancedChunks());
+
             return chunks.ToArray();
         }
 

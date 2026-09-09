@@ -15,11 +15,19 @@ namespace ArvinRunner
         [Tooltip("Drag the sliced sprite frames here, in order.")]
         public Sprite[] frames;
 
-        [Tooltip("Playback speed in frames per second.")]
+        [Tooltip("Playback speed in frames per second. Ignored when strideDistance " +
+                 "is set, since the clip is then driven by ground covered instead.")]
         public float fps = 12f;
 
         [Tooltip("Looping clips (run, idle) repeat. One-shots (vault, death) hold the last frame.")]
         public bool loop = true;
+
+        [Tooltip("Ground distance one full cycle of this clip covers, in world units. " +
+                 "Above zero the clip advances by how far the runner has actually " +
+                 "travelled rather than by a frame rate, which is what keeps the feet " +
+                 "with the ground as the run speed ramps. Leave at zero for anything " +
+                 "that is not locomotion.")]
+        public float strideDistance;
     }
 
     /// <summary>
