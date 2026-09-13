@@ -18,12 +18,15 @@ namespace ArvinRunner.EditorTools
     {
         private const string ChunkFolder = "Assets/Prefabs/Chunks";
 
-        private static readonly Color Rooftop   = new Color(0.20f, 0.21f, 0.30f);
-        private static readonly Color WallTone  = new Color(0.26f, 0.27f, 0.38f);
+        // Mid slate, lifted from the night palette so the black runner stands out
+        // against the roof and the wall he is climbing (3.1:1 and 4.0:1), while
+        // staying darker than the towers behind so the city keeps its depth.
+        private static readonly Color Rooftop   = new Color(0.34f, 0.36f, 0.42f);
+        private static readonly Color WallTone  = new Color(0.40f, 0.42f, 0.50f);
         private static readonly Color VaultTone = new Color(0.85f, 0.62f, 0.24f);
         private static readonly Color HazardTone = new Color(0.92f, 0.27f, 0.28f);
         private static readonly Color MetalTone = new Color(0.55f, 0.58f, 0.66f);
-        private static readonly Color GlassTone = new Color(0.55f, 0.85f, 0.95f, 0.55f);
+        private static readonly Color GlassTone = new Color(0.30f, 0.58f, 0.72f, 0.65f);   // deep enough for a pale sky
 
         private const float GroundThickness = 3f;
 
@@ -178,27 +181,60 @@ namespace ArvinRunner.EditorTools
             return root;
         }
 
-        /// <summary>Pulsing beams. Read the rhythm before you commit.</summary>
+        /// <summary>
+        /// A corridor of beams, each either lit or dark when the runner reaches
+        /// it - the same one, every attempt.
+        ///
+        /// This chunk used to be impossible, and the way it was impossible is
+        /// worth recording. The beams were 4.5 tall against a 3.2 jump and stood
+        /// on the floor, so there was no way over them and none under; the only
+        /// answer was to arrive during a 1.0s dark phase. They sat 7 apart with
+        /// their cycles staggered 0.8s, and at the 9-to-15 the runner actually
+        /// travels, seven units take 0.47-0.78s - so each beam's phase had moved
+        /// on 1.27-1.58s from the last, further than the dark phase was wide. A
+        /// phase that cleared the first beam had always rotated past clear by the
+        /// second. Sweeping 2000 speeds against 400 entry phases found nothing
+        /// that passed: the only speed that worked at all was 5.38, and the
+        /// runner never goes below 9.
+        ///
+        /// Three things fix it, and each is doing a different job:
+        ///
+        ///  * <b>2.6 tall, so they can be jumped.</b> A misread now costs a jump
+        ///    instead of the run, and the chunk joins the two-answer family the
+        ///    rails and the overpass already belong to.
+        ///  * <b>10 apart, so consecutive jumps fit.</b> A jump is airborne 0.69s
+        ///    and covers 8.6 units at speed; at the old 7 spacing the runner was
+        ///    still in the air over the next beam with no way to answer it.
+        ///  * <b>Lit or dark decided by arrivalPhase</b>, not by the clock, so the
+        ///    rhythm below is what every attempt presents.
+        ///
+        /// The rhythm is jump, through, jump. The open middle beam is there so
+        /// the answer is read off the beam rather than applied to all of them.
+        /// </summary>
         private static GameObject LaserCorridor()
         {
-            GameObject root = NewChunk("Chunk_Lasers", 30f, 0f, 0f, 3, ChunkSkill.Timing, "laser");
-            Ground(root, 0f, 0f, 30f);
+            GameObject root = NewChunk("Chunk_Lasers", 36f, 0f, 0f, 3, ChunkSkill.Timing | ChunkSkill.Jump, "laser");
+            Ground(root, 0f, 0f, 36f);
 
-            float[] positions = { 9f, 16f, 23f };
-            float[] offsets = { 0f, 0.8f, 1.6f };
+            // Under armedFraction 0.5 is lit on arrival; over it is open.
+            float[] positions = { 9f, 19f, 29f };
+            float[] arrival   = { 0.20f, 0.75f, 0.25f };
 
             for (int i = 0; i < positions.Length; i++)
             {
-                GameObject beam = Box(root, "Laser" + i, positions[i], 0f, 0.35f, 4.5f,
+                GameObject beam = Box(root, "Laser" + i, positions[i], 0f, 0.35f, 2.6f,
                                       GameLayers.Hazard, HazardTone, anchorBottom: true, trigger: true);
                 beam.AddComponent<Hazard>();
 
                 var gate = beam.AddComponent<LaserGate>();
-                EditorUtil.SetFloat(gate, "startOffset", offsets[i]);
-                EditorUtil.SetFloat(gate, "onDuration", 1.1f);
-                EditorUtil.SetFloat(gate, "offDuration", 1.0f);
+                EditorUtil.SetFloat(gate, "arrivalPhase", arrival[i]);
+                EditorUtil.SetFloat(gate, "armedFraction", 0.5f);
+                EditorUtil.SetFloat(gate, "wavelength", 6f);
             }
 
+            // Over the open beam, so the collecting line is the one that reads
+            // the middle gate correctly instead of jumping it out of habit.
+            Coins(root, 17f, 1.2f, 4, 1.2f, 0.4f);
             return root;
         }
 
@@ -449,7 +485,7 @@ namespace ArvinRunner.EditorTools
 
                 var renderer = go.AddComponent<SpriteRenderer>();
                 renderer.sprite = PlaceholderArt.Load("coin");
-                renderer.color = new Color(1f, 0.85f, 0.35f);
+                renderer.color = new Color(1f, 0.74f, 0.16f);   // deeper gold, with the sprite's dark rim
                 renderer.sortingOrder = 8;
 
                 var circle = go.AddComponent<CircleCollider2D>();

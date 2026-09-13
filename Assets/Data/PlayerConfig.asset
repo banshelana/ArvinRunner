@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: PlayerConfig
   m_EditorClassIdentifier: 
   runSpeed: 9
-  speedRampPerSecond: 0.12
-  maxRunSpeed: 15
+  speedRampPerSecond: 0.045
+  maxRunSpeed: 11
   acceleration: 30
   jumpHeight: 3.2
   doubleJumpHeight: 2.6
@@ -29,6 +29,9 @@ MonoBehaviour:
   hardLandingSpeed: 16
   rollDuration: 0.5
   rollHeightFraction: 0.5
+  superJumpChargeTime: 15
+  superJumpHeight: 6.4
+  superJumpSpeedMultiplier: 1.35
   maxVaultHeight: 1.6
   vaultProbeDistance: 1.1
   vaultDuration: 0.35
@@ -43,5 +46,6 @@ MonoBehaviour:
   ledgeGrabTolerance: 0.6
   ledgeClimbDuration: 0.45
   maxLedgeGrabRiseSpeed: 2
+  wallCrashGrace: 0.35
   deathSlowMoDuration: 0.6
   deathTimeScale: 0.25

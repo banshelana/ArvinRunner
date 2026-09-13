@@ -48,12 +48,29 @@ namespace ArvinRunner
         private TrickClip _trick;
         private PlayerAnim _current = PlayerAnim.Idle;
 
-        private float _frameTimer;
-        private int _frameIndex;
+        // How far through the clip, from 0 to 1. A fraction rather than seconds
+        // or a frame count, because a clip is driven one of three ways - by the
+        // clock, by ground covered, or along the jump arc - and each of them
+        // measures the length of a clip in its own units.
+        private float _phase;
+
+        // Where each frame starts, as a fraction of the clip, with a closing 1.
+        // Even steps unless the clip carries weights.
+        private float[] _starts;
+
+        private int _frameIndex = -1;
+        private bool _finished;
+        private bool _pastApex;
         private float _trickTime;
+
+        // The jump clip that carried the runner into the air, whose own landing
+        // plays on touchdown. Anything else clears it, so a drop off a roof with
+        // no trick behind it lands the ordinary way.
+        private SpriteAnimationClip _airClip;
 
         private Vector3 _baseLocalPosition;
         private Vector3 _spriteBaseScale;
+        private Vector3 _spriteBaseLocalPosition;
 
         private int _stateHash, _speedHash;
 
@@ -67,6 +84,7 @@ namespace ArvinRunner
             _player = GetComponentInParent<PlayerController>();
             _baseLocalPosition = transform.localPosition;
             _spriteBaseScale = _spriteTransform.localScale;
+            _spriteBaseLocalPosition = _spriteTransform.localPosition;
 
             if (animator == null) animator = GetComponent<Animator>();
             _stateHash = Animator.StringToHash(stateParameter);
@@ -84,24 +102,32 @@ namespace ArvinRunner
 
         /// <summary>
         /// Switch to an animation slot. Safe to call every frame - it only does
-        /// work when the state actually changes, which is also when a new random
-        /// trick variant gets picked.
+        /// work when the slot actually changes, which is also when a new random
+        /// variant gets picked.
         /// </summary>
         public void Play(PlayerAnim anim)
         {
             if (_current == anim && _clip != null) return;
 
+            SpriteAnimationClip previous = _clip;
             _current = anim;
-            _frameTimer = 0f;
-            _frameIndex = 0;
             _trickTime = 0f;
 
             if (animationSet != null)
             {
-                _clip = animationSet.Get(anim);
-                if (_clip != null && _clip.frames.Length > 0)
-                    spriteRenderer.sprite = _clip.frames[0];
+                // A landing belongs to the jump it ends - the somersault lands
+                // out of the somersault - so a jump that names one gets it.
+                SpriteAnimationClip landing = anim == PlayerAnim.Land && _airClip != null
+                    ? animationSet.Find(_airClip.landing)
+                    : null;
+
+                _clip = landing ?? animationSet.Get(anim);
             }
+
+            if (_clip != null && _clip.followJump) _airClip = _clip;
+            else if (anim != PlayerAnim.Land) _airClip = null;
+
+            BeginClip(previous);
 
             // A fresh pick each time, so repeated double jumps alternate between
             // a front flip and a back flip rather than looking canned.
@@ -109,6 +135,25 @@ namespace ArvinRunner
 
             if (animator != null && animator.runtimeAnimatorController != null)
                 animator.SetInteger(_stateHash, (int)anim);
+        }
+
+        /// <summary>
+        /// True once a one-shot clip has played out - and always true for a
+        /// looping clip, which never finishes, and for a held pose, which starts
+        /// finished. A jump clip finishes when the runner has fallen well past
+        /// where its landing should have been, which is the cue for the fall loop.
+        ///
+        /// The controller reads this to let an air trick own the whole jump
+        /// rather than being cut off at the apex, and to know when a landing has
+        /// taken its weight and the run can have the slot back.
+        /// </summary>
+        public bool ClipFinished
+        {
+            get
+            {
+                if (_clip == null || _clip.frames == null || _clip.frames.Length <= 1) return true;
+                return _clip.loop || _finished;
+            }
         }
 
         /// <summary>Drawn frames win over procedural motion for a given state.</summary>
@@ -131,49 +176,207 @@ namespace ArvinRunner
 
         // ---------------------------------------------------------------- //
 
+        private void BeginClip(SpriteAnimationClip previous)
+        {
+            _phase = 0f;
+            _finished = false;
+            _pastApex = false;
+            _frameIndex = -1;
+
+            if (_clip == null || _clip.frames == null || _clip.frames.Length == 0)
+            {
+                _starts = null;
+                if (_spriteTransform != transform) _spriteTransform.localPosition = _spriteBaseLocalPosition;
+                return;
+            }
+
+            _starts = FrameStarts(_clip);
+
+            // Carry the pose across. A landing that finishes with the knee coming
+            // through hands the run that point of its stride, instead of the run
+            // restarting from whatever its first frame happens to be.
+            if (_clip.loop && previous != null && previous != _clip && previous.exitToFrame >= 0)
+                _phase = _starts[Mathf.Min(previous.exitToFrame, _clip.frames.Length - 1)];
+
+            ShowFrame(IndexAt(_phase));
+        }
+
+        private static float[] FrameStarts(SpriteAnimationClip clip)
+        {
+            int count = clip.frames.Length;
+            var starts = new float[count + 1];
+
+            float total = 0f;
+            for (int i = 0; i < count; i++) total += Weight(clip, i);
+
+            float sum = 0f;
+            for (int i = 0; i < count; i++)
+            {
+                starts[i] = sum / total;
+                sum += Weight(clip, i);
+            }
+
+            starts[count] = 1f;
+            return starts;
+        }
+
+        private static float Weight(SpriteAnimationClip clip, int index)
+        {
+            if (clip.weights == null || index >= clip.weights.Length) return 1f;
+            return Mathf.Max(0.0001f, clip.weights[index]);
+        }
+
+        private int IndexAt(float phase)
+        {
+            for (int i = _clip.frames.Length - 1; i > 0; i--)
+                if (phase >= _starts[i]) return i;
+            return 0;
+        }
+
+        private void ShowFrame(int index)
+        {
+            _frameIndex = index;
+            if (spriteRenderer != null) spriteRenderer.sprite = _clip.frames[index];
+
+            // Registration belongs to the use of a drawing, not to the drawing -
+            // see ArvinRunnerSetup.RegisterFrames. Only applied to a sprite child:
+            // on this object it would fight the tricks for the position.
+            if (_spriteTransform == transform) return;
+
+            Vector2 offset = _clip.offsets != null && index < _clip.offsets.Length
+                ? _clip.offsets[index]
+                : Vector2.zero;
+
+            _spriteTransform.localPosition = _spriteBaseLocalPosition + (Vector3)offset;
+        }
+
         /// <summary>
-        /// Steps the drawn frames.
+        /// Moves the flip-book on, one of three ways.
         ///
-        /// A clip with a <see cref="SpriteAnimationClip.strideDistance"/> is
-        /// advanced by <b>ground covered rather than by time</b>, which is the
-        /// only way a run cycle can hold together in this game. The runner's
-        /// speed ramps from 9 to 15 across a level, so any fixed frame rate is
-        /// correct at exactly one speed and wrong either side of it - the feet
-        /// skate forwards as the run gets faster. Tying the cycle to distance
-        /// makes the cadence rise with the speed on its own, and the feet keep
-        /// whatever relationship to the ground the artist drew.
+        /// <b>Along the jump</b>, for a clip with followJump. The frame comes from
+        /// the runner's vertical speed, which falls in a straight line from the
+        /// launch speed to zero at the apex and grows in a straight line on the
+        /// way down - so the apex frame is on screen at the top of the arc and the
+        /// last one at touchdown, for a hop onto a crate and a super jump alike.
+        /// A clock can only be right for one jump height. It used to be the
+        /// clock: a somersault paced for the rise was cut in half at the apex,
+        /// and paced for the whole jump it still finished early whenever the
+        /// runner landed on something higher, and hung on its last frame for a
+        /// drop.
+        ///
+        /// <b>By ground covered</b>, for a clip with a
+        /// <see cref="SpriteAnimationClip.strideDistance"/>: the run. The speed
+        /// ramps across a level, so any fixed rate is right at one speed and has
+        /// the feet skating either side of it. Tied to distance, each drawing is
+        /// on screen for exactly the stretch of ground its foot covers.
+        /// <see cref="SpriteAnimationClip.strideGrowth"/> decides how much of a
+        /// speed change lengthens the step rather than quickening the legs.
+        ///
+        /// <b>By the clock</b>, for everything else.
+        ///
+        /// All three move a fraction through the clip rather than stepping whole
+        /// frames, and the frame is looked up from where that fraction lands - so
+        /// a slow device drops drawings to keep time instead of playing in slow
+        /// motion, and the clip's weights decide how much of the move each
+        /// drawing covers.
         /// </summary>
         private void AdvanceFlipbook()
         {
-            if (_clip == null || _clip.frames == null || _clip.frames.Length <= 1) return;
+            if (_clip == null || _clip.frames == null || _clip.frames.Length <= 1 || _starts == null) return;
 
-            int count = _clip.frames.Length;
-            bool byDistance = _clip.strideDistance > 0.01f && _player != null;
+            if (_clip.followJump && _player != null && _player.Config != null && _player.LaunchSpeed > 0.01f)
+            {
+                // Never backwards: a gust or a bump that nudges the vertical speed
+                // must not rewind a somersault.
+                _phase = Mathf.Max(_phase, JumpPhase());
+            }
+            else
+            {
+                bool byDistance = _clip.strideDistance > 0.01f && _player != null;
 
-            // What one frame is worth, and how much of it this update earned.
-            float perFrame = byDistance
-                ? _clip.strideDistance / count
-                : 1f / Mathf.Max(1f, _clip.fps);
+                float length = byDistance
+                    ? StrideNow()
+                    : _clip.frames.Length / Mathf.Max(1f, _clip.fps);
 
-            float earned = byDistance
-                ? Mathf.Abs(_player.CurrentSpeed) * Time.deltaTime
-                : Time.deltaTime;
+                float earned = byDistance
+                    ? Mathf.Abs(_player.CurrentSpeed) * Time.deltaTime
+                    : Time.deltaTime;
 
-            _frameTimer += earned;
-            if (_frameTimer < perFrame) return;
+                _phase += earned / Mathf.Max(0.0001f, length);
 
-            // Whole frames at once, rather than one per update. The old single
-            // step could not keep up whenever an update was longer than a frame
-            // - at speed, or on a slower device - and the clip then played in
-            // permanent slow motion instead of dropping frames to stay in time.
-            int steps = (int)(_frameTimer / perFrame);
-            _frameTimer -= steps * perFrame;
-            _frameIndex += steps;
+                if (_phase >= 1f)
+                {
+                    if (_clip.loop)
+                    {
+                        _phase = Mathf.Repeat(_phase, 1f);
+                    }
+                    else
+                    {
+                        _phase = 1f;
+                        _finished = true;
+                    }
+                }
+            }
 
-            if (_frameIndex >= count)
-                _frameIndex = _clip.loop ? _frameIndex % count : count - 1;
+            int index = IndexAt(_phase);
+            if (index != _frameIndex) ShowFrame(index);
+        }
 
-            spriteRenderer.sprite = _clip.frames[_frameIndex];
+        /// <summary>
+        /// Where along the current jump the runner is, as a fraction of the clip.
+        /// The rise fills the clip up to the middle of the apex frame, and the
+        /// fall fills the rest.
+        /// </summary>
+        private float JumpPhase()
+        {
+            PlayerConfig config = _player.Config;
+            float launch = _player.LaunchSpeed;
+            float rising = _player.VerticalSpeed;
+            float gravity = Mathf.Abs(Physics2D.gravity.y);
+
+            int apex = Mathf.Clamp(_clip.apexFrame, 0, _clip.frames.Length - 1);
+            float apexPhase = (_starts[apex] + _starts[apex + 1]) * 0.5f;
+
+            if (!_pastApex && rising > 0f)
+                return apexPhase * Mathf.Clamp01(1f - rising / launch);
+
+            _pastApex = true;
+
+            // The speed it will be falling at on getting back to the height it
+            // left from: the same climb, undone under the heavier fall gravity.
+            float height = launch * launch / (2f * gravity * Mathf.Max(0.01f, config.riseGravity));
+            float landing = Mathf.Sqrt(2f * gravity * Mathf.Max(0.01f, config.fallGravity) * height);
+            float fallen = -rising / Mathf.Max(0.01f, landing);
+
+            // Well past that and still in the air - off the edge of something -
+            // so the fall loop can take over from the last frame.
+            if (fallen > 1.25f) _finished = true;
+
+            return apexPhase + (1f - apexPhase) * Mathf.Clamp01(fallen);
+        }
+
+        /// <summary>
+        /// The distance one cycle of the current clip covers at the speed the
+        /// runner is going, which is the authored stride stretched by
+        /// <see cref="SpriteAnimationClip.strideGrowth"/>.
+        ///
+        /// The ratio is clamped at both ends. Below, because a runner pressed to
+        /// a standstill against a wall would otherwise drive the stride - and so
+        /// the time one frame is worth - to zero. Above, because nothing in the
+        /// game should be moving fast enough to need it and a bounce pad should
+        /// not be able to prove otherwise.
+        /// </summary>
+        private float StrideNow()
+        {
+            float stride = _clip.strideDistance;
+
+            if (_clip.strideGrowth <= 0.001f || _clip.strideReferenceSpeed <= 0.01f)
+                return stride;
+
+            float ratio = Mathf.Clamp(Mathf.Abs(_player.CurrentSpeed) / _clip.strideReferenceSpeed,
+                                      0.3f, 3f);
+
+            return stride * Mathf.Pow(ratio, _clip.strideGrowth);
         }
 
         private void UpdateAnimatorSpeed()

@@ -91,6 +91,7 @@
     <Compile Include="Assets\Scripts\Obstacles\KillZone.cs" />
     <Compile Include="Assets\Scripts\Obstacles\LaserGate.cs" />
     <Compile Include="Assets\Scripts\Obstacles\Trampoline.cs" />
+    <Compile Include="Assets\Scripts\Player\SuperJumpMeter.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
     <Compile Include="Assets\Scripts\Obstacles\GustZone.cs" />
     <Compile Include="Assets\Scripts\Level\LevelBuilder.cs" />

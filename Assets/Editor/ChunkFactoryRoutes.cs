@@ -21,7 +21,7 @@ namespace ArvinRunner.EditorTools
     public static partial class ChunkFactory
     {
         private static readonly Color RailTone = new Color(0.62f, 0.66f, 0.74f);
-        private static readonly Color DeckTone = new Color(0.30f, 0.32f, 0.42f);
+        private static readonly Color DeckTone = new Color(0.38f, 0.40f, 0.48f);
 
         private static List<LevelChunk> CreateRouteChunks()
         {

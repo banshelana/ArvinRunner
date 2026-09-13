@@ -9,53 +9,31 @@ namespace ArvinRunner.EditorTools
     /// <summary>
     /// Imports the drawn runner frames in Art/Player/PlayerAnimations.
     ///
-    /// One folder per animation, one PNG per frame. Most arrive as individually
-    /// cropped images - Idle is 100x176 and the figure does not sit in the same
-    /// place on any two canvases - so importing them with Unity's defaults would
-    /// make the runner change size and hop about between frames. Run is the
-    /// exception and is drawn on one shared 772x897 canvas, which needs the
-    /// opposite treatment; see (5). Two measurements fix the common case:
+    /// One folder per clip, one PNG per frame, each frame cropped to its own
+    /// figure. Cropping throws away everything that related one frame to the
+    /// next, so importing with Unity's defaults would make the runner change
+    /// size between clips and hop about between frames. The importer puts back
+    /// what can be measured:
     ///
-    ///  1. One pixels-per-unit for every frame in every clip, derived from the
-    ///     Idle pose. Idle is the standing pose, so it is the honest reference
-    ///     for "how tall is this character"; scaling off each clip's own
-    ///     tallest frame would make the runner grow whenever a limb extends.
+    ///  1. <b>Scale.</b> One pixels-per-unit from the standing frames of the
+    ///     jump, times how large each folder was drawn relative to them - see
+    ///     <see cref="DrawingScale"/>. Scaling each clip off its own tallest
+    ///     frame instead would make the runner grow whenever a limb extends.
     ///
-    ///  2. A custom pivot per frame, measured off the drawn figure rather than
-    ///     off the canvas, and measured differently in each axis:
+    ///  2. <b>A pivot per frame</b>: the alpha centroid across and the lowest
+    ///     drawn pixel down. The canvas centre drifts with the crop and the
+    ///     bounding box with whichever limb is out; the centroid holds the mass
+    ///     still and lets the limbs move around it.
     ///
-    ///     Vertically it is the bottom of the alpha bounds, so the runner's
-    ///     lowest pixel is what meets the roof. Tackle1 carries 30 transparent
-    ///     pixels below the body; pivoting on the canvas would leave the runner
-    ///     hovering a quarter of a unit above the ground for the whole slide.
+    /// The pivot is a sound default for one frame and not the last word on a
+    /// sequence. What lines frames up depends on what the body is doing - the
+    /// head in a run, the centre of mass in a somersault - and one drawing can be
+    /// used both ways, so ArvinRunnerSetup registers frames per clip from the
+    /// shapes measured here (<see cref="TryShape"/>).
     ///
-    ///     Horizontally it is the alpha centroid - the centre of mass of the
-    ///     drawn pixels - because the two obvious alternatives both slide. The
-    ///     canvas centre drifts 28px across the jump frames; the centre of the
-    ///     bounding box drifts 21px across the slide, since the box grows and
-    ///     shrinks with whichever limb is extended. The centroid holds the body
-    ///     still and lets the limbs move around it, which is what the eye reads
-    ///     as "planted".
-    ///
-    ///     Feet were the tempting third option and are the worst of the four:
-    ///     mid-stride the lowest pixels are one trailing toe, so pinning them
-    ///     swings the runner 71px back and forth across the run cycle.
-    ///
-    ///  3. An exception to (1) for any folder drawn at a different resolution,
-    ///     listed in <see cref="ScaleOverrides"/>. One shared scale is what stops
-    ///     the runner changing size between clips, but it only works while every
-    ///     folder was drawn at the same size, and lowFlip and Run were not.
-    ///     Anything off-scale and unlisted gets a warning rather than silence.
-    ///
-    ///  4. An exception to the exception, in <see cref="LevelFrameHeights"/>, for
-    ///     a folder whose own frames disagree with each other about scale.
-    ///
-    ///  5. An exception to (2) for a folder drawn on one shared canvas rather
-    ///     than cropped frame by frame, where the movement between frames is the
-    ///     animation and must not be measured away. See <see cref="AlignedPivot"/>.
-    ///
-    /// The result is a set of sprites that can be swapped frame to frame with
-    /// nothing else moving.
+    /// A folder drawn on one shared canvas is the exception to (2): the movement
+    /// between its frames is the animation and is kept - see
+    /// <see cref="AlignedPivot"/>.
     /// </summary>
     public static class PlayerAnimationImport
     {
@@ -67,12 +45,18 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         public const float StandingHeight = 1.80f;
 
-        /// <summary>The clip whose height defines the scale of all the others.</summary>
-        private const string ReferenceSet = "Idle";
+        /// <summary>
+        /// The frames whose height defines the runner's size: the first and last
+        /// of the jump, where he stands upright before the crouch and after the
+        /// recovery. Idle was the reference until it turned out to be drawn a
+        /// fifth larger than everything else - see <see cref="DrawingScale"/>.
+        /// </summary>
+        private const string ReferenceSet = "Jump";
+        private static readonly int[] ReferenceFrames = { 0, 23 };
 
         /// <summary>
-        /// Run is drawn at 772x897 now, so 512 would quietly downscale it - and
-        /// the measurements below would then be taken off the downscaled copy.
+        /// Comfortably above any frame, so nothing is quietly downscaled - the
+        /// measurements below would then be taken off the downscaled copy.
         /// </summary>
         private const int MaxTextureSize = 1024;
 
@@ -83,49 +67,60 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static readonly string[] SetNames =
         {
-            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle"
+            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose"
         };
 
         /// <summary>
-        /// Sets drawn at a different resolution from the rest, and the world
-        /// height their tallest frame should come out at.
+        /// How large each folder was drawn, relative to the jump.
         ///
-        /// One shared scale is the right default - it is what stops the runner
-        /// changing size between clips - but it assumes every folder was drawn
-        /// at the same resolution, and lowFlip was not. Its frames are around
-        /// twice the linear size of the others, so under the shared scale the
-        /// runner would balloon to 3.8 units mid-jump. 1.94 is the height Run's
-        /// tallest frame comes out at, and lowFlip's tallest is the same kind of
-        /// extended stride, so matching them is what keeps the two consistent.
+        /// The frames are cropped one at a time, so there is no canvas to compare
+        /// and nothing in a folder says what size it was drawn at - and they are
+        /// not all the same. Idle is drawn about a fifth larger than the rest and
+        /// Fall about a tenth smaller; on one shared scale the runner would shrink
+        /// the moment he set off and again whenever he dropped off something.
         ///
-        /// <see cref="WarnAboutScale"/> catches the next folder that lands here.
+        /// Height cannot measure it, because every clip is a different pose. So
+        /// the same pose was compared across folders instead - standing, running
+        /// and deep crouch - by silhouette area, which grows with the square of
+        /// the drawing size, and by height where the pose allows. For every folder
+        /// the comparisons agree to within a few percent:
+        ///
+        ///     Idle      standing 1.20 by height, 1.17 by area         1.18
+        ///     Run       running pose against Tackle's, 1.00          1.02
+        ///     Tackle    standing 1.01 / 1.02, crouch 1.06              1.02
+        ///     LowFlip   standing 1.05 / 1.06, crouch 1.02              1.04
+        ///     FlipJump  crouch 0.98, running 0.99                      1.00
+        ///     BigJump   standing 0.96 / 0.98, crouch 0.96              0.965
+        ///     Climb     standing 0.98 / 0.96                           0.96
+        ///     Fall      standing 0.91 / 0.89, crouch 0.86              0.89
+        ///     Lose      running pose by height 0.78, thickness 0.75    0.78
+        ///
+        /// Lose is the one folder where the measures split: silhouette area says
+        /// 0.86. Height and body thickness agree with each other and area does not,
+        /// because that runner is drawn leaner - more area per unit of height would
+        /// mean a bigger man, not a bigger drawing.
+        ///
+        /// Head size was tried as a fourth measure and rejected: the jump draws
+        /// its head proportionally larger than every other folder, which says
+        /// more about the drawing than about its scale.
+        ///
+        /// A folder not listed imports at the jump's scale, and
+        /// <see cref="WarnAboutScale"/> says so if that looks wrong.
         /// </summary>
-        private static readonly Dictionary<string, float> ScaleOverrides =
+        private static readonly Dictionary<string, float> DrawingScale =
             new Dictionary<string, float>(System.StringComparer.OrdinalIgnoreCase)
         {
-            ["LowFlip"] = 1.94f,
-
-            // Drawn much larger than Idle - 772x897 a frame - so it needs its own
-            // scale. 1.94 is the height Run has come out at through every redraw,
-            // which is what keeps the runner the size they have always been.
-            ["Run"] = 1.94f
+            ["Jump"] = 1.00f,
+            ["Idle"] = 1.18f,
+            ["Run"] = 1.02f,
+            ["Tackle"] = 1.02f,
+            ["LowFlip"] = 1.04f,
+            ["FlipJump"] = 1.00f,
+            ["BigJump"] = 0.965f,
+            ["Climb"] = 0.96f,
+            ["Fall"] = 0.89f,
+            ["Lose"] = 0.78f
         };
-
-        /// <summary>
-        /// Clips brought out at exactly the override height frame by frame,
-        /// rather than sharing one scale across the whole clip.
-        ///
-        /// Empty, and worth keeping that way. One scale per clip is the right
-        /// default because it preserves the figure's own rise and fall through a
-        /// stride; levelling irons that flat, and is only ever the lesser evil.
-        ///
-        /// Run needed it once, when its 16 frames arrived as two batches drawn
-        /// 10% apart in size and the runner pulsed twice a second. It was redrawn
-        /// on a single shared canvas and the problem went with it. Put a clip in
-        /// here if <see cref="ReportLevelling"/> ever has cause to complain again.
-        /// </summary>
-        private static readonly HashSet<string> LevelFrameHeights =
-            new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
 
         /// <summary>
         /// How far a set's tallest frame may sit from the standing height before
@@ -138,12 +133,18 @@ namespace ArvinRunner.EditorTools
         private static readonly Dictionary<string, Sprite[]> Cache =
             new Dictionary<string, Sprite[]>();
 
+        // Every frame's measured shape, kept from the import - after which the
+        // textures are no longer readable and cannot be measured again.
+        private static readonly Dictionary<string, Figure> Shapes =
+            new Dictionary<string, Figure>();
+
         // ================================================================= //
 
         [MenuItem("ArvinRunner/Re-import Player Frames", priority = 11)]
         public static void ImportAll()
         {
             Cache.Clear();
+            Shapes.Clear();
 
             if (!AssetDatabase.IsValidFolder(RootFolder))
             {
@@ -175,6 +176,7 @@ namespace ArvinRunner.EditorTools
                     EditorUtility.DisplayProgressBar("ArvinRunner", "Measuring " + Path.GetFileName(path),
                                                      0.5f * done++ / TotalFrames(sets));
                     SpriteMeasure.MakeReadable(path, MaxTextureSize);
+                    Shape(path);
                 }
 
                 // --- the scale, from the standing pose --------------------------
@@ -186,16 +188,6 @@ namespace ArvinRunner.EditorTools
                 {
                     float pixelsPerUnit = ScaleFor(set.Key, set.Value, shared);
 
-                    // A levelled clip resolves its scale per frame instead, so
-                    // every frame lands on the same drawn height.
-                    float levelTo = 0f;
-                    if (LevelFrameHeights.Contains(set.Key) &&
-                        ScaleOverrides.TryGetValue(set.Key, out float target))
-                    {
-                        levelTo = target;
-                        ReportLevelling(set.Key, set.Value);
-                    }
-
                     // A clip drawn on one shared canvas is anchored once for the
                     // whole clip rather than frame by frame - see AlignedPivot.
                     bool aligned = SharesOneCanvas(set.Value);
@@ -205,7 +197,7 @@ namespace ArvinRunner.EditorTools
                     {
                         EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
                                                          0.5f + 0.5f * done++ / TotalFrames(sets));
-                        Finalise(path, pixelsPerUnit, levelTo, aligned, anchor);
+                        Finalise(path, pixelsPerUnit, aligned, anchor);
                     }
                 }
             }
@@ -257,6 +249,33 @@ namespace ArvinRunner.EditorTools
         }
 
         public static bool IsAvailable => Frames(ReferenceSet).Length > 0;
+
+        /// <summary>
+        /// The measured shape of a player frame, from the most recent import:
+        /// bounds, centre of mass and head column, in the texture's own pixels.
+        /// False for a sprite that was not imported in this session - the build
+        /// imports before it builds the animation set, so that means it was run
+        /// out of order.
+        /// </summary>
+        public static bool TryShape(Sprite sprite, out Figure figure)
+        {
+            figure = default;
+            if (sprite == null) return false;
+
+            string path = AssetDatabase.GetAssetPath(sprite);
+            return !string.IsNullOrEmpty(path) && Shapes.TryGetValue(path, out figure);
+        }
+
+        private static Figure Shape(string path)
+        {
+            if (!Shapes.TryGetValue(path, out Figure figure))
+            {
+                figure = SpriteMeasure.Measure(path);
+                Shapes[path] = figure;
+            }
+
+            return figure;
+        }
 
         // ================================================================= //
         // Finding the files
@@ -318,28 +337,33 @@ namespace ArvinRunner.EditorTools
         // ================================================================= //
 
         /// <summary>
-        /// Pixels-per-unit such that the tallest standing pose comes out at
-        /// <see cref="StandingHeight"/>. Every clip is imported at this scale,
-        /// so a frame with an outstretched leg is drawn bigger rather than being
-        /// squeezed back down to the same bounding box.
+        /// Pixels-per-unit for a folder drawn at the jump's size: the jump's
+        /// upright frames come out <see cref="StandingHeight"/> tall. Every folder
+        /// is imported at this times its <see cref="DrawingScale"/>, so a frame
+        /// with a leg thrown out is drawn bigger rather than squeezed down.
         /// </summary>
         private static float MeasureScale(Dictionary<string, string[]> sets)
         {
-            if (!sets.TryGetValue(ReferenceSet, out string[] reference))
-            {
-                // No idle pose to measure. Fall back to whatever clip we do
-                // have, which keeps the frames consistent with each other even
-                // if the absolute size needs a nudge afterwards.
-                reference = sets.Values.First();
-                Debug.LogWarning($"[ArvinRunner] No '{ReferenceSet}' frames, so the runner's scale " +
-                                 $"is taken from '{sets.Keys.First()}' instead. Check the size in play.");
-            }
-
             int tallest = 0;
-            foreach (string path in reference)
+
+            if (sets.TryGetValue(ReferenceSet, out string[] reference))
             {
-                Figure figure = SpriteMeasure.Measure(path);
-                if (figure.Bounds.height > tallest) tallest = figure.Bounds.height;
+                foreach (int index in ReferenceFrames)
+                    if (index < reference.Length)
+                        tallest = Mathf.Max(tallest, Shape(reference[index]).Bounds.height);
+            }
+            else
+            {
+                // No jump to measure. The tallest frame of whatever there is,
+                // with its drawing size taken back off, keeps the folders in
+                // proportion to each other even if the overall size needs a look.
+                KeyValuePair<string, string[]> first = sets.First();
+                foreach (string path in first.Value)
+                    tallest = Mathf.Max(tallest, Shape(path).Bounds.height);
+
+                tallest = Mathf.RoundToInt(tallest / DrawnAt(first.Key));
+                Debug.LogWarning($"[ArvinRunner] No '{ReferenceSet}' frames, so the runner's scale " +
+                                 $"is taken from '{first.Key}' instead. Check the size in play.");
             }
 
             if (tallest <= 0)
@@ -351,27 +375,24 @@ namespace ArvinRunner.EditorTools
             return tallest / StandingHeight;
         }
 
-        /// <summary>
-        /// The scale one clip is imported at: the shared one, unless the folder
-        /// is listed in <see cref="ScaleOverrides"/> as having been drawn at a
-        /// different resolution.
-        /// </summary>
+        private static float DrawnAt(string setName) =>
+            DrawingScale.TryGetValue(setName, out float scale) ? scale : 1f;
+
+        /// <summary>The scale one folder is imported at.</summary>
         private static float ScaleFor(string setName, string[] paths, float shared)
         {
-            int tallest = 0;
-            foreach (string path in paths)
+            float pixelsPerUnit = shared * DrawnAt(setName);
+
+            if (!DrawingScale.ContainsKey(setName))
             {
-                Figure figure = SpriteMeasure.Measure(path);
-                if (figure.Bounds.height > tallest) tallest = figure.Bounds.height;
+                int tallest = 0;
+                foreach (string path in paths)
+                    tallest = Mathf.Max(tallest, Shape(path).Bounds.height);
+
+                if (tallest > 0) WarnAboutScale(setName, tallest / pixelsPerUnit);
             }
 
-            if (tallest <= 0) return shared;
-
-            if (ScaleOverrides.TryGetValue(setName, out float wanted))
-                return tallest / Mathf.Max(0.05f, wanted);
-
-            WarnAboutScale(setName, tallest / shared);
-            return shared;
+            return pixelsPerUnit;
         }
 
         /// <summary>
@@ -387,33 +408,26 @@ namespace ArvinRunner.EditorTools
             Debug.LogWarning(
                 $"[ArvinRunner] The '{setName}' frames come out {height:0.00} units tall against a " +
                 $"{StandingHeight:0.00} standing runner ({ratio:0.0}x). They were probably drawn at a " +
-                "different resolution from the other clips. Add an entry to " +
-                "PlayerAnimationImport.ScaleOverrides giving the height its tallest frame should be.");
+                "different size from the other clips. Compare a pose they share with the jump " +
+                "and add the ratio to PlayerAnimationImport.DrawingScale.");
         }
 
         /// <summary>
         /// Gives one frame its pivot and its scale. The measuring and the import
         /// settings both live in SpriteMeasure, which the moving-obstacle frames
         /// share - they arrive cropped just as inconsistently.
-        ///
-        /// <paramref name="levelTo"/> above zero means this frame gets its own
-        /// scale, so the drawn figure comes out exactly that tall - see
-        /// <see cref="LevelFrameHeights"/> for when that is the right thing.
         /// </summary>
-        private static void Finalise(string path, float pixelsPerUnit, float levelTo = 0f,
-                                     bool aligned = false, Vector2 anchor = default)
+        private static void Finalise(string path, float pixelsPerUnit, bool aligned, Vector2 anchor)
         {
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
             if (texture == null) return;
 
-            Figure figure = SpriteMeasure.Measure(path);
+            Figure figure = Shape(path);
             if (figure.IsEmpty)
             {
                 Debug.LogWarning($"[ArvinRunner] {path} looks fully transparent.");
                 return;
             }
-
-            if (levelTo > 0.01f) pixelsPerUnit = figure.Bounds.height / levelTo;
 
             Vector2 pivot = aligned
                 ? anchor
@@ -457,11 +471,10 @@ namespace ArvinRunner.EditorTools
         ///
         /// Frames sharing a canvas have already been positioned against each
         /// other by whoever drew them, and the movement between them *is* the
-        /// animation. Run is 24 frames of one stride on a 772x897 canvas: the
-        /// figure's lowest pixel sits on the canvas floor through the contact
-        /// frames and lifts 35px through the flight phase, which is the runner
-        /// leaving the ground. Measuring that per frame would pin the flight
-        /// frames back down to the floor and delete the bounce from the run.
+        /// animation. An earlier run was 24 frames on one 772x897 canvas whose
+        /// lowest pixel lifted 35px through the flight phase - the runner leaving
+        /// the ground. Measuring that per frame would pin the flight frames back
+        /// down to the floor and delete the bounce from the run.
         ///
         /// So: horizontally the mean centre of mass, which is where the body is
         /// across the cycle and lets the limbs swing around it; vertically the
@@ -479,7 +492,7 @@ namespace ArvinRunner.EditorTools
 
             foreach (string path in paths)
             {
-                Figure figure = SpriteMeasure.Measure(path);
+                Figure figure = Shape(path);
                 if (figure.IsEmpty) continue;
 
                 if (figure.Bounds.y < lowest) lowest = figure.Bounds.y;
@@ -495,36 +508,6 @@ namespace ArvinRunner.EditorTools
 
             return new Vector2(centroidSum / counted / reference.width,
                                lowest / (float)reference.height);
-        }
-
-        /// <summary>
-        /// Says what levelling corrected, so a clip being quietly adjusted on
-        /// every import does not stay quiet about it. A small spread is the
-        /// drawing breathing; a large one means the frames were not all drawn at
-        /// one size, and the art is the better place to fix that.
-        /// </summary>
-        private static void ReportLevelling(string setName, string[] paths)
-        {
-            int shortest = int.MaxValue, tallest = 0;
-
-            foreach (string path in paths)
-            {
-                int height = SpriteMeasure.Measure(path).Bounds.height;
-                if (height <= 0) continue;
-
-                if (height < shortest) shortest = height;
-                if (height > tallest) tallest = height;
-            }
-
-            if (tallest <= 0 || shortest == int.MaxValue) return;
-
-            float spread = (float)tallest / shortest - 1f;
-            if (spread < 0.05f) return;
-
-            Debug.Log($"[ArvinRunner] The '{setName}' frames vary {spread:P0} in drawn height " +
-                      $"({shortest}-{tallest}px) and are being levelled to one size. Much above " +
-                      "5% is usually two batches drawn at different scales rather than the figure " +
-                      "moving - worth re-exporting them to match.");
         }
     }
 }

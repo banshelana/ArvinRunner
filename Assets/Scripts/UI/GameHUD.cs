@@ -22,6 +22,13 @@ namespace ArvinRunner
         [SerializeField] private RectTransform progressMarker;
         [SerializeField] private RectTransform progressTrack;
 
+        [Header("Super jump")]
+        [SerializeField] private Image powerFill;
+        [SerializeField] private Text powerLabel;
+        [Tooltip("Tinted while charging, and swapped for readyColour once full.")]
+        [SerializeField] private Color chargingColour = new Color(0.35f, 0.62f, 0.95f);
+        [SerializeField] private Color readyColour = new Color(1f, 0.82f, 0.25f);
+
         [Header("Panels")]
         [SerializeField] private GameObject readyPanel;
         [SerializeField] private Text readyHintText;
@@ -126,6 +133,50 @@ namespace ArvinRunner
                 float width = progressTrack.rect.width;
                 progressMarker.anchoredPosition = new Vector2(width * progress, progressMarker.anchoredPosition.y);
             }
+
+            UpdatePowerGauge();
+        }
+
+        /// <summary>
+        /// The super-jump meter.
+        ///
+        /// Driven off the meter every frame rather than from its OnReadyChanged
+        /// event, because the bar has to follow the fill continuously anyway -
+        /// and reading one float is cheaper than keeping a subscription in sync
+        /// with a player that is respawned on every retry.
+        /// </summary>
+        private void UpdatePowerGauge()
+        {
+            SuperJumpMeter meter = _game.Player != null ? _game.Player.Meter : null;
+
+            if (meter == null)
+            {
+                // No meter wired: hide the gauge rather than leave an empty bar
+                // sitting there implying a move the player does not have.
+                if (powerFill != null) powerFill.transform.parent.gameObject.SetActive(false);
+                return;
+            }
+
+            bool ready = meter.IsReady;
+
+            if (powerFill != null)
+            {
+                powerFill.fillAmount = meter.Charge01;
+
+                // A slow pulse once full, so "ready" reads from the corner of the
+                // eye without having to look at the bar.
+                Color colour = ready ? readyColour : chargingColour;
+                if (ready)
+                {
+                    float beat = 0.75f + 0.25f * Mathf.Sin(Time.unscaledTime * 6f);
+                    colour = new Color(colour.r, colour.g, colour.b, beat);
+                }
+
+                powerFill.color = colour;
+            }
+
+            if (powerLabel != null)
+                powerLabel.text = ready ? "SUPER READY" : "POWER";
         }
 
         // ---------------------------------------------------------------- //

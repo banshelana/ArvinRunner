@@ -28,6 +28,51 @@ namespace ArvinRunner
                  "with the ground as the run speed ramps. Leave at zero for anything " +
                  "that is not locomotion.")]
         public float strideDistance;
+
+        [Tooltip("The speed strideDistance describes. Only meaningful with " +
+                 "strideGrowth above zero.")]
+        public float strideReferenceSpeed;
+
+        [Tooltip("How much of a speed change goes into a longer stride rather " +
+                 "than faster legs. 1 holds the cadence fixed and lengthens the " +
+                 "stride with the speed; 0 holds the stride fixed and spins the " +
+                 "legs faster, which is what a plain strideDistance does.")]
+        public float strideGrowth;
+
+        [Tooltip("Names the clip so another can refer to it - how a jump reaches its " +
+                 "own landing. A named clip is only ever reached by its name, never " +
+                 "picked at random for its slot.")]
+        public string name;
+
+        [Tooltip("Each frame's share of the clip, in whatever the clip is measured in " +
+                 "- time, ground covered, or the jump arc. Empty gives every frame the " +
+                 "same share. This is how near-duplicate drawings pass in a blink and " +
+                 "the ones where the body really moves get the time, without repeating " +
+                 "sprites.")]
+        public float[] weights;
+
+        [Tooltip("Per-frame shift of the sprite, in world units. Lines up frames that " +
+                 "were each cropped to their own figure, and depends on how a drawing " +
+                 "is used: the same one sits on its feet in a landing and on its centre " +
+                 "of mass in the air.")]
+        public Vector2[] offsets;
+
+        [Tooltip("Play along the runner's actual jump rather than a clock: the apex frame " +
+                 "is on screen at the top of the arc and the last frame at touchdown, " +
+                 "whatever the height or the gravity. fps is then only a fallback.")]
+        public bool followJump;
+
+        [Tooltip("With followJump, the frame that belongs at the top of the arc.")]
+        public int apexFrame;
+
+        [Tooltip("With followJump, the name of the clip that plays on touching down out " +
+                 "of this one. Empty uses the Land slot.")]
+        public string landing;
+
+        [Tooltip("When the clip after this one loops - the run - start it on this frame " +
+                 "rather than the first, so the pose carries on from where this one " +
+                 "left it. -1 starts at the first frame.")]
+        public int exitToFrame = -1;
     }
 
     /// <summary>
@@ -70,6 +115,10 @@ namespace ArvinRunner
                     if (clip == null || clip.anim != anim) continue;
                     if (clip.frames == null || clip.frames.Length == 0) continue;
 
+                    // Named clips belong to whatever names them - the flip's
+                    // landing must not turn up after an ordinary jump.
+                    if (!string.IsNullOrEmpty(clip.name)) continue;
+
                     matches++;
 
                     // Reservoir sampling: the nth match wins with probability
@@ -85,6 +134,20 @@ namespace ArvinRunner
             return (fallback != null && fallback.frames != null && fallback.frames.Length > 0)
                 ? fallback
                 : null;
+        }
+
+        /// <summary>A clip by name - how a jump reaches its own landing. Null when
+        /// nothing is called that.</summary>
+        public SpriteAnimationClip Find(string clipName)
+        {
+            if (clips == null || string.IsNullOrEmpty(clipName)) return null;
+
+            foreach (SpriteAnimationClip clip in clips)
+                if (clip != null && clip.name == clipName &&
+                    clip.frames != null && clip.frames.Length > 0)
+                    return clip;
+
+            return null;
         }
 
         /// <summary>How many variants fill a slot. Handy when checking a set by hand.</summary>

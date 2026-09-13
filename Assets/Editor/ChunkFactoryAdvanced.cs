@@ -53,10 +53,17 @@ namespace ArvinRunner.EditorTools
             Ground(root, 0f, 0f, 13f);
             Ground(root, 20f, 0f, 14f);
 
-            // Mid-gap, so it is cleared on the way across rather than before or
-            // after. A long off phase because the runner cannot wait mid-air -
-            // they have to leave the ground already knowing it will be dark.
-            Laser(root, 16.5f, 0f, 5.5f, onDuration: 0.9f, offDuration: 1.5f, offset: 0f);
+            // Mid-gap, and open when the runner arrives - which it has to be.
+            // A lit beam here would be unanswerable: the runner is airborne over
+            // a gap with nowhere to land and nothing to jump from. What it does
+            // instead is blink through the approach and settle dark as they
+            // commit, which is a tell that the jump is on rather than a gate.
+            Laser(root, 16.5f, 0f, 5.5f, arrivalPhase: 0.8f);
+
+            // The gate that actually asks something is on the far ledge, lit, at
+            // a height the landing jump can clear - so the gap and the beam are
+            // one continuous move rather than two.
+            Laser(root, 23f, 0f, 2.6f, arrivalPhase: 0.2f);
 
             Coins(root, 14f, 3.4f, 5, 1.2f, 1.2f);
             return root;
@@ -173,9 +180,11 @@ namespace ArvinRunner.EditorTools
 
             Ground(root, 15f, 4f, 19f);
 
-            // Six units past the ledge: far enough that the climb finishes before
-            // the beam matters, close enough that it was visible during the climb.
-            Laser(root, 23f, 4f, 4.5f, onDuration: 1.3f, offDuration: 1.4f, offset: 0.7f);
+            // Eight units past the ledge, lit, and low enough to hurdle. The
+            // climb is a committed move with no room to react inside it, so the
+            // beam is set back far enough that the runner is on their feet and
+            // running before it has to be answered.
+            Laser(root, 23f, 4f, 2.6f, arrivalPhase: 0.2f);
 
             Coins(root, 16f, 5.4f, 4, 1.2f, 0.5f);
             return root;
@@ -197,9 +206,10 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetVector2(mover, "travel", new Vector2(0f, 3.2f));
             EditorUtil.SetFloat(mover, "speed", 1.6f);
 
-            // High enough that it only threatens the top of the platform's rise,
-            // so the safe answer is to cross while the lift is low.
-            Laser(root, 18.5f, 2.6f, 4f, onDuration: 1f, offDuration: 1.2f, offset: 0.4f);
+            // Raised clear of the ground and lit on arrival, so it threatens only
+            // the top of the lift's travel: the answer is to cross while the
+            // platform is low rather than to time the beam itself.
+            Laser(root, 18.5f, 2.6f, 4f, arrivalPhase: 0.2f);
 
             Ground(root, 22f, 0f, 12f);
 
@@ -265,18 +275,25 @@ namespace ArvinRunner.EditorTools
         // Shared pieces
         // ================================================================= //
 
-        /// <summary>A pulsing beam standing on the surface at baseY.</summary>
+        /// <summary>
+        /// A beam standing on the surface at baseY.
+        ///
+        /// <paramref name="arrivalPhase"/> decides the state it holds when the
+        /// runner reaches it: under 0.5 it is lit and has to be answered, over
+        /// 0.5 it is open. Deterministic on purpose - see LaserGate for why a
+        /// clock-driven beam cannot be read in an auto-runner.
+        /// </summary>
         private static GameObject Laser(GameObject parent, float x, float baseY, float height,
-                                        float onDuration, float offDuration, float offset)
+                                        float arrivalPhase)
         {
             GameObject beam = Box(parent, "Laser", x, baseY, 0.35f, height,
                                   GameLayers.Hazard, HazardTone, anchorBottom: true, trigger: true);
             beam.AddComponent<Hazard>();
 
             var gate = beam.AddComponent<LaserGate>();
-            EditorUtil.SetFloat(gate, "startOffset", offset);
-            EditorUtil.SetFloat(gate, "onDuration", onDuration);
-            EditorUtil.SetFloat(gate, "offDuration", offDuration);
+            EditorUtil.SetFloat(gate, "arrivalPhase", arrivalPhase);
+            EditorUtil.SetFloat(gate, "armedFraction", 0.5f);
+            EditorUtil.SetFloat(gate, "wavelength", 6f);
 
             return beam;
         }

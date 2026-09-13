@@ -19,7 +19,7 @@ namespace ArvinRunner.EditorTools
     /// Heights are chosen against the runner rather than against the real
     /// machines. The bike is 1.55 so it reads as something to clear against a
     /// 1.75 standing runner and a 3.20 jump; the helicopter is 2.85 across
-    /// airframe and rotor, which puts it about 6.8 long - the scale of the bus,
+    /// airframe and rotor, which puts it about 7.4 long - the scale of the bus,
     /// so it has the presence of a real aircraft without filling the screen.
     ///
     /// How a folder is anchored depends on how it was drawn. See <see cref="Apply"/>.
@@ -28,7 +28,7 @@ namespace ArvinRunner.EditorTools
     {
         public const string RootFolder = "Assets/Art/MovingObstacles";
 
-        /// <summary>The helicopter frames are 1547x854, so 2048 never downscales one.</summary>
+        /// <summary>The helicopter frames are 1448x653, so 2048 never downscales one.</summary>
         private const int MaxTextureSize = 2048;
 
         /// <summary>
@@ -129,13 +129,13 @@ namespace ArvinRunner.EditorTools
         /// its own or the object jumps about as the crop changes under it.
         ///
         /// Frames drawn on one shared canvas are the opposite case. The helicopter
-        /// is six 1547x854 frames with the aircraft in the same place in every one;
-        /// what moves in that sequence is the missile leaving and the smoke
-        /// trailing behind it. Measuring those per frame would pin each to its own
-        /// centre of mass - and the missile drags that centre 59px sideways and
-        /// 96px down as it flies, so the aircraft would lurch across the sky
-        /// chasing its own missile. One anchor for the whole folder keeps it still
-        /// and lets the missile be the thing that moves.
+        /// is 24 frames on one 1448x653 canvas, and what moves between them is the
+        /// animation: the body bobs 31px through the loop, and the rotor swaps
+        /// between a spread blade and an edge-on one every frame. Measured frame
+        /// by frame, the blade alone would move the solid box about 40px sideways
+        /// on alternate frames - the aircraft would shudder twelve times a second
+        /// - and the bob would be measured away. One anchor for the whole folder
+        /// keeps both.
         ///
         /// The two cases are told apart by the canvases rather than by a flag
         /// somebody has to remember to set: frames that share a size were laid
@@ -225,9 +225,8 @@ namespace ArvinRunner.EditorTools
         /// Pixels-per-unit that brings the subject out at its declared height.
         ///
         /// Which frame defines "the subject" follows the same split as the anchor.
-        /// On a shared canvas it is the reference frame, because the later frames
-        /// grow to hold a missile and its smoke trail and would drive the scale
-        /// down until the aircraft shrank to fit its own exhaust. Individually
+        /// On a shared canvas it is the reference frame, so the scale does not
+        /// depend on which pose of the rotor happens to be the tallest. Individually
         /// cropped frames have no reference frame, so the tallest stands in.
         /// </summary>
         private static float ScaleFor(SetSpec spec, string[] paths, bool aligned)

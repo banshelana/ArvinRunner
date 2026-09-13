@@ -53,7 +53,41 @@ namespace ArvinRunner
 
         /// <summary>A ground jump taken over something small. Same state as
         /// JumpRise, picked instead of it when the sensors see a low obstacle.</summary>
-        LowFlip
+        LowFlip,
+
+        /// <summary>The charged super jump. Also the Jumping state, and also
+        /// chosen instead of JumpRise - the power move gets the somersault
+        /// every time rather than drawing for it.</summary>
+        SuperJump,
+
+        /// <summary>
+        /// Scrabbling at whatever has just stopped the run dead.
+        ///
+        /// Not a state: the runner is still Running as far as the state machine
+        /// is concerned, and this is painted over the top of that by
+        /// PlayerController.SetClinging for as long as they are stuck. The three
+        /// deliberate wall states have their own slots - WallRun, LedgeGrab and
+        /// LedgeClimb - and are drawn from the same folder.
+        /// </summary>
+        Climb,
+
+        /// <summary>
+        /// Taking the weight on touching down. Painted over Running for the
+        /// moment it lasts and then handed back to the run - see
+        /// PlayerController.ArrivalAnim. A jump clip can name its own landing,
+        /// so a somersault lands out of the somersault; this slot is the one
+        /// used when it does not.
+        /// </summary>
+        Land,
+
+        /// <summary>Coming up off the ground at the end of a slide, handed back
+        /// to the run the same way the landing is.</summary>
+        GetUp,
+
+        /// <summary>Dying by falling out of the level. Death is being stopped by
+        /// something - hit, thrown back, down on the knees - which is wrong for a
+        /// body dropping off the bottom of the screen.</summary>
+        DeathFall
     }
 
     /// <summary>What killed the player - used for the death message / VFX.</summary>

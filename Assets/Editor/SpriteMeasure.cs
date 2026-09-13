@@ -13,6 +13,18 @@ namespace ArvinRunner.EditorTools
         /// <summary>Mean x of every opaque pixel, in the same space.</summary>
         public float CentroidX;
 
+        /// <summary>Mean y of every opaque pixel - the other half of the centre
+        /// of mass, which is the point a turning body actually turns about.</summary>
+        public float CentroidY;
+
+        /// <summary>
+        /// Mean x of the top <see cref="SpriteMeasure.HeadBand"/> of the figure.
+        /// On an upright runner that is the head, the steadiest thing a running
+        /// body has: the centre of mass swings with the arms and legs every
+        /// frame, and a sprinter's head barely moves.
+        /// </summary>
+        public float HeadX;
+
         public bool IsEmpty => Bounds.width <= 0 || Bounds.height <= 0;
     }
 
@@ -29,6 +41,10 @@ namespace ArvinRunner.EditorTools
     {
         /// <summary>Alpha at or below this counts as empty.</summary>
         public const byte AlphaThreshold = 12;
+
+        /// <summary>Share of the figure's height, from the top, that
+        /// <see cref="Figure.HeadX"/> is measured over.</summary>
+        public const float HeadBand = 0.18f;
 
         /// <summary>
         /// Re-imports a texture in the state needed to read its pixels. Call this
@@ -83,6 +99,7 @@ namespace ArvinRunner.EditorTools
 
             long opaque = 0;
             long sumX = 0;
+            long sumY = 0;
 
             for (int y = 0; y < height; y++)
             {
@@ -98,15 +115,37 @@ namespace ArvinRunner.EditorTools
 
                     opaque++;
                     sumX += x;
+                    sumY += y;
                 }
             }
 
             if (xMax < xMin) return default;
 
+            // The head band, walked separately because its height depends on the
+            // bounds the first pass found. Texture space is bottom-up, so the top
+            // of the figure is the high rows.
+            int band = Mathf.Max(1, Mathf.RoundToInt((yMax - yMin + 1) * HeadBand));
+            long headSum = 0, headCount = 0;
+
+            for (int y = yMax; y > yMax - band && y >= yMin; y--)
+            {
+                int row = y * width;
+                for (int x = xMin; x <= xMax; x++)
+                {
+                    if (pixels[row + x].a <= threshold) continue;
+                    headSum += x;
+                    headCount++;
+                }
+            }
+
+            float centroidX = sumX / (float)opaque;
+
             return new Figure
             {
                 Bounds = new RectInt(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1),
-                CentroidX = sumX / (float)opaque
+                CentroidX = centroidX,
+                CentroidY = sumY / (float)opaque,
+                HeadX = headCount > 0 ? headSum / (float)headCount : centroidX
             };
         }
 

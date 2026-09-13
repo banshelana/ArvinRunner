@@ -56,6 +56,6 @@ MonoBehaviour:
   seed: 12345
   startPadLength: 18
   finishPadLength: 16
-  theme: {fileID: 11400000, guid: 028e3acb6bf471049bdf677866f621e0, type: 2}
+  theme: {fileID: 11400000, guid: eb8777f1920a1d442af0d1a9c0bd1163, type: 2}
   music: {fileID: 0}
   parTime: 130

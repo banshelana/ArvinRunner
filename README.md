@@ -34,6 +34,7 @@ want.
 | Slide (ground), dive (air) | swipe down | S / ↓ |
 | Climb from a ledge grab | swipe up or right | D / → |
 | Back to the main menu | back button | Esc |
+| Super jump (when charged) | swipe left | A / ← |
 
 Vault, wall run, ledge grab and the hard-landing roll are **contextual** — the
 same swipe up becomes a vault in front of a low crate and a wall jump against a
@@ -59,141 +60,174 @@ clip, one PNG per frame, and are imported by **ArvinRunner → Re-import Player
 Frames**. Add a folder, name it after the clip, drop numbered PNGs in it — the
 importer handles the rest and `PlayerAnimations.asset` is rebuilt from it.
 
-Three things it measures, because the frames arrive individually cropped and
-importing them as-is makes the runner change size and hop about:
+The folders are **raw material, not finished clips**. The current set is a
+black silhouette, generated a frame at a time, and every frame is cropped to its
+own figure. `ArvinRunnerSetup.CreateAnimationSet` cuts the clips out of it, and
+four things decide how.
 
-- **One pixels-per-unit for every frame**, taken from the tallest `Idle` pose so
-  the standing runner comes out at 1.80 units. Scaling each clip to its own
-  tallest frame would make the runner grow whenever a limb extends.
-- **A pivot measured on the figure, not the canvas** — the bottom of the alpha
-  bounds vertically, the alpha centroid horizontally. `Tackle1` carries 30
-  transparent pixels below the body, so a canvas pivot would leave the runner
-  hovering for the whole slide; and of the three candidates for the horizontal
-  anchor, the centroid is the only one that holds still (canvas centre drifts
-  28px across the jump, bounding-box centre 21px across the slide, and the feet
-  swing 71px across the run cycle).
-- **An exception to the shared scale**, for folders drawn at a different
-  resolution. One scale for everything is what stops the runner resizing between
-  clips, but it assumes every folder was drawn at the same size — and `lowFlip`
-  and `Run` were not, both arriving at roughly twice the linear size of the
-  others. Left alone, `Run` would render 3.1–3.5 units tall against a 1.80
-  runner. `ScaleOverrides` in `PlayerAnimationImport.cs` gives such a folder the
-  height its tallest frame should come out at; both are set to 1.94, which is
-  what `Run` came out at before it was redrawn. Anything off-scale and unlisted
-  gets a warning rather than silence.
-- **An exception to the pivot rule**, for a folder drawn on one shared canvas
-  instead of cropped frame by frame. This is the important one, and getting it
-  the wrong way round is very visible.
+**Scale.** Cropping throws away what size each folder was drawn at, and they are
+not all the same — `Idle` is drawn about a fifth larger than the rest, `Fall`
+about a tenth smaller. Height cannot measure it, because every clip is a
+different pose, so the same pose was compared across folders instead (standing,
+running, deep crouch) by silhouette area and, where the pose allows, by height.
+`DrawingScale` in `PlayerAnimationImport.cs` holds the result, and the base scale
+comes from the jump's upright first and last frames at 1.80 units:
 
-  Cropped frames share no frame of reference, so each has to be measured and
-  pinned on its own — that is what the two rules above are for. Frames sharing a
-  canvas have already been positioned against each other by whoever drew them,
-  and **the movement between them is the animation**. `Run` is 24 frames of one
-  stride on a 772×897 canvas: the figure's lowest pixel sits on the canvas floor
-  through the contact frames and lifts 35px through the flight phase, which is
-  the runner leaving the ground. Measuring that per frame would pin the flight
-  frames back down to the floor and delete the bounce from the run.
+| Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| drawn at | 1.18 | 1.02 | 1.02 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 |
 
-  So a shared-canvas clip gets **one anchor for the whole clip**: horizontally
-  the mean centre of mass, which is where the body is across the cycle and lets
-  the limbs swing around it; vertically the lowest pixel the clip ever reaches,
-  which is the ground the runner stands on in the frames where they touch it.
-  The importer tells the two cases apart by the canvases themselves rather than
-  by a flag someone has to remember to set.
+A redrawn folder that is off-scale and unlisted gets a warning rather than
+silence.
 
-- **`LevelFrameHeights`** is a third exception, and is currently empty. `Run`
-  needed it once, when its 16 frames arrived as two batches drawn 10% apart in
-  size and the runner pulsed twice a second; it was redrawn on a shared canvas
-  and the problem went with it. Levelling irons out a clip's genuine rise and
-  fall, so it is only ever the lesser evil — reach for it when the importer
-  complains about a spread it had to correct.
+**Order.** Most folders are not filed in the order the body moves. `Run` cycles
+between push-off, foot strike and knee drive out of sequence, and played as
+numbered 38% of the silhouette changed every frame, worst step 55%. The change
+between every pair of frames in each folder was measured, the smoothest order
+solved for, and then checked by eye — the smoothest order is not always one a
+body can perform. The run in leg order is 27%, worst 41%. The frame lists in
+`CreateAnimationSet` are file numbers, so each clip can be followed in its
+folder, and **they need redoing if a folder is redrawn**.
 
-Every clip is paced by the thing it plays over, not by a hand-picked number.
-`Slide` and `Roll` come from `slideDuration` and `rollDuration`; the jump clips
-come from how long the rise actually lasts, which `TickAirborne` ends the instant
-upward speed hits zero. That matters most for the eight-frame somersault: at a
-plausible-looking 14fps it would be cut off three frames short of landing
-upright on every single jump.
+**Timing.** Drawings are not evenly spaced in time — eleven of the run's are one
+instant of the foot strike, and near-duplicates sit side by side in most folders
+— so a clip can carry `weights`, each frame's share of the move.
 
-**`Run` is not paced by a frame rate at all.** It is advanced by *ground
-covered* — `SpriteAnimationClip.strideDistance` — because a run cycle on a fixed
-frame rate is correct at exactly one speed and wrong either side of it, and this
-runner ramps from 9 to 15 across every level.
+**Registration.** Where one cropped frame sits against the next depends on what
+the body is doing, so it is decided per clip rather than per drawing, and stored
+as per-frame `offsets` on the clip:
 
-The numbers are worth having, because this is the dial for how the running
-reads. The art draws a stride of **2.44 units**: across the 24 frames the
-planting foot travels from 0.44 ahead of the body to 0.78 behind it, so the body
-covers 1.22 units per footfall and 2.44 over a full cycle. Setting
-`runStride` to exactly that locks the feet to the ground with no skating at all.
+- **Feet** — upright on the ground: soles on the ground, head column still. A
+  sprinter's head barely moves, while the centre of mass swings 0.11 units between
+  run frames with the arms and legs.
+- **Mass** — lying, sliding, on a wall: soles down, centre of mass across.
+- **Air** — turning: centre of mass held at a standing runner's height, the point
+  physics is carrying along the arc. Anchored on its lowest pixel a somersault
+  bobs by half the body's height as the tuck opens and closes.
 
-It is set to **3.0** instead, because the drawn stride is short for the speed
-this game runs at:
+Offsets rather than pivots because one drawing can serve two uses — the backward
+lean in `Fall` is both the fall loop and the death — and a sprite has one pivot.
+The importer measures every frame's bounds, centre of mass and head column while
+the textures are readable; the setup reads them back through
+`PlayerAnimationImport.TryShape`, which is why the animation set must be built by
+**Build Playable Project** and not on its own.
 
-| `runStride` | cycle at 9 u/s | footfalls/s | feet skate |
-| --- | --- | --- | --- |
-| 2.44 (as drawn) | 0.27s | 7.4 | none |
-| **3.0 (current)** | **0.33s** | **6.0** | **+23%** |
-| 3.5 | 0.39s | 5.1 | +43% |
-| 4.5 (the old fixed cycle) | 0.50s | 4.0 | +84% |
+The source frames had baked-in background — a grey checkerboard in `Fall`, a pale
+haze in `lowFlip` — which was stripped: any pixel lighter than the silhouette's
+brightest real detail that is not solid. The originals are in
+`ArtSource/PlayerAnimations_original/`, outside `Assets` so Unity ignores them.
 
-Matching the art exactly reads as a scramble — 7.4 footfalls a second is about
-half again as fast as a sprinter. The fixed 0.5s cycle this replaced had the
-opposite problem and worse: the ground moved 84% further than the feet did at the
-opening speed, and **207% by the time the runner ramped to 15**, which is where
-the gliding came from. Raise `runStride` for longer, slower strides and more
-slide; lower it for faster legs and less. Whatever it is set to, the relationship
-now holds at every speed rather than at one.
+### How each clip is driven
 
-The 24 frames are **one full cycle, not two**. The vertical extents repeat with
-a period of 12 while the horizontal silhouettes do not, which is the signature of
-two footfalls in one cycle — worth re-checking if the folder is redrawn, since
-reading it wrong halves or doubles the apparent stride.
+**Jumps follow the arc, not a clock.** A clip with `followJump` takes its frame
+from the runner's vertical speed, which falls in a straight line from the launch
+speed to zero at the apex and grows in a straight line on the way down — so
+`apexFrame` is on screen at the top and the last frame at touchdown, for a hop
+onto a crate and a super jump alike. Each starts at the instant of leaving the
+ground: the crouch drawn before it is skipped, because the swipe is the takeoff.
+A jump that runs long off an edge hands over to the fall loop once the runner is
+falling 25% faster than its landing would have been.
 
-Two related things the flip-book does now. It steps **whole frames at a time**
-rather than one per update, so a cycle that wants more frames per second than the
-display can show drops frames to stay in time instead of falling behind and
-playing in permanent slow motion — which matters here, since at 15 u/s the cycle
-asks for 148fps and a 60Hz screen shows 10 of the 24. And clips with no
-`strideDistance` are untouched: everything that is not locomotion still runs on
-its own duration.
+**The run follows the ground.** Its frames advance by distance covered, and each
+drawing is given exactly the stretch of ground its planted foot covers, measured
+against the head. Near-duplicates pass in a blink; the frames where the leg
+really travels get the time. The flight gets 35px a frame, which makes a step
+1.26× the runner's height. The foot strike cannot be honest — its foot does not
+move across eleven drawings — so it gets 4px each, and those 40px (about 0.4
+units a step) are the only place the feet slide.
 
-**Slots can hold more than one clip, and one is picked at random each time.**
-That is how the jumps stop looking canned — `flipJump` sits alongside the plain
-rise on `JumpRise`, and alongside `BigJump` on `DoubleJump`, so a ground jump and
-an air jump each come out as a flip about half the time. Add a variant by adding
-a second clip with the same `anim`; `SpriteAnimationSet.Get` does the rest. It is
-the same trick `TrickSet` already uses for the procedural moves.
+| speed | step | steps/s | drawings on screen per step | change between them |
+| --- | --- | --- | --- | --- |
+| 9 (opening) | 2.28 | 3.95 | 12 | 32%, worst 41% |
+| 10 | 2.49 | 4.01 | 11 | 33%, worst 41% |
+| 11 (ramped) | 2.71 | 4.07 | 11 | 34%, worst 42% |
 
-A slot holding a **single** pose keeps those procedural tricks — the spins and
-squashes in `TrickSet.asset` still carry the vault, the wall run and the ledge
-work. A slot with several frames switches them off. That is the knob: draw frames
-for a slot and the tricks step aside for it, delete them and they come back.
+The step lengthens with speed (`strideGrowth` 0.85) rather than the legs
+quickening, which is how runners go faster. The 24 frames are **one step, not
+two**: a silhouette shows one side, so both legs read as one.
 
-The thirteen slots the game drives:
+**Everything else runs on its own duration** — slide, roll, vault, the wall moves
+and the cling come straight from `PlayerConfig`.
 
-| Slot | When it plays | Source |
+### Landings, and handing back to the run
+
+On touching down the run does not start straight away. `PlayerController`
+paints a `Land` over it — or `GetUp` after a slide — and gives the slot back when
+it has played; the state machine never waits for it. A jump can name its own
+landing, so a somersault lands out of the somersault, and a named clip is only
+ever reached by its name.
+
+Every clip that hands over to the run **ends at running height**, and names the
+point of the stride the run should carry on from (`exitToFrame`). The first cut
+stopped the landings in the squat, and the head jumped up to half a unit into the
+first stride frame — a pop at the end of every jump. Measured at the hand-over:
+
+| into the run from | head moved, ending crouched | now |
 | --- | --- | --- |
-| `Idle` | on the start line, and after crossing the finish | `Idle`, 6 frames |
-| `Run` | normal running | `Run`, 24 frames |
-| `JumpRise` | rising after a ground jump | `jump` 6 **or** `flipJump` 8, at random |
-| `LowFlip` | a ground jump over something small | `lowFlip`, 6 frames |
-| `JumpFall` | falling | `Fall`, 4 frames |
-| `DoubleJump` | the air jump | `BigJump` 4 **or** `flipJump` 8, at random |
-| `Slide` | sliding under an overhang | `Tackle`, 6 frames |
-| `Roll` | hard landing, and the dive recovery | `Tackle`, 6 frames |
-| `Vault` | going over a low obstacle | held `Jump2` + tricks |
-| `WallRun` | running up a wall | held `Run4` + tricks |
-| `LedgeGrab` | hanging on a ledge | held `Fall2` + tricks |
-| `LedgeClimb` | pulling up over it | held `BigJump3` + tricks |
-| `Death` | hit a hazard or fell | held `Tackle6` + tricks |
+| plain landing | +0.50 | +0.10 |
+| flip landing | +0.67 | +0.16 |
+| low flip landing | +0.44 | 0.00 |
+| double jump landing | +0.62 | +0.21 |
+| getting up from a slide | +0.70 | +0.06 |
+| roll | +0.26 | +0.21 |
 
-`LowFlip` is not a state of its own — it is the same `Jumping` state as
+One thing worth knowing when watching landings: a flat jump comes down at about
+21 u/s against a `hardLandingSpeed` of 16, and whether that counts depends on
+whether the 0.1-unit ground probe sees the roof one physics step before contact.
+About one flat landing in four is caught that way and rolls. That predates the
+new art.
+
+### The slots
+
+| Slot | When it plays | Frames (file numbers) |
+| --- | --- | --- |
+| `Idle` | on the start line, and after the finish | `Idle` 1–28 |
+| `Run` | normal running | `Run` 13 19 17 18 12 23 21 1 4 22 24 8 14 7 9 10 6 3 5 2 20 11 16 15 |
+| `JumpRise` | a ground jump | `jump` 4–16 **or** `flipJump` 9–20, at random |
+| `LowFlip` | a ground jump over something small | `lowFlip` 9 10 11 12 15 13 14 17 16 18 |
+| `DoubleJump` | the air jump | `BigJump` 8 9 6 7 10–14 **or** `flipJump` 9–20 |
+| `SuperJump` | the charged jump | `flipJump` 9–20 |
+| `Land` | touching down | `jump` 17–23; flip `flipJump` 22–24; low flip `lowFlip` 22–24; double `BigJump` 15 16 20 21 22 |
+| `JumpFall` | falling with no jump behind it | `Fall` 12–16 and back |
+| `Slide` | sliding under an overhang | `Tackle` 4–9, held flat |
+| `GetUp` | the end of a slide | `Tackle` 10–13 then 3 2 1 |
+| `Roll` | hard landing | `BigJump` 16–22 |
+| `Vault` | going over a low obstacle | `jump` 5–13 |
+| `WallRun` | running up a wall | `climb` 8 14 16 11 10 9 12 18 17 13 15 |
+| `LedgeGrab` | hanging on a ledge | `climb` 1 2 3 2 |
+| `LedgeClimb` | pulling up over a ledge | `climb` 19–22 |
+| `Climb` | stuck against something | `climb` 1–7 |
+| `Death` | hit an obstacle | `lose` 10–24 |
+| `DeathFall` | fell out of the level | `Fall` 5–16 |
+
+The death starts at the impact: `lose` 1–9 are the runner still running into
+whatever it was, and by the time `Death` plays that has happened. Every frame is
+anchored on the ground: anchoring the flung frames in the air, as the jumps are,
+sank the feet 0.2 units into the roof. The clip lasts 0.95s against the 1.05s of
+game time before the death panel, so the quarter-speed slow motion lands on the
+impact. `Kill` also throws the body back at 2.5 u/s and brings it to rest with
+drag, so it is not carried forward underneath a drawing of it flying backwards.
+Falling out of the level keeps the tumble instead: kneeling on a floor that is
+not there looks wrong. `lose` is drawn at 0.78 of the jump's size.
+
+Left out on purpose: `flipJump` 21, an extended leap that belongs to no part of
+the rotation (70% unlike both neighbours), and the standing starts of the jump
+folders. Every slot is a drawn flip-book, so the procedural tricks in
+`TrickSet.asset` stand down for all of them; they only come back if a folder
+goes missing.
+
+**`LowFlip`** is not a state of its own — it is the same `Jumping` state as
 `JumpRise`, chosen instead of it when `PlayerSensors.LowObstacleAhead` is true at
 the moment the runner leaves the ground. That probe looks four units ahead, well
-past the 1.1 the vault probe reaches, because a jump is usually committed to long
-before a vault would offer itself; "small" means a top no higher than
-`maxVaultHeight`, reusing the line the game already draws. Select the player in
-play mode to see it as an orange line in the scene view.
+past the 1.1 the vault probe reaches, and "small" means a top no higher than
+`maxVaultHeight`.
+
+**`Climb`** is not a state either. The runner is still `Running` — still driving
+into the wall, still killed by `CheckCrash` when `wallCrashGrace` runs out — and
+`PlayerController.SetClinging` paints the climb over the run for as long as they
+are stuck. The frames are paced to exactly that grace, so the scramble running
+out is the moment the runner does. It only draws from the upright states, and
+never over the death pose.
 
 Add slots at the **end** of the `PlayerAnim` enum. `PlayerAnimatorDriver` hands
 the enum's integer value to the optional Unity Animator, so inserting one in the
@@ -291,11 +325,58 @@ Ground and Wall, so jumping next to a skip never starts an accidental wall run.
   Replace the `SpriteRenderer.sprite` on any chunk prefab under
   `Assets/Prefabs/Chunks/`. Keep the renderers on **Tiled** draw mode so they
   resize without stretching.
-- **The city backdrop** lives in `Assets/Data/Theme_Night.asset` and
-  `Theme_Dusk.asset`. Each layer takes one horizontally-tileable sprite plus a
+- **The city backdrop** lives in the seven `Assets/Data/Theme_*.asset` files
+  (see *The day palette* below). Each layer takes one horizontally-tileable sprite plus a
   `parallax` value: `0` is pinned to the camera (sky), `1` moves with the world.
   Import those sprites with **Mesh Type: Full Rect** and **Wrap Mode: Repeat**,
   or the tiling will show a seam.
+
+---
+
+## The super jump
+
+A meter fills over **15 seconds of running** and buys one super jump: roughly
+twice the height of a normal one, with a forward carry, on its own gesture.
+
+| | value | where |
+| --- | --- | --- |
+| charge time | 15s | `PlayerConfig.superJumpChargeTime` |
+| height | 6.4 (normal is 3.2) | `PlayerConfig.superJumpHeight` |
+| forward carry | 1.35x | `PlayerConfig.superJumpSpeedMultiplier` |
+
+That puts the runner in the air for 0.97s and covers **11.8 units of ground at
+the speed a level opens on, 19.6 at the speed it ramps to**. The longest gap in
+the library is 8, so a charged player clears any of them outright — but it does
+*not* reach the 7.0 tower face in `Chunk_WallClimb`, so the wall run keeps its
+job. A par run of level 1 banks about three of them; level 10, about seven.
+
+Three decisions in it worth keeping:
+
+**It is its own gesture, not an upgraded jump.** Swipe left, or A / ← — the one
+direction `SwipeInput` already detected and nothing consumed. Folding it into
+swipe-up would mean a charged player sometimes gets a jump far bigger than the
+one they asked for, which is worse than an extra gesture to learn. It also
+deliberately ignores `VaultAhead`: a normal jump in front of a low obstacle
+becomes a vault, and the whole point of this one is to go over the thing.
+
+**It charges only while actually running.** `PlayerController` ticks the meter
+from inside `FixedUpdate`, past the guards that stop the run, so it does not fill
+on the start line, while paused, after the finish, or while dead. A meter that
+charged through the death screen would hand out a free jump for having just
+failed.
+
+**A full meter waits rather than draining.** Hesitating is never punished, and
+the player can hold it for a stretch they know is coming.
+
+The gauge sits bottom-left, clear of the progress bar along the top and the
+pause button in the corner. It changes colour and pulses when full rather than
+only changing length, so "ready" reads from the corner of the eye.
+
+Two things it does not do, both deliberate: there is **no invulnerability** — it
+opens the high route rather than cancelling danger, so hazards still matter on
+the way up and down — and it cannot be fired **out of a slide**, only from a
+run. The double jump is still available afterwards, which stacks to about 9.0
+units for a player who spends the charge and then times an air jump off the apex.
 
 ---
 
@@ -360,20 +441,81 @@ Add a level by creating the asset (**Create → ArvinRunner → Level**) and dro
 it into `Assets/Data/Campaign.asset`. Nothing else needs changing — the menu grid
 and the save data are both driven off `LevelSet.Count`.
 
+### The day palette
+
+The runner is a black silhouette, so every level is in daylight. On the old night
+skies he had **1.1:1** of contrast against the sky — invisible the moment he left
+the ground. The values were chosen against contrast targets, measured the proper
+way (sRGB linearised, WCAG luminance), not by eye.
+
+The backdrop is five layers, far to near: **the sun, a far ridge of hills, nearer
+hills, a band of towers, and a street of houses**. `BackdropPainter` paints each
+as a tileable strip in a light neutral grey, and each theme is one tint over all
+of them. A tint can only darken, so the textures carry the brightness and the
+theme carries the colour.
+
+Depth is carried three ways at once, because any one alone reads flat:
+
+- **Parallax.** Further layers scroll slower and follow the camera less
+  vertically: ridge 0.08, hills 0.18, towers 0.38, houses 0.62.
+- **Air.** Further layers are lighter, as distance washes colour out, and each
+  step is at least 1.12:1 from the next. The first cut had the hills within a
+  few percent of the sky and they vanished.
+- **Size.** Trees are drawn a few pixels tall on the far ridge and several times
+  that between the houses, so the eye measures the distance between them.
+
+The towers thin out between their clusters, leaving gaps of open sky so the hills
+show through. The houses stand on a deep solid street band, which is what shows
+through a gap between rooftops and reaches the bottom of the screen even when
+the camera drops.
+
+| layer | grey | against the runner | against the layer behind |
+| --- | --- | --- | --- |
+| sky | 1.00 → 0.93 | 14.2–15.7:1 | — |
+| far ridge | 0.88 | 12.7–13.9:1 | 1.3:1 |
+| hills | 0.82 | — | 1.2:1 |
+| towers | 0.74 | 8.9–9.8:1 | 1.2:1 |
+| houses | 0.64 | 6.8–7.4:1 | 1.3:1 |
+| house windows | 0.64 × 0.80 | 4.5–4.9:1 | — |
+| walls (`WallTone`) | 0.40 0.42 0.50 | 4.0:1 | — |
+| rooftops (`Rooftop`) | 0.34 0.36 0.42 | 3.1:1 | — |
+
+Measured across all seven themes. The houses stay 1.7:1 or more lighter than the
+walls in front of them and 2.2:1 lighter than the rooftops, so the foreground
+never merges into the street behind it.
+
+Things that only read because the sky used to be dark were
+changed with it: coins have a dark rim and a deeper gold, glass is a deeper blue,
+the finish pole is dark, and HUD text carries a dark outline over dark-glass
+buttons.
+
+| theme | tint | levels |
+| --- | --- | --- |
+| Morning | 0.84 0.92 1.00 | 1, 2, 5 |
+| Afternoon | 1.00 0.91 0.80 | 3, 4 |
+| Golden | 1.00 0.88 0.68 | 6 |
+| Haze | 0.96 0.94 0.84 | 7 |
+| Overcast | 0.87 0.90 0.95 | 8 |
+| Sunrise | 1.00 0.88 0.85 | 9 |
+| Fog | 0.90 0.90 0.93 | 10 |
+
+A new theme is one `CreateTheme` call with a tint. Keep each channel at 0.68 or
+above and the targets above still hold.
+
 ### The campaign
 
 | # | Name | Theme | Idea | Length | Difficulty |
 | --- | --- | --- | --- | --- | --- |
-| 1 | First Steps | Night | one move at a time | 222 | 2.0 |
-| 2 | Rooftops | Night | obstacles with two answers | 306 | 2.4 |
-| 3 | Construction | Dusk | wall run and ledge grab | 356 | 3.7 |
-| 4 | Skyline | Dusk | assembled endurance | 414 | ~3 |
-| 5 | Storm | Night | assembled, wind | 514 | ~4 |
-| 6 | Rush Hour | Sodium | traffic and vehicle roofs | 382 | 2.9 |
-| 7 | Demolition | Smog | nothing holds still | 420 | 3.3 |
-| 8 | Air Support | Storm | the gunship | 398 | 3.6 |
-| 9 | The Towers | Dawn | vertical, wall run throughout | 392 | 4.0 |
-| 10 | Blackout | Blackout | everything at once | 454 | 4.4 |
+| 1 | First Steps | Morning | one move at a time | 222 | 2.0 |
+| 2 | Rooftops | Morning | obstacles with two answers | 306 | 2.4 |
+| 3 | Construction | Afternoon | wall run and ledge grab | 356 | 3.7 |
+| 4 | Skyline | Afternoon | assembled endurance | 414 | ~3 |
+| 5 | Storm | Morning | assembled, wind | 514 | ~4 |
+| 6 | Rush Hour | Golden | traffic and vehicle roofs | 382 | 2.9 |
+| 7 | Demolition | Haze | nothing holds still | 420 | 3.3 |
+| 8 | Air Support | Overcast | the gunship | 398 | 3.6 |
+| 9 | The Towers | Sunrise | vertical, wall run throughout | 392 | 4.0 |
+| 10 | Blackout | Fog | everything at once | 454 | 4.4 |
 
 Difficulty is the mean of a level's chunks **excluding the `Chunk_Flat` rests**,
 which is the number worth watching — counting the rests in flatters a hard level
@@ -408,7 +550,7 @@ sharing a tag never get placed back to back.
 | `CollapsingPlatform` | gives way shortly after you step on it |
 | `MovingPlatform` | ping-pongs, and carries the player |
 | `SwingingCrane` | pendulum wrecking ball |
-| `LaserGate` | beam that pulses on and off, with a warning fade |
+| `LaserGate` | beam that pulses on and off as the runner approaches |
 | `CrusherPress` | slams down on a cycle; slide through the gap |
 | `BreakableGlass` | only smashes if you hit it fast enough |
 | `Trampoline` | launches the runner and refreshes the double jump |
@@ -433,6 +575,49 @@ invisible.** A beam over a gap is fair because both are on screen while there is
 still time to act on either. What is avoided is stacking two things that each
 need the same second of warning.
 
+### Laser gates, and why they run on distance
+
+`LaserGate` takes its phase from **how far the runner still is from it**, not
+from the clock. The obvious version does not work in an auto-runner, and the way
+it failed is worth keeping written down.
+
+Timed off `Time.time`, a beam shows whatever phase it happens to be in when the
+runner arrives — and the runner cannot stop, cannot slow down, and gets there at
+a moment decided by everything earlier in the level. Worse, `LoadLevel` rebuilds
+in place without reloading the scene, so the clock never resets and **every retry
+showed a different pattern**. Dying taught the player nothing.
+
+`Chunk_Lasers` was outright impossible because of it. The beams were 4.5 tall
+against a 3.2 jump and stood on the floor, so there was no way over or under;
+the only answer was to arrive during a 1.0s dark phase. They sat 7 apart with
+cycles staggered 0.8s, and at 9–15 u/s seven units take 0.47–0.78s — so each
+beam's phase had moved on 1.27–1.58s from the last, further than the dark phase
+was wide. A phase that cleared the first beam had always rotated past clear by
+the second. **A sweep of 2,000 speeds against 400 entry phases found nothing that
+passed**; the only speed that worked at all was 5.38, and the runner never goes
+below 9.
+
+Three things fix it, each doing a different job:
+
+- **`arrivalPhase`** is the authoring knob. It is the phase the beam holds at the
+  moment the runner reaches it — under `armedFraction` it is lit and must be
+  answered, over it the runner goes straight through. Deterministic, so a
+  corridor is a fixed rhythm rather than a dice roll. `Chunk_Lasers` now reads
+  **lit, open, lit**, with the pickups over the open one so the collecting line
+  is the one that reads the middle gate instead of jumping it out of habit.
+- **2.6 tall**, so a beam can be hurdled. A misread costs a jump rather than the
+  run, and the chunk joins the two-answer family the rails and the overpass
+  already belong to.
+- **10 apart**, so consecutive jumps fit. A jump is airborne 0.686s and covers
+  6.2–10.3 units depending on speed; at the old 7 spacing the runner was still in
+  the air over the next beam with no way to answer it.
+
+`lockDistance` settles the beam into its arrival state a couple of units out, so
+it cannot flip on the frame of contact — which would be both unreadable and
+unfair. A beam over a gap (`Chunk_LaserGap`) is deliberately set **open** on
+arrival: lit, it would be unanswerable, since the runner is airborne with nowhere
+to land and nothing to jump from.
+
 ### Obstacles that come the other way
 
 Everything else in the library is passed at the runner's own speed. The
@@ -446,8 +631,8 @@ to 30.
 
 **Where the encounter happens is arithmetic, not placement.** The bike wakes 30
 units out and the two close at 18, so they meet about 15 units along — but the
-run speed ramps from 9 to 15 across a level, and at the top of that they meet at
-19 instead. `Chunk_Oncoming` is flat and bare across the whole 15–19 window, and
+run speed ramps from 9 to 11 across a level, and at the top of that they meet at
+16.5 instead. `Chunk_Oncoming` is flat and bare across the whole window, and
 its pickups are laid across it rather than at a point, so the arc that clears the
 bike is the arc that collects wherever it is actually met.
 
@@ -464,24 +649,25 @@ counter-intuitive half: the less ground it covers before the trigger, the furthe
 ahead it still is when it fires. At its current drift of 1.2 it shoots from 8.6
 units ahead of a runner doing 9 and 15.4 ahead of one doing 15 — both inside what
 the camera shows — and stays right of its target at every speed, so the missile
-goes down and forward as the art draws it. That is close to as slow as it goes
+goes down and forward. That is close to as slow as it goes
 before the shot starts happening off screen.
+
+The launch point is under the front of the cabin, between the skids.
 
 The marker is what makes the strike fair rather than memorised, and it is drawn
 to the same radius as the blast that follows — a marker smaller than the fire
 would be a lie. The marker and fireball are generated in `PlaceholderArt`
-alongside the spikes and coins; the missile is not, because the helicopter's own
-frames draw the launch and a second one would be two missiles for one shot.
+alongside the spikes and coins, and so is the missile, which `MissileStrike` flies
+from the helicopter's muzzle down to the marker.
 
-The helicopter's frames are a **storyboard, not a cycle** — fly, descend,
-fire_launch, missile_away, missile_far, recover. `SpriteFlipbook.PlayRange` plays
-a slice, so the first two loop on the way in and the last four play once, on the
-shot, holding on the recovery pose. They run at 5.5fps so those four span 0.73s
-against the strike's 0.75s warning: the drawn missile leaves the frame on the
-same beat the fire arrives. The split is a fact about these six drawings and is
-written as one — dividing the folder in half instead would put the launch pose
-inside the approach loop, and the aircraft would flash its muzzle over and over
-while still only cruising.
+The helicopter's frames are **one flying loop**: 24 frames in which the rotor
+swaps between a spread blade and an edge-on one every frame and the body bobs
+through the whole cycle. They play at 24fps — the bob takes a second and the
+blade flickers at 12 a second, which reads as spinning. Nothing in them draws the
+shot, so the loop keeps playing through it (`HelicopterStrike.launchDrawn` is off)
+and the strike's own missile shows it. An earlier set was a storyboard — fly,
+descend, launch, missile away, recover — and switched to its firing frames on the
+shot, holding the last; on this art that would stop the rotor the moment it fired.
 
 Animated obstacle art lives in `Assets/Art/MovingObstacles/`, one folder per
 obstacle, and is imported by **ArvinRunner → Re-import Moving Obstacles**. The
@@ -494,11 +680,11 @@ own scale each from a declared height in `MovingObstacleImport`.
 that out rather than being told.** Frames cropped individually — the bike, at
 344x286, 310x285, 363x246 — share no frame of reference, so each is measured and
 pinned on its own or the object jumps about as the crop changes under it. Frames
-drawn on one shared canvas are the opposite case: the helicopter is six 1547x854
-frames with the aircraft in the same place in every one, and what moves is the
-missile leaving and the smoke trailing. Measuring those per frame would pin each
-to its own centre of mass, and since the missile drags that centre 59px sideways
-and 96px down, the aircraft would lurch across the sky chasing its own missile.
+drawn on one shared canvas are the opposite case: the helicopter is 24 frames on
+one 1448x653 canvas, and what moves between them is the animation — a 31px bob
+and a rotor blade swapping pose. Measured per frame, the blade alone would move
+the solid box about 40px sideways on alternate frames, so the aircraft would
+shudder twelve times a second and the bob would be measured away.
 Frames that share a canvas size were laid out together, so that is the test, and
 a shared canvas gets one anchor for the whole folder.
 

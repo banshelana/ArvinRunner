@@ -35,11 +35,19 @@ namespace ArvinRunner
 
         [Tooltip("Vertical size in world units. 0 keeps the sprite's own height.")]
         public float heightOverride;
+
+        [Tooltip("Repeat the sprite along the strip. Off for a single object such as the " +
+                 "sun, which is placed once and follows the camera instead.")]
+        public bool tiled = true;
+
+        [Tooltip("For a layer that is not tiled: horizontal position relative to the " +
+                 "camera centre, in world units.")]
+        public float xOffset;
     }
 
     /// <summary>
     /// The complete backdrop for a level. Swap themes between levels to change
-    /// the city from day to night to storm.
+    /// the time of day and the weather.
     ///
     /// Create via Assets > Create > ArvinRunner > Parallax Theme.
     /// </summary>

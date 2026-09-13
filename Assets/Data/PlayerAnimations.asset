@@ -19,7 +19,102 @@ MonoBehaviour:
     fps: 1
     loop: 1
     strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets: []
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
   clips:
+  - anim: 1
+    frames:
+    - {fileID: 21300000, guid: a23e91d8172d58147b6495cfe9cc6d56, type: 3}
+    - {fileID: 21300000, guid: 892204ce6991648429bdd8fd9a2982f6, type: 3}
+    - {fileID: 21300000, guid: 2932dd462bcfb1d4cb71847223865814, type: 3}
+    - {fileID: 21300000, guid: 2556c40d636afcb44bcc41afd4d97e33, type: 3}
+    - {fileID: 21300000, guid: 1762b995503fcc64986e5d8239d62064, type: 3}
+    - {fileID: 21300000, guid: 92616a5000e555d4e9d18778a0d22271, type: 3}
+    - {fileID: 21300000, guid: 1d56366160f0c834d8952a78a6341ce5, type: 3}
+    - {fileID: 21300000, guid: dd4d5adaf8d909d4789761c4b58d4785, type: 3}
+    - {fileID: 21300000, guid: 3dfcf7d2d8974f74e8bd49e89e745bf0, type: 3}
+    - {fileID: 21300000, guid: f29bd4fac14f9e34faabfc170c816bde, type: 3}
+    - {fileID: 21300000, guid: 576cffc50ab0b8b489383942492f0d30, type: 3}
+    - {fileID: 21300000, guid: 94cb07fee7716d845b6e197e4e45a28a, type: 3}
+    - {fileID: 21300000, guid: c901e33b77ae84941be59f9228df0300, type: 3}
+    - {fileID: 21300000, guid: 2f7e44c0cba502748a74d84481efc524, type: 3}
+    - {fileID: 21300000, guid: 656cc248c8a23334581ee657e265a70b, type: 3}
+    - {fileID: 21300000, guid: 538dc0af0e7474a489613b376658d317, type: 3}
+    - {fileID: 21300000, guid: 3c0eade855836e140b222f4367664f41, type: 3}
+    - {fileID: 21300000, guid: 12c49df41200318499ce3eb22ef5c509, type: 3}
+    - {fileID: 21300000, guid: 19945b24f744d0a48b44b6c4be1de19f, type: 3}
+    - {fileID: 21300000, guid: 0649154dd2870164bbb298c397006914, type: 3}
+    - {fileID: 21300000, guid: ae661e6bf07e070448f44b7614313336, type: 3}
+    - {fileID: 21300000, guid: bac6c904b7a1b0a4bb61b040b9f75060, type: 3}
+    - {fileID: 21300000, guid: 75309c388f3c845459e13b6d7f644989, type: 3}
+    - {fileID: 21300000, guid: 74af00533ee8bd6479b907923fd7d4f0, type: 3}
+    fps: 94.696304
+    loop: 1
+    strideDistance: 2.280976
+    strideReferenceSpeed: 9
+    strideGrowth: 0.85
+    name: 
+    weights:
+    - 29
+    - 8.5
+    - 5
+    - 9
+    - 8.5
+    - 4.5
+    - 3.5
+    - 3.5
+    - 4
+    - 5.5
+    - 20
+    - 35
+    - 19.5
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 16
+    - 35.5
+    offsets:
+    - {x: -0.009749463, y: 0}
+    - {x: -0.014555015, y: 0}
+    - {x: -0.009100595, y: 0}
+    - {x: -0.018791871, y: 0}
+    - {x: -0.051424146, y: 0}
+    - {x: -0.027874669, y: 0}
+    - {x: -0.017145941, y: 0}
+    - {x: 0.004126461, y: 0}
+    - {x: 0.00709505, y: 0}
+    - {x: -0.00019694149, y: 0}
+    - {x: -0.037117958, y: 0}
+    - {x: -0.034402814, y: 0}
+    - {x: 0.008394792, y: 0}
+    - {x: -0.014786868, y: 0}
+    - {x: -0.0062551484, y: 0}
+    - {x: 0.021754658, y: 0}
+    - {x: 0.0067819487, y: 0}
+    - {x: 0.021715771, y: 0}
+    - {x: 0.055420052, y: 0}
+    - {x: 0.018402213, y: 0}
+    - {x: 0.010369507, y: 0}
+    - {x: 0.021460535, y: 0}
+    - {x: 0.03505981, y: 0}
+    - {x: 0.030820413, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
   - anim: 0
     frames:
     - {fileID: 21300000, guid: 9a6f1a3b2623abf4580778061100c609, type: 3}
@@ -28,153 +123,733 @@ MonoBehaviour:
     - {fileID: 21300000, guid: ae960364c28b1d146befa3e986439537, type: 3}
     - {fileID: 21300000, guid: d5461a34437e5804c95d06297d42b6e4, type: 3}
     - {fileID: 21300000, guid: f737457a55069cc47ae8cf31bd6def82, type: 3}
-    fps: 8
-    loop: 1
-    strideDistance: 0
-  - anim: 1
-    frames:
-    - {fileID: 21300000, guid: 66bf5056edce31144adcc76abd45cc4c, type: 3}
-    - {fileID: 21300000, guid: cd5e819baab147a40a4b7512d77c8aae, type: 3}
-    - {fileID: 21300000, guid: 367f689685f3ff04babb3a4e38d2a90c, type: 3}
-    - {fileID: 21300000, guid: ffd9ffd2d290adf47b581de5f3d6e340, type: 3}
-    - {fileID: 21300000, guid: 7e7e84d8ed50c1a4eaf5b86c04b4830d, type: 3}
-    - {fileID: 21300000, guid: 60b1b6baecf1e1740b6ae76ead16ffe8, type: 3}
-    - {fileID: 21300000, guid: 7dbee619b2b8d8b40b16eee1469348b9, type: 3}
-    - {fileID: 21300000, guid: d5c516db2af0a754ba70c4fcdd6749ae, type: 3}
-    - {fileID: 21300000, guid: c5dcfd7941439164898b4b2419d7e177, type: 3}
-    - {fileID: 21300000, guid: 3458f261880b02a499af21dfb9156e82, type: 3}
-    - {fileID: 21300000, guid: 0637ebd08f239ea48acef5b4dbb1cb79, type: 3}
-    - {fileID: 21300000, guid: 120e578147eb4014aac355f442cf61f6, type: 3}
-    - {fileID: 21300000, guid: 7bb7b32c185261e4fbcf806cfd26683a, type: 3}
-    - {fileID: 21300000, guid: 7034706e906bc6d45ba1a1fe1faf0a5e, type: 3}
-    - {fileID: 21300000, guid: 6a3674d4ef1629f409806bf602f74a43, type: 3}
-    - {fileID: 21300000, guid: 1a1061075f3ac3e45b39768eeaa4277e, type: 3}
-    - {fileID: 21300000, guid: eba299ecc5a63da42bedbc55ed238b49, type: 3}
-    - {fileID: 21300000, guid: e9734cb3942155c479f1b8312e7676d8, type: 3}
-    - {fileID: 21300000, guid: 779be2b79aad92b40bac7faf0fefcd71, type: 3}
-    - {fileID: 21300000, guid: 94cb08e98f0f81e4da89edc50a22e843, type: 3}
-    - {fileID: 21300000, guid: ea50ae097e4c2be42b78bb63372339c9, type: 3}
-    - {fileID: 21300000, guid: 0b50f20d424bd3f4aa07eea97c076669, type: 3}
-    - {fileID: 21300000, guid: 96551e812f73d554ea64d68924e4ccae, type: 3}
-    - {fileID: 21300000, guid: 82698470725057c43b63d22b66c79f32, type: 3}
-    fps: 72
-    loop: 1
-    strideDistance: 3
-  - anim: 2
-    frames:
-    - {fileID: 21300000, guid: ffa56aae574b06440aaa8d8993fd4f85, type: 3}
-    - {fileID: 21300000, guid: f1297b6858030ee459369a932aec92a6, type: 3}
-    - {fileID: 21300000, guid: 9ca2fa50eaea51441b454ca175f6f6a2, type: 3}
-    - {fileID: 21300000, guid: d73d9b4b3425e434e82a6ad623d8e586, type: 3}
-    - {fileID: 21300000, guid: f6bd856bfc8efa24f8a80edd26bc0321, type: 3}
-    - {fileID: 21300000, guid: 29b3b131feb91ba4eb586c58e605f4a7, type: 3}
-    fps: 15.758034
-    loop: 0
-    strideDistance: 0
-  - anim: 4
-    frames:
-    - {fileID: 21300000, guid: 4909f73fe63c11d4d8849c0fc8d62e10, type: 3}
-    - {fileID: 21300000, guid: 109af13c0fcb5ce48b28a6956b95e618, type: 3}
-    - {fileID: 21300000, guid: 8d738daa4ff018c45834abf8a4b9cb42, type: 3}
-    - {fileID: 21300000, guid: 672a5f94f8b33d34b99577cff64343f0, type: 3}
-    fps: 11.654646
-    loop: 0
-    strideDistance: 0
-  - anim: 3
-    frames:
-    - {fileID: 21300000, guid: 6c0f1ffc584804743af0c5db46ed3496, type: 3}
-    - {fileID: 21300000, guid: 23da5bd147c878f438693308d9a3098a, type: 3}
-    - {fileID: 21300000, guid: 21c032c40d0da87428e60a063ce5a387, type: 3}
-    - {fileID: 21300000, guid: 0e4974ac8d6279a40bf2033d8f37ff93, type: 3}
+    - {fileID: 21300000, guid: 96ed712391772454383b77729cf276ab, type: 3}
+    - {fileID: 21300000, guid: c2733e4904e1dc24690faa8c8d519927, type: 3}
+    - {fileID: 21300000, guid: e95dcbaa770441946bf5921e0687fd60, type: 3}
+    - {fileID: 21300000, guid: 5c34f17f6ec4aeb42b1336b5069a5a10, type: 3}
+    - {fileID: 21300000, guid: 387638746fc4ec94eba2d0c5c22e65c1, type: 3}
+    - {fileID: 21300000, guid: 2f54ecfaa29718047b0de04ec30fcd19, type: 3}
+    - {fileID: 21300000, guid: 81ea0828d5ac2d44584f5344899551ab, type: 3}
+    - {fileID: 21300000, guid: 5307c9b11e21dca4e9b5fd1d3b424e48, type: 3}
+    - {fileID: 21300000, guid: 59f73a404479abb42a0c4d3fd717b249, type: 3}
+    - {fileID: 21300000, guid: 8c00c43b90a080647b236b1e1b2fb55e, type: 3}
+    - {fileID: 21300000, guid: 7f3df5ab98657194d8e5bb8da128531d, type: 3}
+    - {fileID: 21300000, guid: 3a2171da085bf4a49b194b21fda32c99, type: 3}
+    - {fileID: 21300000, guid: 71b15c588590fbe448aebbbc10b1093f, type: 3}
+    - {fileID: 21300000, guid: c290fe469e0b86849a7142d7aa0ee47e, type: 3}
+    - {fileID: 21300000, guid: 8b28bb72fec854f46b3c0adf234b75df, type: 3}
+    - {fileID: 21300000, guid: 186632ae99fc3e34090549a3732060e9, type: 3}
+    - {fileID: 21300000, guid: d299f90b7c292bc479337ec0230dfe65, type: 3}
+    - {fileID: 21300000, guid: 003c821c9da96ff4e9b6cfbf9450f3db, type: 3}
+    - {fileID: 21300000, guid: 7186952624a84024481137f545cde541, type: 3}
+    - {fileID: 21300000, guid: 0edcbcbd489aa8448887233ac7028aac, type: 3}
+    - {fileID: 21300000, guid: f656c620b1670864cbfc83f3917b4ab5, type: 3}
+    - {fileID: 21300000, guid: eb172e5d356b04644b68a1544157f4a2, type: 3}
     fps: 10
     loop: 1
     strideDistance: 0
-  - anim: 12
-    frames:
-    - {fileID: 21300000, guid: 427218fcd03e0a74e9965820964ae479, type: 3}
-    - {fileID: 21300000, guid: d5ac919a2348fd448880c6e80fc07df9, type: 3}
-    - {fileID: 21300000, guid: 657dff0f3e77d164eabaf93da71403ab, type: 3}
-    - {fileID: 21300000, guid: 415133c4e7890b046b067ee9c43d0e5d, type: 3}
-    - {fileID: 21300000, guid: 2555fecfc64f02147ab06c4d13303da1, type: 3}
-    - {fileID: 21300000, guid: 7a4c7dfa0290edf40b0695a8d1ca8b59, type: 3}
-    fps: 15.758034
-    loop: 0
-    strideDistance: 0
-  - anim: 5
-    frames:
-    - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
-    - {fileID: 21300000, guid: 21a482c757966fb4b9b3d79509cad247, type: 3}
-    - {fileID: 21300000, guid: 4362f196412f45a4f9bac1f0bad3c98b, type: 3}
-    - {fileID: 21300000, guid: a2646a352c3e34a4e90661dbd92cbe02, type: 3}
-    - {fileID: 21300000, guid: ce8d53d06cb52d84f944eb4c0efedba3, type: 3}
-    - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
-    fps: 8.571428
-    loop: 0
-    strideDistance: 0
-  - anim: 6
-    frames:
-    - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
-    - {fileID: 21300000, guid: 21a482c757966fb4b9b3d79509cad247, type: 3}
-    - {fileID: 21300000, guid: 4362f196412f45a4f9bac1f0bad3c98b, type: 3}
-    - {fileID: 21300000, guid: a2646a352c3e34a4e90661dbd92cbe02, type: 3}
-    - {fileID: 21300000, guid: ce8d53d06cb52d84f944eb4c0efedba3, type: 3}
-    - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
-    fps: 12
-    loop: 0
-    strideDistance: 0
-  - anim: 7
-    frames:
-    - {fileID: 21300000, guid: f1297b6858030ee459369a932aec92a6, type: 3}
-    fps: 12
-    loop: 0
-    strideDistance: 0
-  - anim: 8
-    frames:
-    - {fileID: 21300000, guid: ffd9ffd2d290adf47b581de5f3d6e340, type: 3}
-    fps: 12
-    loop: 1
-    strideDistance: 0
-  - anim: 9
-    frames:
-    - {fileID: 21300000, guid: 23da5bd147c878f438693308d9a3098a, type: 3}
-    fps: 12
-    loop: 0
-    strideDistance: 0
-  - anim: 10
-    frames:
-    - {fileID: 21300000, guid: 8d738daa4ff018c45834abf8a4b9cb42, type: 3}
-    fps: 12
-    loop: 0
-    strideDistance: 0
-  - anim: 11
-    frames:
-    - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
-    fps: 12
-    loop: 0
-    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0.0060005337, y: 0}
+    - {x: 0.015612983, y: 0}
+    - {x: 0.005526809, y: 0}
+    - {x: 0.009537544, y: 0}
+    - {x: -0.011555138, y: 0}
+    - {x: -0.0065818797, y: 0}
+    - {x: 0.020072682, y: 0}
+    - {x: -0.01072602, y: 0}
+    - {x: -0.01259662, y: 0}
+    - {x: -0.012840711, y: 0}
+    - {x: -0.010419591, y: 0}
+    - {x: -0.0010244896, y: 0}
+    - {x: 0.008385284, y: 0}
+    - {x: -0.016582811, y: 0}
+    - {x: 0.005377186, y: 0}
+    - {x: -0.007746893, y: 0}
+    - {x: 0.0024357901, y: 0}
+    - {x: 0.0046177404, y: 0}
+    - {x: -0.00501102, y: 0}
+    - {x: -0.005833144, y: 0}
+    - {x: -0.01546274, y: 0}
+    - {x: -0.006308633, y: 0}
+    - {x: 0.0031127166, y: 0}
+    - {x: -0.00047932708, y: 0}
+    - {x: 0.009308157, y: 0}
+    - {x: 0.013441123, y: 0}
+    - {x: 0.008011628, y: 0}
+    - {x: 0.011728687, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
   - anim: 2
     frames:
-    - {fileID: 21300000, guid: fde869a0715051d49bc3541edb30aedb, type: 3}
-    - {fileID: 21300000, guid: bfe929c0d78d13f4da0dd27c7a7d580e, type: 3}
-    - {fileID: 21300000, guid: 42c6c4ee8c21fd74c9aceb05ae2a2922, type: 3}
-    - {fileID: 21300000, guid: 7d228c622581ce44ba78468e02d83ddf, type: 3}
-    - {fileID: 21300000, guid: dd26f10ac1da1324ca022623d3f88be3, type: 3}
-    - {fileID: 21300000, guid: a5bb3739c4ed61c4384976f2c437beee, type: 3}
-    - {fileID: 21300000, guid: 33e51d18d0a417c45bb52e029d5cc618, type: 3}
-    - {fileID: 21300000, guid: b469a294dcfe14549b2b216130cdd8cf, type: 3}
-    fps: 21.010712
+    - {fileID: 21300000, guid: d73d9b4b3425e434e82a6ad623d8e586, type: 3}
+    - {fileID: 21300000, guid: f6bd856bfc8efa24f8a80edd26bc0321, type: 3}
+    - {fileID: 21300000, guid: 29b3b131feb91ba4eb586c58e605f4a7, type: 3}
+    - {fileID: 21300000, guid: 18553ee3aea70b94ea2b95b04661d394, type: 3}
+    - {fileID: 21300000, guid: a28db2d1bb15f60478a7638f5aa11bcd, type: 3}
+    - {fileID: 21300000, guid: 10922df5bce4aaa47bb2aff57a59b11e, type: 3}
+    - {fileID: 21300000, guid: ed7a06d6de5f9e24abb5ad9e6f270b39, type: 3}
+    - {fileID: 21300000, guid: b62e8d5caa536784fb08eb7d97dbbb4a, type: 3}
+    - {fileID: 21300000, guid: 1ddb494cfd0b84740a604db9eb576a74, type: 3}
+    - {fileID: 21300000, guid: 4402e84906eda564e9b49794fb48efe8, type: 3}
+    - {fileID: 21300000, guid: d159b8a355922c44f8d87f04586a840a, type: 3}
+    - {fileID: 21300000, guid: 5932d54f5df4326419c22a5f7a0d71ea, type: 3}
+    - {fileID: 21300000, guid: 554ae2cd92d8b024ab5368133dd04c51, type: 3}
+    fps: 18.949226
     loop: 0
     strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0.021023313}
+    - {x: 0, y: -0.25027096}
+    - {x: 0, y: 0.21012357}
+    - {x: 0, y: 0.21955371}
+    - {x: 0, y: 0.25048482}
+    - {x: 0, y: 0.31790644}
+    - {x: 0, y: 0.42047885}
+    - {x: 0, y: 0.39686278}
+    - {x: 0, y: 0.1595896}
+    - {x: 0, y: 0.12319645}
+    - {x: 0, y: 0.019375948}
+    - {x: 0, y: 0.056840274}
+    - {x: 0, y: 0.04160383}
+    followJump: 1
+    apexFrame: 6
+    landing: 
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: 9aead2ce581b5cc4298176dc251efa95, type: 3}
+    - {fileID: 21300000, guid: 9bfa2989b9a993c46846abfcdc18b4f6, type: 3}
+    - {fileID: 21300000, guid: 61060c4b7e5471a469bed840d52d4194, type: 3}
+    - {fileID: 21300000, guid: 14c35d175e63db848977c709dea58bbd, type: 3}
+    - {fileID: 21300000, guid: 0a9fec0267d514a45867c32b4596207d, type: 3}
+    - {fileID: 21300000, guid: 65fb65999fbd55348b120107bc7acb35, type: 3}
+    - {fileID: 21300000, guid: 9ca6cfc220a92e840a33ba226796f151, type: 3}
+    fps: 23.333332
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights:
+    - 1
+    - 1
+    - 1.2
+    - 1.2
+    - 0.8
+    - 0.8
+    - 0.6
+    offsets:
+    - {x: 0.092379235, y: 0}
+    - {x: 0.08055597, y: 0}
+    - {x: -0.037568018, y: 0}
+    - {x: -0.041067243, y: 0}
+    - {x: -0.05641691, y: 0}
+    - {x: -0.08276149, y: 0}
+    - {x: 0.044878565, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 0
+  - anim: 2
+    frames:
+    - {fileID: 21300000, guid: f5cf3e7055074bf42b9b4291169cbdf3, type: 3}
+    - {fileID: 21300000, guid: f0047e5974308c44fa34c9e75a79f3f2, type: 3}
+    - {fileID: 21300000, guid: f4d58bdd663617b47972f424f607aae0, type: 3}
+    - {fileID: 21300000, guid: b4465baf2f54b7e47a2991f995dabd9f, type: 3}
+    - {fileID: 21300000, guid: afe8b326ca4b8994689e5d41605a0b59, type: 3}
+    - {fileID: 21300000, guid: e17273f9d817dc6479a0f80121c3f9d4, type: 3}
+    - {fileID: 21300000, guid: 92fe82d534d0a15438f98bb6948d699f, type: 3}
+    - {fileID: 21300000, guid: b873d1e954092ac40afe54ee78980d32, type: 3}
+    - {fileID: 21300000, guid: f96d821a9662ab34eb7ef11df21daaef, type: 3}
+    - {fileID: 21300000, guid: 59731c85f1ae5bb41919d718548214a0, type: 3}
+    - {fileID: 21300000, guid: 62fec8eb4647efb4e88b3d04affcef19, type: 3}
+    - {fileID: 21300000, guid: c4a18c97b5e593d499e4939e0f286a48, type: 3}
+    fps: 17.491592
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0.054984577}
+    - {x: -0.00000007304739, y: 0.33181247}
+    - {x: 0, y: 0.12427149}
+    - {x: 0, y: 0.08342171}
+    - {x: 0, y: 0.02925137}
+    - {x: 0, y: 0.341512}
+    - {x: 0, y: 0.3470594}
+    - {x: 0.000000036523694, y: 0.36859483}
+    - {x: 0, y: 0.51634705}
+    - {x: 0, y: 0.4356916}
+    - {x: 0, y: 0.42810902}
+    - {x: 0, y: 0.24456322}
+    followJump: 1
+    apexFrame: 6
+    landing: land_flip
+    exitToFrame: -1
   - anim: 4
     frames:
-    - {fileID: 21300000, guid: fde869a0715051d49bc3541edb30aedb, type: 3}
-    - {fileID: 21300000, guid: bfe929c0d78d13f4da0dd27c7a7d580e, type: 3}
-    - {fileID: 21300000, guid: 42c6c4ee8c21fd74c9aceb05ae2a2922, type: 3}
-    - {fileID: 21300000, guid: 7d228c622581ce44ba78468e02d83ddf, type: 3}
-    - {fileID: 21300000, guid: dd26f10ac1da1324ca022623d3f88be3, type: 3}
-    - {fileID: 21300000, guid: a5bb3739c4ed61c4384976f2c437beee, type: 3}
-    - {fileID: 21300000, guid: 33e51d18d0a417c45bb52e029d5cc618, type: 3}
-    - {fileID: 21300000, guid: b469a294dcfe14549b2b216130cdd8cf, type: 3}
-    fps: 23.309292
+    - {fileID: 21300000, guid: f5cf3e7055074bf42b9b4291169cbdf3, type: 3}
+    - {fileID: 21300000, guid: f0047e5974308c44fa34c9e75a79f3f2, type: 3}
+    - {fileID: 21300000, guid: f4d58bdd663617b47972f424f607aae0, type: 3}
+    - {fileID: 21300000, guid: b4465baf2f54b7e47a2991f995dabd9f, type: 3}
+    - {fileID: 21300000, guid: afe8b326ca4b8994689e5d41605a0b59, type: 3}
+    - {fileID: 21300000, guid: e17273f9d817dc6479a0f80121c3f9d4, type: 3}
+    - {fileID: 21300000, guid: 92fe82d534d0a15438f98bb6948d699f, type: 3}
+    - {fileID: 21300000, guid: b873d1e954092ac40afe54ee78980d32, type: 3}
+    - {fileID: 21300000, guid: f96d821a9662ab34eb7ef11df21daaef, type: 3}
+    - {fileID: 21300000, guid: 59731c85f1ae5bb41919d718548214a0, type: 3}
+    - {fileID: 21300000, guid: 62fec8eb4647efb4e88b3d04affcef19, type: 3}
+    - {fileID: 21300000, guid: c4a18c97b5e593d499e4939e0f286a48, type: 3}
+    fps: 19.40518
     loop: 0
     strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0.054984577}
+    - {x: -0.00000007304739, y: 0.33181247}
+    - {x: 0, y: 0.12427149}
+    - {x: 0, y: 0.08342171}
+    - {x: 0, y: 0.02925137}
+    - {x: 0, y: 0.341512}
+    - {x: 0, y: 0.3470594}
+    - {x: 0.000000036523694, y: 0.36859483}
+    - {x: 0, y: 0.51634705}
+    - {x: 0, y: 0.4356916}
+    - {x: 0, y: 0.42810902}
+    - {x: 0, y: 0.24456322}
+    followJump: 1
+    apexFrame: 6
+    landing: land_flip
+    exitToFrame: -1
+  - anim: 13
+    frames:
+    - {fileID: 21300000, guid: f5cf3e7055074bf42b9b4291169cbdf3, type: 3}
+    - {fileID: 21300000, guid: f0047e5974308c44fa34c9e75a79f3f2, type: 3}
+    - {fileID: 21300000, guid: f4d58bdd663617b47972f424f607aae0, type: 3}
+    - {fileID: 21300000, guid: b4465baf2f54b7e47a2991f995dabd9f, type: 3}
+    - {fileID: 21300000, guid: afe8b326ca4b8994689e5d41605a0b59, type: 3}
+    - {fileID: 21300000, guid: e17273f9d817dc6479a0f80121c3f9d4, type: 3}
+    - {fileID: 21300000, guid: 92fe82d534d0a15438f98bb6948d699f, type: 3}
+    - {fileID: 21300000, guid: b873d1e954092ac40afe54ee78980d32, type: 3}
+    - {fileID: 21300000, guid: f96d821a9662ab34eb7ef11df21daaef, type: 3}
+    - {fileID: 21300000, guid: 59731c85f1ae5bb41919d718548214a0, type: 3}
+    - {fileID: 21300000, guid: 62fec8eb4647efb4e88b3d04affcef19, type: 3}
+    - {fileID: 21300000, guid: c4a18c97b5e593d499e4939e0f286a48, type: 3}
+    fps: 12.368425
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0.054984577}
+    - {x: -0.00000007304739, y: 0.33181247}
+    - {x: 0, y: 0.12427149}
+    - {x: 0, y: 0.08342171}
+    - {x: 0, y: 0.02925137}
+    - {x: 0, y: 0.341512}
+    - {x: 0, y: 0.3470594}
+    - {x: 0.000000036523694, y: 0.36859483}
+    - {x: 0, y: 0.51634705}
+    - {x: 0, y: 0.4356916}
+    - {x: 0, y: 0.42810902}
+    - {x: 0, y: 0.24456322}
+    followJump: 1
+    apexFrame: 6
+    landing: land_flip
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: 9de20562309cac5498675f0e2d6c4ee0, type: 3}
+    - {fileID: 21300000, guid: 3d87511561e4e034887bba3d96a2cfbe, type: 3}
+    - {fileID: 21300000, guid: db442edae24d5aa42b4097395dd3df14, type: 3}
+    fps: 15
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_flip
+    weights: []
+    offsets:
+    - {x: 0.01809625, y: 0}
+    - {x: 0.03383095, y: 0}
+    - {x: -0.051927052, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 11
+  - anim: 12
+    frames:
+    - {fileID: 21300000, guid: 45abd9c0c7ecb074888e064ad5ccad2a, type: 3}
+    - {fileID: 21300000, guid: a60c946d0071a614b9a13980a7be1c75, type: 3}
+    - {fileID: 21300000, guid: 8025d736450486b40a440be8a4795f5b, type: 3}
+    - {fileID: 21300000, guid: 3c2f497294cfb8143b27345522a93466, type: 3}
+    - {fileID: 21300000, guid: f9753efd4e23fcd43a7e6aed994c7c85, type: 3}
+    - {fileID: 21300000, guid: cb2111a84e93eb74f8b525769e01c55a, type: 3}
+    - {fileID: 21300000, guid: 767ce4ffeb5655344b0f2b1196feb70e, type: 3}
+    - {fileID: 21300000, guid: 12f60221551387b458ec6e0b84f19d87, type: 3}
+    - {fileID: 21300000, guid: a9b15c932d21ee84295de73c8d34cfb0, type: 3}
+    - {fileID: 21300000, guid: 19e60918dd7e8c34e9c0c1ddb2c1d4b6, type: 3}
+    fps: 14.576327
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: -0.09722821}
+    - {x: 0, y: 0.32529125}
+    - {x: 0.00000007023788, y: 0.33074877}
+    - {x: 0, y: 0.44467235}
+    - {x: 0, y: 0.5179921}
+    - {x: 0, y: 0.4614025}
+    - {x: 0, y: 0.4739891}
+    - {x: 0, y: 0.17880946}
+    - {x: 0, y: 0.19152722}
+    - {x: 0.00000007023788, y: -0.12535118}
+    followJump: 1
+    apexFrame: 5
+    landing: land_lowflip
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: c7416fdc9aa9b044592dfa06f823cd5c, type: 3}
+    - {fileID: 21300000, guid: 5fbf58a7eeabe2c42b1144f66c976ff9, type: 3}
+    - {fileID: 21300000, guid: b52ee0090a2b45b46b4ee52bdcfde067, type: 3}
+    fps: 15
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_lowflip
+    weights: []
+    offsets:
+    - {x: -0.017496325, y: 0}
+    - {x: -0.017681262, y: 0}
+    - {x: 0.03517759, y: -0.0000000021949338}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 2
+  - anim: 4
+    frames:
+    - {fileID: 21300000, guid: b2434a7d98ddd724caf784558c0e7299, type: 3}
+    - {fileID: 21300000, guid: cd34d581212462c45b68a91233012996, type: 3}
+    - {fileID: 21300000, guid: cb66e6c32adda3140b8ba541a01ef783, type: 3}
+    - {fileID: 21300000, guid: 4c6c56ede60787542b5b44fb069fb8e4, type: 3}
+    - {fileID: 21300000, guid: 1d4c28dbcd629cb4cabcae4f9d0284e5, type: 3}
+    - {fileID: 21300000, guid: 0b39657033171ba4da50a1c50128e3f1, type: 3}
+    - {fileID: 21300000, guid: cc154d14b8665694288f02cb9a97e742, type: 3}
+    - {fileID: 21300000, guid: 6aa4509cda98dab48908e4494a6857b9, type: 3}
+    - {fileID: 21300000, guid: 3253f224be6c55849b1f2fed5f76d60b, type: 3}
+    fps: 14.553885
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: -0.1949041}
+    - {x: 0, y: -0.13206396}
+    - {x: 0, y: 0.38612068}
+    - {x: 0, y: 0.406634}
+    - {x: 0.000000037848388, y: 0.073735066}
+    - {x: -0.000000037848388, y: -0.016801003}
+    - {x: 0.000000037848388, y: -0.110911556}
+    - {x: -0.000000037848388, y: -0.088764414}
+    - {x: 0, y: 0.16112131}
+    followJump: 1
+    apexFrame: 4
+    landing: land_double
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: 0b862be329cc58541bcedc2f5b31dc00, type: 3}
+    - {fileID: 21300000, guid: 3a5f4df6283123d409bf0ecc8ab17021, type: 3}
+    - {fileID: 21300000, guid: b0e027924b5bb8243a68031f90ba2e8d, type: 3}
+    - {fileID: 21300000, guid: 8da7d036121be764190bd25041a3f555, type: 3}
+    - {fileID: 21300000, guid: de21687ee61a6d2419483915759ccee6, type: 3}
+    fps: 20.833334
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_double
+    weights: []
+    offsets:
+    - {x: 0.21009682, y: 0}
+    - {x: 0.06607087, y: 0}
+    - {x: -0.097289205, y: 0}
+    - {x: -0.11907905, y: 0}
+    - {x: -0.059799545, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 11
+  - anim: 3
+    frames:
+    - {fileID: 21300000, guid: c158374fb6a276c46b9ade0e7d0036d4, type: 3}
+    - {fileID: 21300000, guid: 2cfffd107619a174b8cd0f9bac526567, type: 3}
+    - {fileID: 21300000, guid: 137dcee103f94ba4197a299f244fa30d, type: 3}
+    - {fileID: 21300000, guid: c5e62903dc0524548b3055121c910eb6, type: 3}
+    - {fileID: 21300000, guid: 84f9aa7fc2b649e4286b3388525e93ec, type: 3}
+    - {fileID: 21300000, guid: c5e62903dc0524548b3055121c910eb6, type: 3}
+    - {fileID: 21300000, guid: 137dcee103f94ba4197a299f244fa30d, type: 3}
+    - {fileID: 21300000, guid: 2cfffd107619a174b8cd0f9bac526567, type: 3}
+    fps: 11.428572
+    loop: 1
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0.15313439}
+    - {x: 0, y: 0.23292294}
+    - {x: 0, y: 0.17000727}
+    - {x: 0, y: 0.2155096}
+    - {x: 0, y: 0.23113663}
+    - {x: 0, y: 0.2155096}
+    - {x: 0, y: 0.17000727}
+    - {x: 0, y: 0.23292294}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 5
+    frames:
+    - {fileID: 21300000, guid: a2646a352c3e34a4e90661dbd92cbe02, type: 3}
+    - {fileID: 21300000, guid: ce8d53d06cb52d84f944eb4c0efedba3, type: 3}
+    - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
+    - {fileID: 21300000, guid: 5166817156c819442b090126f8f63ce1, type: 3}
+    - {fileID: 21300000, guid: 66c357cd2a4ab724d9c007e7107c8416, type: 3}
+    - {fileID: 21300000, guid: 2fe3b4dddef08044ab177e5bf77ca39c, type: 3}
+    fps: 25
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 16
+    frames:
+    - {fileID: 21300000, guid: 67672c2de270d544d92097339dd3a0c7, type: 3}
+    - {fileID: 21300000, guid: 47fa6a7e1a4797643acbfffe46d983ff, type: 3}
+    - {fileID: 21300000, guid: 99cbce7cb45344443a74e3408b09c6f1, type: 3}
+    - {fileID: 21300000, guid: 02ecf3851faa5ef4e8e344af769f2c15, type: 3}
+    - {fileID: 21300000, guid: 4362f196412f45a4f9bac1f0bad3c98b, type: 3}
+    - {fileID: 21300000, guid: 21a482c757966fb4b9b3d79509cad247, type: 3}
+    - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
+    fps: 25
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: -0.05295148, y: 0}
+    - {x: -0.06486257, y: 0}
+    - {x: -0.05681096, y: 0}
+    - {x: -0.09458914, y: 0}
+    - {x: 0.09186898, y: 0}
+    - {x: 0.057295006, y: 0}
+    - {x: 0.12005016, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 11
+  - anim: 6
+    frames:
+    - {fileID: 21300000, guid: 3a5f4df6283123d409bf0ecc8ab17021, type: 3}
+    - {fileID: 21300000, guid: c9062bbcb99f90c488d8ecd0d3d09d23, type: 3}
+    - {fileID: 21300000, guid: 941c91698ff16ce4e8639f4823bff09d, type: 3}
+    - {fileID: 21300000, guid: 5a636eb42cf02bd4aaf399818836d73b, type: 3}
+    - {fileID: 21300000, guid: b0e027924b5bb8243a68031f90ba2e8d, type: 3}
+    - {fileID: 21300000, guid: 8da7d036121be764190bd25041a3f555, type: 3}
+    - {fileID: 21300000, guid: de21687ee61a6d2419483915759ccee6, type: 3}
+    fps: 14
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0.11132831, y: 0}
+    - {x: 0.028547488, y: 0}
+    - {x: -0.011076558, y: 0}
+    - {x: 0.011596103, y: 0}
+    - {x: -0.05203177, y: 0}
+    - {x: -0.07382162, y: 0}
+    - {x: -0.0145421075, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 11
+  - anim: 7
+    frames:
+    - {fileID: 21300000, guid: f6bd856bfc8efa24f8a80edd26bc0321, type: 3}
+    - {fileID: 21300000, guid: 29b3b131feb91ba4eb586c58e605f4a7, type: 3}
+    - {fileID: 21300000, guid: 18553ee3aea70b94ea2b95b04661d394, type: 3}
+    - {fileID: 21300000, guid: a28db2d1bb15f60478a7638f5aa11bcd, type: 3}
+    - {fileID: 21300000, guid: 10922df5bce4aaa47bb2aff57a59b11e, type: 3}
+    - {fileID: 21300000, guid: ed7a06d6de5f9e24abb5ad9e6f270b39, type: 3}
+    - {fileID: 21300000, guid: b62e8d5caa536784fb08eb7d97dbbb4a, type: 3}
+    - {fileID: 21300000, guid: 1ddb494cfd0b84740a604db9eb576a74, type: 3}
+    - {fileID: 21300000, guid: 4402e84906eda564e9b49794fb48efe8, type: 3}
+    fps: 25.714287
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: -0.25027096}
+    - {x: 0, y: 0.21012357}
+    - {x: 0, y: 0.21955371}
+    - {x: 0, y: 0.25048482}
+    - {x: 0, y: 0.31790644}
+    - {x: 0, y: 0.42047885}
+    - {x: 0, y: 0.39686278}
+    - {x: 0, y: 0.1595896}
+    - {x: 0, y: 0.12319645}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 8
+    frames:
+    - {fileID: 21300000, guid: 762337d2cf4e2724ab60befcffa2d5d7, type: 3}
+    - {fileID: 21300000, guid: 2e8727970ba1da0409ca4dd99a40adba, type: 3}
+    - {fileID: 21300000, guid: 000332e8367f264489e202af5c4bc2e1, type: 3}
+    - {fileID: 21300000, guid: 25178642854562343b09fd51227ff367, type: 3}
+    - {fileID: 21300000, guid: 5af399e3b2bd3f2439f19322be4790eb, type: 3}
+    - {fileID: 21300000, guid: d7d5e3f6344e3244ca2add46e3a86029, type: 3}
+    - {fileID: 21300000, guid: 28fade31d07e69d4e9119f3eab704ddd, type: 3}
+    - {fileID: 21300000, guid: 72d076838fa8efd4692d9368f180e479, type: 3}
+    - {fileID: 21300000, guid: ed50c53a6da2deb45a750e0cd17de66b, type: 3}
+    - {fileID: 21300000, guid: a68e9a1db4eb8b44094e56c5b83be1fc, type: 3}
+    - {fileID: 21300000, guid: 39832adc25a7fed4e885aa38f42ce2a9, type: 3}
+    fps: 23.913044
+    loop: 1
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0.000000019022758, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0.000000019022758, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 9
+    frames:
+    - {fileID: 21300000, guid: 7daf3a2c9e35fb64ea5679b93ec23ae1, type: 3}
+    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
+    - {fileID: 21300000, guid: b22fb04d43a0b2a4e82248614a937c3e, type: 3}
+    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
+    fps: 8
+    loop: 1
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 10
+    frames:
+    - {fileID: 21300000, guid: 8f030698c79f0f74eb7070a83eb0ae0e, type: 3}
+    - {fileID: 21300000, guid: 3b169344f550d7047b1e09c2b2b87398, type: 3}
+    - {fileID: 21300000, guid: 8104efb4c181bf14cb0076c3a722db5a, type: 3}
+    - {fileID: 21300000, guid: ba2165e288c31e348991ce7b0c2a8f15, type: 3}
+    fps: 8.888889
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: 23
+  - anim: 14
+    frames:
+    - {fileID: 21300000, guid: 7daf3a2c9e35fb64ea5679b93ec23ae1, type: 3}
+    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
+    - {fileID: 21300000, guid: b22fb04d43a0b2a4e82248614a937c3e, type: 3}
+    - {fileID: 21300000, guid: 2406d984665461c45847736550f87214, type: 3}
+    - {fileID: 21300000, guid: 11ba63aa6e467f148ad199b086cd88bb, type: 3}
+    - {fileID: 21300000, guid: cd7cc6668ddb607488ed00a75976c106, type: 3}
+    - {fileID: 21300000, guid: 1bf543dad11c62e458cbdbf1c5fe7827, type: 3}
+    fps: 20
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 11
+    frames:
+    - {fileID: 21300000, guid: e7dfb4b3d722f0c4d92429588ceb2d7f, type: 3}
+    - {fileID: 21300000, guid: b5249010ab22b7844b4a4fde15be0df7, type: 3}
+    - {fileID: 21300000, guid: b163b63f6e642ac4e854dcfb5e0b1c7b, type: 3}
+    - {fileID: 21300000, guid: 47ecbc69086258d4fb73e42895a18caf, type: 3}
+    - {fileID: 21300000, guid: 3d288f12409589241a375838feb5791f, type: 3}
+    - {fileID: 21300000, guid: 6fbbee5a32f7fa84c91e259c88692047, type: 3}
+    - {fileID: 21300000, guid: 3929a5cb0a1be76418024c09c56f6e03, type: 3}
+    - {fileID: 21300000, guid: 0fddc126f7afc434285d206e7dbe1675, type: 3}
+    - {fileID: 21300000, guid: 8c244f9eeab65b34bbe17f21e7af2510, type: 3}
+    - {fileID: 21300000, guid: 859979bfe12842a499ced600be3b35bc, type: 3}
+    - {fileID: 21300000, guid: ed6e54e0d9adf3b45a8d660d9740caca, type: 3}
+    - {fileID: 21300000, guid: 4aff9a9d4c7e7804683c854f917ef64c, type: 3}
+    - {fileID: 21300000, guid: 232a6495f0ed6b347811c9d3ae849ee2, type: 3}
+    - {fileID: 21300000, guid: e3bafca1ba7843e45937cdb48c969b2d, type: 3}
+    - {fileID: 21300000, guid: 853fbfc8600da754e8a403e08d42aef2, type: 3}
+    fps: 15.789474
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1.4
+    - 1.2
+    - 1.2
+    - 1.2
+    - 1.2
+    - 1.2
+    - 1.4
+    - 1.3
+    - 1.3
+    - 1.3
+    offsets:
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0.000000093650506, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0.000000046825253, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 17
+    frames:
+    - {fileID: 21300000, guid: c25fb81b142da75419da76c90cef9e89, type: 3}
+    - {fileID: 21300000, guid: 7614b4899d9b49a4ea0ebfcaca055a0a, type: 3}
+    - {fileID: 21300000, guid: f806f31d548abf04a85b744a0a7a6871, type: 3}
+    - {fileID: 21300000, guid: 4cc2598873e75174683aeb6c3dfd67c3, type: 3}
+    - {fileID: 21300000, guid: 5aaaa5f3aa36802498f2fe7eb395e9be, type: 3}
+    - {fileID: 21300000, guid: 00b497ce181d69c43aa8615029b68df9, type: 3}
+    - {fileID: 21300000, guid: de6a620d99bcf684b9d815b81cd6a46c, type: 3}
+    - {fileID: 21300000, guid: c158374fb6a276c46b9ade0e7d0036d4, type: 3}
+    - {fileID: 21300000, guid: 2cfffd107619a174b8cd0f9bac526567, type: 3}
+    - {fileID: 21300000, guid: 137dcee103f94ba4197a299f244fa30d, type: 3}
+    - {fileID: 21300000, guid: c5e62903dc0524548b3055121c910eb6, type: 3}
+    - {fileID: 21300000, guid: 84f9aa7fc2b649e4286b3388525e93ec, type: 3}
+    fps: 15
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights: []
+    offsets:
+    - {x: -0.00000008207572, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0.00000002051893}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0.00000002051893}
+    - {x: 0, y: 0.00000002051893}
+    followJump: 0
+    apexFrame: 0
+    landing: 
+    exitToFrame: -1

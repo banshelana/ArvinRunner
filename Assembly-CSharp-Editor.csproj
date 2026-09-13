@@ -65,11 +65,12 @@
     <Compile Include="Assets\Editor\ChunkFactoryVehicles.cs" />
     <Compile Include="Assets\Editor\ArvinRunnerSetup.cs" />
     <Compile Include="Assets\Editor\PlaceholderArt.cs" />
+    <Compile Include="Assets\Editor\ChunkFactoryAdvanced.cs" />
     <Compile Include="Assets\Editor\ArtImport.cs" />
     <Compile Include="Assets\Editor\PlayerAnimationImport.cs" />
     <Compile Include="Assets\Editor\AudioImport.cs" />
     <Compile Include="Assets\Editor\MovingObstacleImport.cs" />
-    <Compile Include="Assets\Editor\ChunkFactoryAdvanced.cs" />
+    <Compile Include="Assets\Editor\BackdropPainter.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

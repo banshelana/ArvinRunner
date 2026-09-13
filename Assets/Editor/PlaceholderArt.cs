@@ -35,14 +35,31 @@ namespace ArvinRunner.EditorTools
             WriteSprite("missile", Missile(28, 10));
             WriteSprite("blast", Blast(96));
 
+            // The backdrop, far to near: the sun, a far ridge of hills, nearer
+            // hills, a band of towers, and a street of houses. Each is painted in
+            // a light neutral grey and the level's theme tints it - a tint can
+            // only darken, so the textures carry the brightness and the theme the
+            // colour. See BackdropPainter for how the layers carry depth.
             WriteSprite("sky", Gradient(64, 256,
-                new Color(0.05f, 0.06f, 0.14f), new Color(0.16f, 0.10f, 0.26f)), tileable: true);
-            WriteSprite("skyline_far", Skyline(512, 200, seed: 11,
-                new Color(0.13f, 0.14f, 0.26f), minH: 40, maxH: 150, windowChance: 0f), tileable: true);
-            WriteSprite("skyline_mid", Skyline(512, 240, seed: 27,
-                new Color(0.09f, 0.10f, 0.20f), minH: 70, maxH: 210, windowChance: 0.35f), tileable: true);
-            WriteSprite("skyline_near", Skyline(512, 300, seed: 43,
-                new Color(0.05f, 0.05f, 0.12f), minH: 110, maxH: 280, windowChance: 0.2f), tileable: true);
+                new Color(1f, 1f, 1f), new Color(0.93f, 0.93f, 0.93f)), tileable: true);
+
+            int backdropPpu = BackdropPainter.PixelsPerUnit;
+            WriteSprite("sun", ToTexture(BackdropPainter.Sun(384)), tileable: false, pixelsPerUnit: backdropPpu);
+            WriteSprite("ridge", ToTexture(BackdropPainter.Hills(1536, 384, 5, BackdropPainter.FarRidgeGrey,
+                0.35f, 0.80f, 0.5f, 0.35f)), tileable: true, pixelsPerUnit: backdropPpu);
+            WriteSprite("hills", ToTexture(BackdropPainter.Hills(1024, 448, 17, BackdropPainter.HillGrey,
+                0.30f, 0.70f, 0.9f, 0.40f)), tileable: true, pixelsPerUnit: backdropPpu);
+            WriteSprite("towers", ToTexture(BackdropPainter.Towers(1024, 768, 29, BackdropPainter.TowerGrey)),
+                tileable: true, pixelsPerUnit: backdropPpu);
+            WriteSprite("houses", ToTexture(BackdropPainter.Houses(1024, 1024, 43, BackdropPainter.HouseGrey, 640f)),
+                tileable: true, pixelsPerUnit: backdropPpu);
+
+            // The single-row skylines these replaced.
+            foreach (string old in new[] { "skyline_far", "skyline_mid", "skyline_near" })
+            {
+                string path = $"{ArtRoot}/{old}.png";
+                if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) != null) AssetDatabase.DeleteAsset(path);
+            }
 
             AssetDatabase.Refresh();
         }
@@ -110,7 +127,10 @@ namespace ArvinRunner.EditorTools
         private static Texture2D Coin(int size)
         {
             var tex = NewTexture(size, size);
-            FillCircle(tex, size / 2, size / 2, size / 2 - 1, Color.white);
+            // A dark rim, so a gold coin still reads against a pale sky. The tint
+            // multiplies it into a deep amber edge rather than washing it out.
+            FillCircle(tex, size / 2, size / 2, size / 2 - 1, new Color(0.28f, 0.28f, 0.28f));
+            FillCircle(tex, size / 2, size / 2, size / 2 - 3, Color.white);
             FillCircle(tex, size / 2, size / 2, size / 4, new Color(1f, 1f, 1f, 0.45f));
             tex.Apply();
             return tex;
@@ -161,49 +181,6 @@ namespace ArvinRunner.EditorTools
             {
                 Color c = Color.Lerp(bottom, top, y / (float)(h - 1));
                 for (int x = 0; x < w; x++) tex.SetPixel(x, y, c);
-            }
-
-            tex.Apply();
-            return tex;
-        }
-
-        /// <summary>
-        /// A tileable row of towers. Buildings never straddle the left or right
-        /// edge, so the strip repeats without a visible seam.
-        /// </summary>
-        private static Texture2D Skyline(int w, int h, int seed, Color colour, int minH, int maxH, float windowChance)
-        {
-            var tex = NewTexture(w, h);
-            var random = new System.Random(seed);
-
-            int x = 2;
-            while (x < w - 2)
-            {
-                int buildingWidth = random.Next(24, 70);
-                if (x + buildingWidth > w - 2) buildingWidth = w - 2 - x;
-                if (buildingWidth < 8) break;
-
-                int buildingHeight = random.Next(minH, maxH);
-                FillRect(tex, x, 0, buildingWidth, buildingHeight, colour);
-
-                // A slimmer rooftop block, so the silhouette is not just rectangles.
-                if (random.NextDouble() < 0.4)
-                {
-                    int capWidth = Mathf.Max(4, buildingWidth / 3);
-                    FillRect(tex, x + buildingWidth / 2 - capWidth / 2, buildingHeight,
-                             capWidth, random.Next(10, 40), colour);
-                }
-
-                if (windowChance > 0f)
-                {
-                    Color lit = new Color(1f, 0.85f, 0.5f, 0.5f);
-                    for (int wy = 8; wy < buildingHeight - 8; wy += 10)
-                    for (int wx = 5; wx < buildingWidth - 5; wx += 9)
-                        if (random.NextDouble() < windowChance)
-                            FillRect(tex, x + wx, wy, 4, 5, lit);
-                }
-
-                x += buildingWidth + random.Next(3, 14);
             }
 
             tex.Apply();
@@ -304,6 +281,21 @@ namespace ArvinRunner.EditorTools
             return tex;
         }
 
+        /// <summary>A painted image as a texture. Both keep the bottom row first.</summary>
+        private static Texture2D ToTexture(PaintImage image)
+        {
+            var tex = new Texture2D(image.Width, image.Height, TextureFormat.RGBA32, false);
+            var colours = new Color[image.Width * image.Height];
+
+            for (int i = 0; i < colours.Length; i++)
+                colours[i] = new Color(image.Rgba[i * 4], image.Rgba[i * 4 + 1],
+                                       image.Rgba[i * 4 + 2], image.Rgba[i * 4 + 3]);
+
+            tex.SetPixels(colours);
+            tex.Apply();
+            return tex;
+        }
+
         private static void FillRect(Texture2D tex, int x0, int y0, int w, int h, Color colour)
         {
             for (int y = y0; y < y0 + h; y++)
@@ -323,7 +315,8 @@ namespace ArvinRunner.EditorTools
             }
         }
 
-        private static void WriteSprite(string name, Texture2D texture, bool tileable = false)
+        private static void WriteSprite(string name, Texture2D texture, bool tileable = false,
+                                        int pixelsPerUnit = PixelsPerUnit)
         {
             string path = $"{ArtRoot}/{name}.png";
             File.WriteAllBytes(path, texture.EncodeToPNG());
@@ -334,7 +327,11 @@ namespace ArvinRunner.EditorTools
             var importer = (TextureImporter)AssetImporter.GetAtPath(path);
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
-            importer.spritePixelsPerUnit = PixelsPerUnit;
+            importer.spritePixelsPerUnit = pixelsPerUnit;
+
+            // The backdrop layers are 1536 wide; the default 2048 cap is enough,
+            // but say it so a wider strip is not quietly downscaled.
+            importer.maxTextureSize = 2048;
             importer.filterMode = FilterMode.Bilinear;
             importer.alphaIsTransparency = true;
 

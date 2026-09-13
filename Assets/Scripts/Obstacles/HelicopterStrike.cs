@@ -41,6 +41,12 @@ namespace ArvinRunner
         [SerializeField] private int fireFirst = 2;
         [SerializeField] private int fireLast = 5;
 
+        [Tooltip("Whether the frames draw the shot. Off for art that is only a " +
+                 "flying loop: the loop keeps playing through the shot and the " +
+                 "strike's own missile shows it, instead of switching to firing " +
+                 "frames that are not there and freezing on the last one.")]
+        [SerializeField] private bool launchDrawn = true;
+
         [Tooltip("Extra lead on top of the strike's own warning, so the fire is " +
                  "alight a fraction before the runner reaches it rather than after.")]
         [SerializeField] private float extraLead = 0.15f;
@@ -88,10 +94,11 @@ namespace ArvinRunner
         {
             _fired = true;
 
-            // The launch is drawn into the frames, so the aircraft tells that
-            // half of the story and the ground tells the other. Played once and
-            // held on the recovery pose, because it never fires twice.
-            if (_flipbook != null) _flipbook.PlayRange(fireFirst, fireLast, looping: false);
+            // When the launch is drawn into the frames, the aircraft tells that
+            // half of the story and the ground tells the other: played once and
+            // held on the recovery pose, because it never fires twice. A plain
+            // flying loop just keeps flying.
+            if (_flipbook != null && launchDrawn) _flipbook.PlayRange(fireFirst, fireLast, looping: false);
 
             strike.Launch(muzzle != null ? muzzle.position : transform.position);
         }

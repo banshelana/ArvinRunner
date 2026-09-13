@@ -45,10 +45,11 @@ namespace ArvinRunner
         /// <summary>
         /// Plays a slice of the frames and stops on the last one.
         ///
-        /// This exists because the helicopter's frames are a storyboard rather
-        /// than a cycle - fly, descend, fire, missile away, missile far, recover.
-        /// Looping the whole folder would have it firing on a timer forever; the
-        /// approach loops the first frames and the shot plays the rest, once.
+        /// For art drawn as a storyboard rather than a cycle. An earlier helicopter
+        /// was fly, descend, fire, missile away, recover, and looping that whole
+        /// folder would have had it firing on a timer forever; the approach looped
+        /// the first frames and the shot played the rest, once. The current
+        /// helicopter is a plain flying loop and does not use it.
         /// </summary>
         public void PlayRange(int first, int last, bool looping)
         {

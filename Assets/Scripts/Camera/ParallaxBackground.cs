@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ArvinRunner
 {
     /// <summary>
-    /// Builds and drives the scrolling city behind the runner.
+    /// Builds and drives the scrolling backdrop behind the runner.
     ///
     /// Each layer is one tiled SpriteRenderer, three screens wide. Rather than
     /// spawning and recycling copies, the layer is re-anchored every frame to
@@ -79,12 +79,20 @@ namespace ArvinRunner
                 renderer.sprite = def.sprite;
                 renderer.color = def.tint;
                 renderer.sortingOrder = def.sortingOrder;
-                renderer.drawMode = SpriteDrawMode.Tiled;
-                renderer.tileMode = SpriteTileMode.Continuous;
 
-                float spriteHeight = def.sprite.bounds.size.y;
-                float height = def.heightOverride > 0f ? def.heightOverride : spriteHeight;
-                renderer.size = new Vector2(totalWidth, height);
+                if (def.tiled)
+                {
+                    renderer.drawMode = SpriteDrawMode.Tiled;
+                    renderer.tileMode = SpriteTileMode.Continuous;
+
+                    float spriteHeight = def.sprite.bounds.size.y;
+                    float height = def.heightOverride > 0f ? def.heightOverride : spriteHeight;
+                    renderer.size = new Vector2(totalWidth, height);
+                }
+                else
+                {
+                    renderer.drawMode = SpriteDrawMode.Simple;
+                }
 
                 _layers.Add(new LayerRuntime
                 {
@@ -125,6 +133,16 @@ namespace ArvinRunner
                 ParallaxLayerDef def = layer.Def;
 
                 layer.Drift += def.autoScrollSpeed * Time.deltaTime;
+
+                if (!def.tiled)
+                {
+                    // One object, carried along with the camera at its parallax -
+                    // at 0 it sits at the same place on screen, as the sun does.
+                    float fx = cam.x * (1f - def.parallax) + def.xOffset;
+                    float fy = _origin.y + def.yOffset + cam.y * (1f - def.verticalParallax);
+                    layer.Transform.position = new Vector3(fx, fy, layer.Transform.position.z);
+                    continue;
+                }
 
                 // How far this layer has slipped behind the camera.
                 float slip = cam.x * def.parallax - layer.Drift;

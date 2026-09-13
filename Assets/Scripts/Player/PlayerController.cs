@@ -9,6 +9,7 @@ namespace ArvinRunner
     ///                 vault; against a wall in mid-air it becomes a wall jump.
     ///   swipe down  - slide on the ground, dive-slam in the air.
     ///   swipe right - climb up from a ledge grab.
+    ///   swipe left  - the charged super jump, when the meter is full.
     ///
     /// Contextual moves (vault, wall run, ledge grab, hard-landing roll) are
     /// chosen by <see cref="PlayerSensors"/>, so the same gesture does the
@@ -23,9 +24,17 @@ namespace ArvinRunner
         [SerializeField] private PlayerConfig config;
         [SerializeField] private PlayerAnimatorDriver animator;
 
-        [Header("Crash")]
-        [Tooltip("Time spent stuck against geometry before the run counts as a crash.")]
-        [SerializeField] private float wallCrashGrace = 0.35f;
+        [Tooltip("The power meter. Optional - with none assigned the super jump " +
+                 "simply never becomes available and everything else is unchanged.")]
+        [SerializeField] private SuperJumpMeter meter;
+
+        [Header("Death")]
+        [Tooltip("How fast the runner is thrown back off whatever killed them.")]
+        [SerializeField] private float knockbackSpeed = 2.5f;
+
+        [Tooltip("Drag that brings a dead runner to rest. The capsule is frictionless " +
+                 "so that it can run, so without this a body would slide forever.")]
+        [SerializeField] private float deathDrag = 2.5f;
 
         // ---- Events other systems hook into ----------------------------- //
         public event System.Action<PlayerState, PlayerState> OnStateChanged; // (from, to)
@@ -41,6 +50,12 @@ namespace ArvinRunner
         public PlayerConfig Config => config;
         public bool IsAlive => State != PlayerState.Dead;
 
+        /// <summary>The power meter, for the HUD gauge. Null if none is wired.</summary>
+        public SuperJumpMeter Meter => meter;
+
+        /// <summary>Raised when a super jump is actually launched.</summary>
+        public event System.Action OnSuperJumped;
+
         /// <summary>Set false to freeze the runner (menus, level intro, finish).</summary>
         public bool ControlEnabled { get; set; }
 
@@ -48,6 +63,13 @@ namespace ArvinRunner
         public float DistanceTravelled => Mathf.Max(0f, transform.position.x - _startX);
 
         public float CurrentSpeed { get; private set; }
+
+        /// <summary>Upward speed the current jump left with. The animator reads
+        /// the arc off it, so a jump clip keeps pace with the jump.</summary>
+        public float LaunchSpeed { get; private set; }
+
+        /// <summary>Vertical velocity right now, for the same reason.</summary>
+        public float VerticalSpeed => _rb != null ? _rb.velocity.y : 0f;
 
         private Rigidbody2D _rb;
         private CapsuleCollider2D _capsule;
@@ -61,7 +83,17 @@ namespace ArvinRunner
         private float _lastGroundedTime = -99f;
         private bool _usedDoubleJump;
         private float _blockedTime;
+
+        // The slot the state machine last asked for, and whether the climb is
+        // currently painted over the top of it. See SetClinging.
+        private PlayerAnim _stateAnim = PlayerAnim.Idle;
+        private bool _clinging;
+
+        // The state before the current one, so a state can start differently
+        // depending on how it was reached - see ArrivalAnim.
+        private PlayerState _previousState;
         private float _speedBoost = 1f;    // slide / powerup multiplier
+        private bool _superJumpQueued;     // set the instant before SetState(Jumping)
         private float _runTime;            // drives the difficulty speed ramp
 
         // The wall we already used. Cleared on landing, so one jump buys one
@@ -118,8 +150,12 @@ namespace ArvinRunner
 
             _runTime = 0f;
             _speedBoost = 1f;
+            _rb.drag = 0f;
             _blockedTime = 0f;
             _usedDoubleJump = false;
+            _superJumpQueued = false;
+            LaunchSpeed = 0f;
+            if (meter != null) meter.ResetCharge();
             _wallRunClaimed = null;
             CurrentSpeed = config != null ? config.runSpeed : 9f;
 
@@ -146,6 +182,10 @@ namespace ArvinRunner
 
             _runTime += Time.fixedDeltaTime;
 
+            // Past the Dead and ControlEnabled guards above, so this is exactly
+            // the time the runner is actually running.
+            if (meter != null) meter.Charge(Time.fixedDeltaTime);
+
             if (_sensors.Grounded)
             {
                 _lastGroundedTime = Time.time;
@@ -169,6 +209,7 @@ namespace ArvinRunner
             PlayerState previous = State;
             State = next;
             _stateTime = 0f;
+            _previousState = previous;
             EnterState(next);
 
             OnStateChanged?.Invoke(previous, next);
@@ -183,12 +224,32 @@ namespace ArvinRunner
                     break;
 
                 case PlayerState.Running:
-                    PlayAnim(PlayerAnim.Run);
+                    PlayAnim(ArrivalAnim(_previousState));
                     _usedDoubleJump = false;
                     break;
 
                 case PlayerState.Jumping:
+                    if (_superJumpQueued)
+                    {
+                        _superJumpQueued = false;
+
+                        _rb.velocity = new Vector2(_rb.velocity.x,
+                                                   config.JumpVelocityFor(config.superJumpHeight));
+                        LaunchSpeed = _rb.velocity.y;
+
+                        // Carried rather than impulsed, so it reads as the runner
+                        // powering through the arc instead of being flicked
+                        // forward. Cleared on landing, with the slide boost.
+                        _speedBoost = config.superJumpSpeedMultiplier;
+
+                        PlayAnim(PlayerAnim.SuperJump);
+                        OnSuperJumped?.Invoke();
+                        OnJumped?.Invoke();
+                        break;
+                    }
+
                     _rb.velocity = new Vector2(_rb.velocity.x, config.JumpVelocityFor(config.jumpHeight));
+                    LaunchSpeed = _rb.velocity.y;
 
                     // Read while the sensors still have a ground reading - they
                     // stop sampling the vault and low-obstacle probes the moment
@@ -200,12 +261,21 @@ namespace ArvinRunner
                 case PlayerState.DoubleJump:
                     _usedDoubleJump = true;
                     _rb.velocity = new Vector2(_rb.velocity.x, config.JumpVelocityFor(config.doubleJumpHeight));
+                    LaunchSpeed = _rb.velocity.y;
                     PlayAnim(PlayerAnim.DoubleJump);
                     OnDoubleJumped?.Invoke();
                     break;
 
                 case PlayerState.Falling:
-                    PlayAnim(PlayerAnim.JumpFall);
+                    // The apex is the middle of a somersault, not the end of
+                    // one. This used to play the fall clip the instant upward
+                    // speed reached zero, which cut every trick in half: the
+                    // flip was paced across the 0.38s rise and then replaced,
+                    // mid-rotation, by a different clip. Half a somersault at
+                    // twice the speed it should run, with a visible join in the
+                    // middle of it. A trick still in the air keeps the slot, and
+                    // TickAirborne hands over the moment it lands the figure.
+                    if (ClipFinished) PlayAnim(PlayerAnim.JumpFall);
                     break;
 
                 case PlayerState.Sliding:
@@ -305,6 +375,24 @@ namespace ArvinRunner
                 return;
             }
 
+            // A landing or a get-up is painted over the run and gives it back
+            // once it has played. Not while clinging: the cling holds the slot
+            // until the runner is free, and hands it back to whichever of these
+            // it covered.
+            if (!_clinging && (_stateAnim == PlayerAnim.Land || _stateAnim == PlayerAnim.GetUp) && ClipFinished)
+                PlayAnim(PlayerAnim.Run);
+
+            // The super jump is its own gesture rather than an upgrade of the
+            // normal one, so a charged player never has a jump turn into
+            // something bigger than they asked for. It also deliberately ignores
+            // VaultAhead below: the whole point is to go over the thing.
+            if (ConsumeLeft() && meter != null && meter.TrySpend())
+            {
+                _superJumpQueued = true;
+                SetState(PlayerState.Jumping);
+                return;
+            }
+
             if (ConsumeUp())
             {
                 // A low obstacle in front turns the jump into a vault.
@@ -367,6 +455,13 @@ namespace ArvinRunner
             if (State != PlayerState.Falling && _rb.velocity.y <= 0.01f)
                 SetState(PlayerState.Falling);
 
+            // The trick that carried the runner over the apex has finished, so
+            // the fall can have the slot back. Usually it never comes up - the
+            // air clips are paced to land on touchdown - but a jump onto a roof
+            // ends early and a jump off one runs long.
+            if (State == PlayerState.Falling && _stateAnim != PlayerAnim.JumpFall && ClipFinished)
+                PlayAnim(PlayerAnim.JumpFall);
+
             if (Land()) return;
 
             // A wall in front while airborne starts a wall run automatically -
@@ -414,6 +509,12 @@ namespace ArvinRunner
 
             float impact = Mathf.Abs(_rb.velocity.y);
             OnLanded?.Invoke();
+
+            // The super jump's forward carry ends on touchdown. Cleared here
+            // rather than on leaving the air states, because this runs before
+            // the landing state is entered - so a landing that goes straight
+            // into a slide still gets to set its own multiplier afterwards.
+            _speedBoost = 1f;
 
             if (impact >= config.hardLandingSpeed)
                 SetState(PlayerState.Rolling);      // hard landing forces a roll
@@ -570,7 +671,8 @@ namespace ArvinRunner
         }
 
         /// <summary>
-        /// Ends the run when the runner is stuck against something.
+        /// Ends the run when the runner is stuck against something - and, first,
+        /// shows them that it is happening.
         ///
         /// This deliberately tests actual speed rather than "is there a wall in
         /// front", because plenty of things block the runner that the wall probe
@@ -592,15 +694,88 @@ namespace ArvinRunner
                            && _runTime > 0.5f
                            && _rb.velocity.x < TargetSpeed() * 0.3f;
 
+            // Pressed against it and scrabbling. The run cycle used to keep
+            // playing through this whole window, so the runner jogged on the
+            // spot into a wall and then died of it with nothing on screen
+            // having said why - and the window is short enough that it read as
+            // the game killing them at random rather than as a mistake they
+            // had a third of a second to undo.
+            SetClinging(blocked && Upright);
+
             if (blocked)
             {
                 _blockedTime += Time.fixedDeltaTime;
-                if (_blockedTime >= wallCrashGrace) Kill(DeathCause.Crushed);
+                if (_blockedTime >= config.wallCrashGrace) Kill(DeathCause.Crushed);
             }
             else
             {
                 _blockedTime = 0f;
             }
+        }
+
+        /// <summary>True when the clip on screen has nothing left to show - an air
+        /// trick has brought the figure round, a landing has taken its weight.
+        /// Without a driver there is nothing to wait for.</summary>
+        private bool ClipFinished => animator == null || animator.ClipFinished;
+
+        /// <summary>
+        /// How the run starts, given where the runner has come from. Out of the
+        /// air the legs take the landing first; up off a slide the runner gets
+        /// up first. Both are brief and both are handed back to the run by
+        /// TickRunning when they finish, while the runner is already moving at
+        /// full speed - the state machine never waits for them.
+        ///
+        /// A hard landing never gets here: <see cref="Land"/> sends it to the
+        /// roll, which is its own recovery.
+        /// </summary>
+        private static PlayerAnim ArrivalAnim(PlayerState from)
+        {
+            switch (from)
+            {
+                case PlayerState.Jumping:
+                case PlayerState.DoubleJump:
+                case PlayerState.Falling:
+                    return PlayerAnim.Land;
+
+                case PlayerState.Sliding:
+                    return PlayerAnim.GetUp;
+
+                default:
+                    return PlayerAnim.Run;
+            }
+        }
+
+        /// <summary>States the runner is stuck on their feet in, rather than
+        /// along the ground - the only ones the climb is drawn from.</summary>
+        private bool Upright => State == PlayerState.Running || State == PlayerState.Idle;
+
+        /// <summary>
+        /// Paints the climb over the state's own animation while the runner is
+        /// stuck against something, and hands the slot back when they are not.
+        ///
+        /// <b>The state machine is untouched by this - it is the picture, not
+        /// the move.</b> The runner is still Running, still driving into the
+        /// wall, still killed by <see cref="CheckCrash"/> when the grace runs
+        /// out, and the swipe up that gets them out of it works exactly as it
+        /// did. All that changes is that the pose now matches the situation:
+        /// the same frames that carry a wall run, so a scramble that turns into
+        /// one is continuous rather than a cut.
+        ///
+        /// Only from the upright states. Sliding into a dead end still ends the
+        /// run, but a figure lying flat along the ground does not climb, and
+        /// drawing them doing it looks worse than the thing this fixes.
+        ///
+        /// Death is not one of the states this can reach - FixedUpdate returns
+        /// before CheckCrash once the runner is dead - and <see cref="PlayAnim"/>
+        /// drops the cling on the way into any new state, so the death pose is
+        /// never climbed over.
+        /// </summary>
+        private void SetClinging(bool clinging)
+        {
+            if (_clinging == clinging) return;
+
+            _clinging = clinging;
+            if (animator != null) animator.Play(clinging ? PlayerAnim.Climb : _stateAnim);
         }
 
         /// <summary>
@@ -654,6 +829,7 @@ namespace ArvinRunner
         private bool ConsumeUp()    => Input_ != null && Input_.Consume(Swipe.Up);
         private bool ConsumeDown()  => Input_ != null && Input_.Consume(Swipe.Down);
         private bool ConsumeRight() => Input_ != null && Input_.Consume(Swipe.Right);
+        private bool ConsumeLeft()  => Input_ != null && Input_.Consume(Swipe.Left);
 
         // ================================================================= //
         // Death / finish
@@ -667,9 +843,23 @@ namespace ArvinRunner
             ControlEnabled = false;
 
             _rb.isKinematic = false;
-            _rb.velocity = new Vector2(_rb.velocity.x * 0.2f, _rb.velocity.y);
             RestoreCollider();
             ClearIgnoredCollider();
+
+            if (cause == DeathCause.Fell)
+            {
+                // Out of the bottom of the screen: carry on falling, tumbling.
+                _rb.velocity = new Vector2(_rb.velocity.x * 0.2f, _rb.velocity.y);
+                PlayAnim(PlayerAnim.DeathFall);
+            }
+            else
+            {
+                // Hit something: thrown back off it and brought to rest. The
+                // death frames show the runner flung backwards, and the body
+                // carrying on forwards underneath them read as sliding on ice.
+                _rb.velocity = new Vector2(-knockbackSpeed, _rb.velocity.y);
+                _rb.drag = deathDrag;
+            }
 
             OnDied?.Invoke(cause);
         }
@@ -702,6 +892,12 @@ namespace ArvinRunner
 
         private void PlayAnim(PlayerAnim anim)
         {
+            // Remembered so a cling can hand the slot back afterwards, and
+            // cleared because a state change outranks something that was only
+            // ever painted over the top of the state it is leaving.
+            _stateAnim = anim;
+            _clinging = false;
+
             if (animator != null) animator.Play(anim);
         }
     }

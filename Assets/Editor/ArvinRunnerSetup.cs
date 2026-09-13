@@ -55,23 +55,20 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Creating tuning assets", 0.3f);
                 PlayerConfig config = CreatePlayerConfig();
                 SpriteAnimationSet animations = CreateAnimationSet(config);
-                // One look per level for the first stretch of the campaign, so a
-                // level is recognisable before a single obstacle has appeared.
-                // The tint runs through every parallax layer, which is why a
-                // colour alone is enough to change the city completely.
-                ParallaxTheme night = CreateTheme("Theme_Night", new Color(0.05f, 0.06f, 0.13f), Color.white);
-                ParallaxTheme dusk = CreateTheme("Theme_Dusk", new Color(0.16f, 0.09f, 0.14f),
-                                                 new Color(1f, 0.82f, 0.72f));
-                ParallaxTheme sodium = CreateTheme("Theme_Sodium", new Color(0.13f, 0.08f, 0.06f),
-                                                   new Color(1f, 0.74f, 0.45f));
-                ParallaxTheme smog = CreateTheme("Theme_Smog", new Color(0.16f, 0.15f, 0.12f),
-                                                 new Color(0.86f, 0.82f, 0.66f));
-                ParallaxTheme storm = CreateTheme("Theme_Storm", new Color(0.07f, 0.09f, 0.14f),
-                                                  new Color(0.62f, 0.72f, 0.86f));
-                ParallaxTheme dawn = CreateTheme("Theme_Dawn", new Color(0.20f, 0.13f, 0.16f),
-                                                 new Color(1f, 0.72f, 0.62f));
-                ParallaxTheme blackout = CreateTheme("Theme_Blackout", new Color(0.02f, 0.02f, 0.05f),
-                                                      new Color(0.55f, 0.58f, 0.72f));
+                // One look per level, so a level is recognisable before a single
+                // obstacle has appeared. All of them are daylight: the runner is a
+                // black silhouette, and on the old night skies he had 1.1:1 of
+                // contrast - invisible whenever he left the ground. Every theme
+                // below puts the sky above 14:1 and the nearest towers above 8:1.
+                // The tint runs through the sky and every skyline layer.
+                RemoveLegacyThemes();
+                ParallaxTheme morning = CreateTheme("Theme_Morning", new Color(0.84f, 0.92f, 1.00f));
+                ParallaxTheme afternoon = CreateTheme("Theme_Afternoon", new Color(1.00f, 0.91f, 0.80f));
+                ParallaxTheme golden = CreateTheme("Theme_Golden", new Color(1.00f, 0.88f, 0.68f));
+                ParallaxTheme haze = CreateTheme("Theme_Haze", new Color(0.96f, 0.94f, 0.84f));
+                ParallaxTheme overcast = CreateTheme("Theme_Overcast", new Color(0.87f, 0.90f, 0.95f));
+                ParallaxTheme sunrise = CreateTheme("Theme_Sunrise", new Color(1.00f, 0.88f, 0.85f));
+                ParallaxTheme fog = CreateTheme("Theme_Fog", new Color(0.90f, 0.90f, 0.93f));
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building prefabs", 0.45f);
                 TrickSet tricks = CreateTrickSet();
@@ -84,11 +81,11 @@ namespace ArvinRunner.EditorTools
                 LevelChunk[] chunks = ChunkFactory.CreateAll();
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Authoring levels", 0.75f);
-                LevelSet campaign = CreateLevels(chunks, night, dusk, sodium,
-                                                 smog, storm, dawn, blackout);
+                LevelSet campaign = CreateLevels(chunks, morning, afternoon, golden,
+                                                 haze, overcast, sunrise, fog);
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the game scene", 0.88f);
-                BuildScene(player, pad, finish, killZone, campaign, night);
+                BuildScene(player, pad, finish, killZone, campaign, morning);
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building the main menu", 0.95f);
                 BuildMainMenuScene(campaign);
@@ -141,34 +138,56 @@ namespace ArvinRunner.EditorTools
             return EditorUtil.CreateAsset(config, $"{DataFolder}/PlayerConfig.asset");
         }
 
+        /// <summary>How the frames of one clip are lined up with each other - see RegisterFrames.</summary>
+        private enum FrameAnchor
+        {
+            /// <summary>Upright on the ground: soles down, head held still.</summary>
+            Feet,
+
+            /// <summary>Soles down, centre of mass held still: lying, sliding, on a wall.</summary>
+            Mass,
+
+            /// <summary>Centre of mass held still both ways: turning in the air.</summary>
+            Air
+        }
+
+        // So a build run out of order says it once rather than once per clip.
+        private static bool _warnedUnmeasured;
+
         /// <summary>
-        /// The runner's animation set, filled from the drawn frames in
+        /// The runner's animation set, cut from the drawn frames in
         /// Art/Player/PlayerAnimations.
         ///
-        /// Six clips were drawn and there are twelve slots, which is the useful
-        /// part rather than a shortfall. A slot holding more than one frame plays
-        /// as a flip-book and the procedural tricks stand down for it; a slot
-        /// holding a single pose keeps the tricks, so the spins and squashes in
-        /// TrickSet.asset still carry the vault, the wall run and the ledge work.
-        /// Every slot below is therefore deliberate about which of the two it
-        /// wants - see PlayerAnimatorDriver.TricksAllowed.
+        /// The folders are raw material rather than finished clips - they were
+        /// generated a frame at a time - and three things about them decide how
+        /// each one is used.
         ///
-        /// Frame rates are set from the durations in PlayerConfig rather than
-        /// picked, so a clip finishes as its state does instead of holding its
-        /// last frame or being cut off mid-way.
+        /// <b>Order.</b> Most folders are not filed in the order the body moves.
+        /// The run cycles through three leg positions out of sequence, and played
+        /// as numbered 38% of the silhouette changed from one frame to the next,
+        /// with a worst step of 55%. In the order the leg actually goes it is 27%.
+        /// Every sequence below was chosen the same way: the change between every
+        /// pair of frames in the folder measured, the smoothest order found, then
+        /// checked by eye against how the move is done - the smoothest order is
+        /// not always one a body can perform. The numbers are the file numbers,
+        /// so each clip can be followed in its folder.
+        ///
+        /// <b>Timing.</b> Drawings are not evenly spaced in time. Eleven of the
+        /// run's show a single instant, and near-duplicates sit side by side in
+        /// most folders. Clip weights give each drawing the share of the move it
+        /// actually represents.
+        ///
+        /// <b>Registration.</b> Each frame is cropped to its own figure, so where
+        /// it sits against the next has to be decided - see RegisterFrames.
+        ///
+        /// Nothing is left to the procedural tricks. Every slot is a drawn
+        /// flip-book, which PlayerAnimatorDriver.TricksAllowed stands down for;
+        /// the trick set only comes back into play if a folder goes missing.
         /// </summary>
         private static SpriteAnimationSet CreateAnimationSet(PlayerConfig config)
         {
             var set = ScriptableObject.CreateInstance<SpriteAnimationSet>();
-
-            Sprite[] idle = PlayerAnimationImport.Frames("Idle");
-            Sprite[] run = PlayerAnimationImport.Frames("Run");
-            Sprite[] jump = PlayerAnimationImport.Frames("Jump");
-            Sprite[] flipJump = PlayerAnimationImport.Frames("FlipJump");
-            Sprite[] bigJump = PlayerAnimationImport.Frames("BigJump");
-            Sprite[] lowFlip = PlayerAnimationImport.Frames("LowFlip");
-            Sprite[] fall = PlayerAnimationImport.Frames("Fall");
-            Sprite[] tackle = PlayerAnimationImport.Frames("Tackle");
+            _warnedUnmeasured = false;
 
             // Whatever we can stand on if a folder is missing: the hand-made
             // runner, then the generated silhouette.
@@ -178,124 +197,259 @@ namespace ArvinRunner.EditorTools
 
             Sprite[] held = { still };
 
-            // A rate that spreads the frames across the state's own duration.
-            float Over(float seconds, Sprite[] frames)
+            float gravity = Mathf.Max(0.01f, Mathf.Abs(Physics2D.gravity.y));
+            float RiseTime(float height) => config.JumpVelocityFor(height) / (gravity * config.riseGravity);
+            float FallTime(float height) => Mathf.Sqrt(2f * height / (gravity * config.fallGravity));
+            float AirTime(float height) => RiseTime(height) + FallTime(height);
+
+            // How high a standing runner's centre of mass sits above the soles.
+            // An air frame holds its centre of mass here, so a jump leaves the
+            // ground and comes back to it without the body jumping in the
+            // picture. Taken from the jump's last frame, where he stands upright.
+            float standingCentre = 0.88f;
+            Sprite upright = PlayerAnimationImport.Frame("Jump", 23);
+            if (upright != null && PlayerAnimationImport.TryShape(upright, out Figure stood))
+                standingCentre = (stood.CentroidY - stood.Bounds.y) / upright.pixelsPerUnit;
+
+            var clips = new List<SpriteAnimationClip>();
+
+            // One clip: frames by file number in the order given, registered for
+            // the way they are used, and paced to last `seconds` - which is only
+            // a fallback for the clips driven by distance or by the jump.
+            SpriteAnimationClip Add(PlayerAnim anim, string folder, int[] order, FrameAnchor anchor,
+                                    float seconds, bool loop, string name = null, float[] weights = null)
             {
-                return frames.Length > 1 ? frames.Length / Mathf.Max(0.05f, seconds) : 12f;
-            }
+                Sprite[] frames = PickFrames(folder, order);
 
-            // How long a rise actually lasts. TickAirborne swaps to Falling the
-            // moment upward speed reaches zero, and the driver changes clip with
-            // it - so a rise clip has until the apex and not a frame longer. The
-            // somersault is eight frames against a 0.38s rise; at a hand-picked
-            // 14fps it would be cut off three frames short of landing upright,
-            // every single jump.
-            float RiseTime(float height)
-            {
-                float gravity = Mathf.Abs(Physics2D.gravity.y) * config.riseGravity;
-                return gravity > 0.01f ? config.JumpVelocityFor(height) / gravity : 0.4f;
-            }
-
-            float groundRise = RiseTime(config.jumpHeight);
-            float airRise = RiseTime(config.doubleJumpHeight);
-
-            // How far the ground moves under one full cycle of the run frames.
-            // This is the dial for how the running reads, so it is worth the
-            // paragraph.
-            //
-            // The art draws a stride of 2.44 units: across the 24 frames the
-            // planting foot travels from 0.44 ahead of the body to 0.78 behind
-            // it, so the body covers 1.22 units per footfall and 2.44 over the
-            // two of a full cycle. Setting this to exactly that would lock the
-            // drawn feet to the ground with no skating at all.
-            //
-            // It is not set to that, because the drawn stride is short for the
-            // speed this game runs at. Matching it exactly means a cycle every
-            // 0.27s at the opening speed of 9 - about 7.4 footfalls a second,
-            // roughly half again as fast as a sprinter, and it reads as a
-            // scramble. The old fixed 0.5s cycle had the opposite problem and
-            // worse: it implied a 4.5 unit stride at that same speed, so the
-            // ground moved 84% further than the feet did and the runner glided.
-            //
-            // 3.0 sits between them - six footfalls a second, and 23% of skate
-            // instead of 84%. <b>Raise it for longer, slower strides and more
-            // sliding; lower it for faster legs and less.</b> Whatever it is set
-            // to, the relationship now holds at every speed rather than at one:
-            // the old cycle was tuned for 9 and degraded to 207% of skate by the
-            // time the runner ramped to 15.
-            const float runStride = 3.0f;
-
-            // The rate the clip falls back to when there is no runner to measure
-            // - a prefab preview, mostly. Matched to the stride at the opening
-            // run speed so the two paths agree rather than quietly differing.
-            float runFallbackFps = run.Length > 1
-                ? run.Length * config.runSpeed / runStride
-                : 12f;
-
-            SpriteAnimationClip Clip(PlayerAnim anim, Sprite[] frames, float fps, bool loop,
-                                     float strideDistance = 0f)
-            {
-                return new SpriteAnimationClip
+                var clip = new SpriteAnimationClip
                 {
                     anim = anim,
-                    frames = frames != null && frames.Length > 0 ? frames : held,
-                    fps = fps,
+                    name = name,
+                    frames = frames.Length > 0 ? frames : held,
+                    fps = frames.Length > 1 ? frames.Length / Mathf.Max(0.05f, seconds) : 12f,
                     loop = loop,
-                    strideDistance = strideDistance
+
+                    // A missing frame would shift every weight after it onto the
+                    // wrong drawing, so a short clip plays evenly instead.
+                    weights = frames.Length == order.Length ? weights : null,
+                    offsets = frames.Length > 0 ? RegisterFrames(frames, anchor, standingCentre) : null
                 };
+
+                clips.Add(clip);
+                return clip;
             }
 
-            set.fallback = Clip(PlayerAnim.Idle, held, 1f, true);
-
-            var clips = new List<SpriteAnimationClip>
+            // A clip that follows the jump arc. Each starts at the instant of
+            // leaving the ground: the crouch drawn before it is skipped, because
+            // the swipe is the takeoff and a runner at speed does not stop to load.
+            SpriteAnimationClip Jump(PlayerAnim anim, string folder, int[] order, int apexFile,
+                                     float height, string landing)
             {
-                // --- drawn as flip-books -----------------------------------
-                Clip(PlayerAnim.Idle, idle, 8f, true),
-                Clip(PlayerAnim.Run, run, runFallbackFps, true, runStride),
-                Clip(PlayerAnim.JumpRise, jump, Over(groundRise, jump), false),
-                Clip(PlayerAnim.DoubleJump, bigJump, Over(airRise, bigJump), false),
-                Clip(PlayerAnim.JumpFall, fall, 10f, true),
-
-                // The somersault, over something small. Picked instead of
-                // JumpRise - not alongside it - when the sensors see a low
-                // obstacle within four units of a ground jump.
-                Clip(PlayerAnim.LowFlip, lowFlip, Over(groundRise, lowFlip), false),
-
-                // The dive reads as both the slide and the hard-landing roll -
-                // same pose along the ground, different lengths of time in it.
-                Clip(PlayerAnim.Slide, tackle, Over(config.slideDuration, tackle), false),
-                Clip(PlayerAnim.Roll, tackle, Over(config.rollDuration, tackle), false),
-
-                // --- single poses, left to the procedural tricks ------------
-                // Nothing was drawn for these four, and a held pose is the way
-                // to say so: the trick set spins the vault, leans the wall run
-                // and hauls the runner over the ledge.
-                Clip(PlayerAnim.Vault, new[] { PlayerAnimationImport.Frame("Jump", 1) ?? still }, 12f, false),
-                Clip(PlayerAnim.WallRun, new[] { PlayerAnimationImport.Frame("Run", 3) ?? still }, 12f, true),
-                Clip(PlayerAnim.LedgeGrab, new[] { PlayerAnimationImport.Frame("Fall", 1) ?? still }, 12f, false),
-                Clip(PlayerAnim.LedgeClimb, new[] { PlayerAnimationImport.Frame("BigJump", 2) ?? still }, 12f, false),
-
-                // The last frame of the dive, held: face down and not getting up.
-                Clip(PlayerAnim.Death, new[] { PlayerAnimationImport.Frame("Tackle", 5) ?? still }, 12f, false)
-            };
-
-            // --- variants: a second clip on a slot already filled -------------
-            //
-            // SpriteAnimationSet.Get picks at random between every clip on a
-            // slot, so adding the somersault to both jumps is all it takes for
-            // repeated jumps to stop looking canned - sometimes the plain rise,
-            // sometimes the flip, on the ground jump and the air jump alike.
-            //
-            // Guarded, unlike the slots above, because the two cases differ. An
-            // empty slot wants the held pose so the runner still draws; an empty
-            // *variant* would put that held pose into the draw against a real
-            // clip, and every other jump would freeze on one frame.
-            if (flipJump.Length > 1)
-            {
-                clips.Add(Clip(PlayerAnim.JumpRise, flipJump, Over(groundRise, flipJump), false));
-                clips.Add(Clip(PlayerAnim.DoubleJump, flipJump, Over(airRise, flipJump), false));
+                SpriteAnimationClip clip = Add(anim, folder, order, FrameAnchor.Air, AirTime(height), false);
+                clip.followJump = true;
+                clip.apexFrame = Mathf.Max(0, System.Array.IndexOf(order, apexFile));
+                clip.landing = landing;
+                return clip;
             }
 
+            // ---- the run ---------------------------------------------------- //
+            //
+            // In the order the leg moves:
+            //
+            //   13 19 17 18 12        knee driving through, foot passing under
+            //   23 21 1 4 22 24       toe-off, the back leg pushing
+            //   8                     in the air
+            //   14 7 9 10 6 3 5 2     foot strike, the back heel kicking up
+            //   20 11 16 15           the swing leg coming forward
+            //
+            // As filed, the folder jumps between those groups - strike, strike,
+            // push-off, strike, strike, strike, push-off - which is the jitter.
+            // A silhouette shows one side, so both legs read as one and the 24
+            // frames are a single step rather than two.
+            //
+            // Where a landing, a get-up or a roll hands the stride over is chosen
+            // per clip (exitToFrame), by pose and by head height together.
+            int[] runOrder = { 13, 19, 17, 18, 12, 23, 21, 1, 4, 22, 24, 8, 14, 7, 9, 10, 6, 3, 5, 2, 20, 11, 16, 15 };
+            int RunFrame(int fileNumber) => System.Array.IndexOf(runOrder, fileNumber);
+
+            // How far the planted foot moves back between each frame and the next,
+            // in the run folder's pixels, measured against the head. This is what
+            // keeps the feet on the ground: each drawing is on screen for exactly
+            // the ground its foot covers, so near-duplicates (1 and 4, 17 and 19)
+            // pass in a blink and the frames where the leg really travels get the
+            // time. Two stretches are not foot travel:
+            //
+            //  * 24 to 8 to 14 is the flight, where nothing touches the ground.
+            //    35px each makes a step 1.26 times the runner's height, which is a
+            //    sprinter's step.
+            //  * The strike, 14 through 11. Its foot does not move at all across
+            //    those drawings: they are one instant with the back leg drawn
+            //    rising through it. Given their honest share - nothing - the
+            //    kick-up would vanish, so they get 4px each, and those 40px are
+            //    the only place the feet slide: about 0.4 units a step, spent at
+            //    the strike, where the eye expects a foot to settle.
+            float[] footTravel = { 15, 2, 8, 10, 7, 2, 5, 2, 6, 5, 35, 35, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 28, 43 };
+
+            // Each drawing centred on its stretch - half the ground before it,
+            // half after - which halves the worst error against drawing the foot
+            // at the start of its stretch.
+            var runWeights = new float[footTravel.Length];
+            float stepPixels = 0f;
+            for (int i = 0; i < footTravel.Length; i++)
+            {
+                float before = footTravel[(i + footTravel.Length - 1) % footTravel.Length];
+                runWeights[i] = (before + footTravel[i]) * 0.5f;
+                stepPixels += footTravel[i];
+            }
+
+            // 243px at the run's drawing scale is a 2.3 unit step: 3.9 steps a
+            // second at the opening speed of 9. The step lengthens with speed
+            // rather than the legs spinning faster - which is how runners go
+            // faster - so at 11 it is 2.7 units and still 4.1 a second.
+            Sprite runSample = PlayerAnimationImport.Frame("Run", 0);
+            float runStride = runSample != null ? stepPixels / runSample.pixelsPerUnit : 2.3f;
+            const float runStrideGrowth = 0.85f;
+
+            SpriteAnimationClip run = Add(PlayerAnim.Run, "Run", runOrder, FrameAnchor.Feet,
+                                          runStride / Mathf.Max(0.1f, config.runSpeed), true,
+                                          weights: runWeights);
+            run.strideDistance = runStride;
+            run.strideReferenceSpeed = config.runSpeed;
+            run.strideGrowth = runStrideGrowth;
+
+            // Breathing, as drawn - 7% changes frame to frame and loops cleanly.
+            Add(PlayerAnim.Idle, "Idle", FileNumbers(1, 28), FrameAnchor.Feet, 2.8f, true);
+
+            // ---- in the air ----------------------------------------------------- //
+
+            bool flipDrawn = PlayerAnimationImport.Frames("FlipJump").Length > 1;
+
+            // The plain jump: launch, tuck at the top, legs reaching for the ground.
+            Jump(PlayerAnim.JumpRise, "Jump", FileNumbers(4, 16), 10, config.jumpHeight, null);
+
+            // Its landing is the default one, and so is the landing after a drop
+            // with no jump behind it: take the weight, sink, and come all the way
+            // back up before the stride. Every clip that hands over to the run
+            // ends at running height for the same reason. This one used to stop
+            // in the squat, and the head jumped 0.5 units into the first stride
+            // frame - a pop at the end of every jump. Ending on 23 it moves 0.10.
+            Add(PlayerAnim.Land, "Jump", FileNumbers(17, 23), FrameAnchor.Feet, 0.3f, false,
+                weights: new[] { 1f, 1f, 1.2f, 1.2f, 0.8f, 0.8f, 0.6f })
+                .exitToFrame = RunFrame(13);
+
+            if (flipDrawn)
+            {
+                // The somersault, drawn for both jumps at random and always for the
+                // super jump. Frame 21 is left out: an extended leap that belongs
+                // to no part of the rotation, 70% unlike both its neighbours.
+                int[] flip = FileNumbers(9, 20);
+                Jump(PlayerAnim.JumpRise, "FlipJump", flip, 15, config.jumpHeight, "land_flip");
+                Jump(PlayerAnim.DoubleJump, "FlipJump", flip, 15, config.doubleJumpHeight, "land_flip");
+                Jump(PlayerAnim.SuperJump, "FlipJump", flip, 15, config.superJumpHeight, "land_flip");
+
+                // Out of the tuck and up through the walk-out, so the head
+                // meets the stride 0.16 units off rather than 0.67.
+                Add(PlayerAnim.Land, "FlipJump", new[] { 22, 23, 24 }, FrameAnchor.Feet, 0.2f, false, "land_flip")
+                    .exitToFrame = RunFrame(8);
+            }
+            else
+            {
+                Jump(PlayerAnim.SuperJump, "Jump", FileNumbers(4, 16), 10, config.superJumpHeight, null);
+            }
+
+            // The low flip, in the order it turns. Frame 15 is a tuck that
+            // belongs between 12 and 13 (10% from its new neighbours, 63% where
+            // it was filed), and 16 and 17 are the other way round.
+            Jump(PlayerAnim.LowFlip, "LowFlip", new[] { 9, 10, 11, 12, 15, 13, 14, 17, 16, 18 }, 13,
+                 config.jumpHeight, "land_lowflip");
+            Add(PlayerAnim.Land, "LowFlip", new[] { 22, 23, 24 }, FrameAnchor.Feet, 0.2f, false, "land_lowflip")
+                .exitToFrame = RunFrame(17);
+
+            // The double jump: the kick that makes it (8, 9), the tuck on the way
+            // up (6, 7), opening out from the top (10). The folder files the tuck
+            // first; kick first is how the move is done, and measures smoother.
+            // With the tuck itself at the apex the rise had three and a half
+            // drawings for a third of a second and the fall twice the rate -
+            // opening at the top evens them out at 13 and 16 a second.
+            Jump(PlayerAnim.DoubleJump, "BigJump", new[] { 8, 9, 6, 7, 10, 11, 12, 13, 14 }, 10,
+                 config.doubleJumpHeight, "land_double");
+            Add(PlayerAnim.Land, "BigJump", new[] { 15, 16, 20, 21, 22 }, FrameAnchor.Feet, 0.24f, false, "land_double")
+                .exitToFrame = RunFrame(8);
+
+            // Dropping with no jump behind it: legs forward, bracing for the
+            // ground, rocked back and forth through five drawings.
+            Add(PlayerAnim.JumpFall, "Fall", new[] { 12, 13, 14, 15, 16, 15, 14, 13 }, FrameAnchor.Air, 0.7f, true);
+
+            // ---- on the ground ------------------------------------------------ //
+
+            // Slide: down onto the chest over a quarter second, then held flat for
+            // as long as the slide lasts.
+            Add(PlayerAnim.Slide, "Tackle", FileNumbers(4, 9), FrameAnchor.Mass, 0.24f, false);
+
+            // Up off the floor into the stride: the low lunge, then back up
+            // through the sprint frames the slide went down through, in reverse.
+            // Stopping at the lunge left the head 0.7 units short of the run.
+            Add(PlayerAnim.GetUp, "Tackle", new[] { 10, 11, 12, 13, 3, 2, 1 }, FrameAnchor.Feet, 0.28f, false)
+                .exitToFrame = RunFrame(8);
+
+            // Hard landing: down onto a knee and a hand and driven back up into
+            // the sprint. Most of the super jumps end here - they come down faster
+            // than hardLandingSpeed.
+            Add(PlayerAnim.Roll, "BigJump", FileNumbers(16, 22), FrameAnchor.Feet, config.rollDuration, false)
+                .exitToFrame = RunFrame(8);
+
+            // Vault: the jump's tuck, legs drawn through, over the vault's own arc.
+            Add(PlayerAnim.Vault, "Jump", FileNumbers(5, 13), FrameAnchor.Air, config.vaultDuration, false);
+
+            // ---- on the wall ----------------------------------------------------- //
+
+            // Hand over hand, knee stepping up. As filed it goes back and forth;
+            // looped in this order it is 21% frame to frame against 28%.
+            Add(PlayerAnim.WallRun, "Climb", new[] { 8, 14, 16, 11, 10, 9, 12, 18, 17, 13, 15 },
+                FrameAnchor.Mass, 0.46f, true);
+
+            // Hanging from the ledge: both arms up, a slow sway.
+            Add(PlayerAnim.LedgeGrab, "Climb", new[] { 1, 2, 3, 2 }, FrameAnchor.Mass, 0.5f, true);
+
+            // Over the top and up on his feet.
+            Add(PlayerAnim.LedgeClimb, "Climb", FileNumbers(19, 22), FrameAnchor.Mass,
+                config.ledgeClimbDuration, false).exitToFrame = RunFrame(15);
+
+            // Stuck against something: reaching up and patting at it, paced to the
+            // crash grace so the scramble runs out at the moment the runner does.
+            Add(PlayerAnim.Climb, "Climb", FileNumbers(1, 7), FrameAnchor.Mass, config.wallCrashGrace, false);
+
+            // Death, from hitting something: flung back with the arms thrown up
+            // (10-15), down into a crouch (16-18), onto the hands (19-21) and
+            // kneeling (22-24). The running frames the folder opens with are left
+            // out - by the time this plays the runner has already hit it.
+            //
+            // Paced to what is on screen before the death panel. GameManager holds
+            // 0.6s of real time at quarter speed - 0.15s of game time - and then
+            // 0.9s more, so 1.05s in all: 0.95 gets him onto his knees with a beat
+            // to spare, and the slow motion falls on the impact itself.
+            //
+            // Anchored on the ground throughout, flung frames included. The body is
+            // on the roof when this plays, and anchoring those frames in the air -
+            // centre of mass at standing height, as the jumps do - sank the feet
+            // 0.2 units into it. On the ground he lifts as he is thrown back and
+            // drops into the crouch, which is the move.
+            if (PlayerAnimationImport.Frames("Lose").Length > 1)
+            {
+                Add(PlayerAnim.Death, "Lose", FileNumbers(10, 24), FrameAnchor.Mass, 0.95f, false,
+                    weights: new[] { 1f, 1f, 1f, 1f, 1f, 1.4f, 1.2f, 1.2f, 1.2f, 1.2f, 1.2f, 1.4f, 1.3f, 1.3f, 1.3f });
+            }
+            else
+            {
+                Add(PlayerAnim.Death, "Fall", FileNumbers(5, 16), FrameAnchor.Mass, 0.8f, false);
+            }
+
+            // Falling out of the level keeps the tumble - over backwards and down -
+            // which suits a body dropping off the bottom of the screen, where
+            // kneeling on a floor that is not there would not.
+            Add(PlayerAnim.DeathFall, "Fall", FileNumbers(5, 16), FrameAnchor.Mass, 0.8f, false);
+
+            set.fallback = new SpriteAnimationClip { anim = PlayerAnim.Idle, frames = held, fps = 1f, loop = true };
             set.clips = clips.ToArray();
 
             if (!PlayerAnimationImport.IsAvailable)
@@ -306,6 +460,126 @@ namespace ArvinRunner.EditorTools
             }
 
             return EditorUtil.CreateAsset(set, $"{DataFolder}/PlayerAnimations.asset");
+        }
+
+        /// <summary>File numbers first to last, for a run of consecutive frames.</summary>
+        private static int[] FileNumbers(int first, int last)
+        {
+            var numbers = new int[Mathf.Max(0, last - first + 1)];
+            for (int i = 0; i < numbers.Length; i++) numbers[i] = first + i;
+            return numbers;
+        }
+
+        /// <summary>
+        /// A folder's frames by the numbers in their file names, in the order
+        /// asked for. Says so when any are missing, rather than quietly playing
+        /// a shorter clip.
+        /// </summary>
+        private static Sprite[] PickFrames(string folder, int[] fileNumbers)
+        {
+            Sprite[] all = PlayerAnimationImport.Frames(folder);
+            var picked = new List<Sprite>(fileNumbers.Length);
+
+            foreach (int number in fileNumbers)
+                if (number >= 1 && number <= all.Length && all[number - 1] != null)
+                    picked.Add(all[number - 1]);
+
+            if (all.Length > 0 && picked.Count < fileNumbers.Length)
+            {
+                Debug.LogWarning($"[ArvinRunner] '{folder}' has {all.Length} frames but a clip asks for " +
+                                 $"frame {Mathf.Max(fileNumbers)}. It plays without the missing ones; if the " +
+                                 "folder was redrawn, the frame lists in ArvinRunnerSetup need redoing.");
+            }
+
+            return picked.ToArray();
+        }
+
+        /// <summary>
+        /// Per-frame offsets that put the frames of one clip in the same place.
+        ///
+        /// Each sprite is imported pivoted on its centre of mass across and its
+        /// lowest pixel down. That is right for a frame on its own and not enough
+        /// for a sequence, and what "the same place" means depends on what the
+        /// body is doing:
+        ///
+        ///  * <b>Feet</b> - upright on the ground. Soles on the ground, head column
+        ///    still. A sprinter's head barely moves; the centre of mass swings 12px
+        ///    between run frames with the arms and legs, and pinning it would
+        ///    shake the head by that much at every step. The clip as a whole is
+        ///    then shifted so its average centre of mass sits over the collider,
+        ///    like every other clip's.
+        ///  * <b>Mass</b> - lying, sliding, on a wall. Soles down, centre of mass
+        ///    across. A body along the ground has no head column to hold, and on
+        ///    the wall the top of the figure is a raised hand.
+        ///  * <b>Air</b> - turning. Centre of mass both ways, held at a standing
+        ///    runner's height, because that is the point physics carries along the
+        ///    arc. Anchored on its lowest pixel instead, a somersault bobs by half
+        ///    the body's height as the tuck opens and closes.
+        ///
+        /// Offsets rather than pivots, because one drawing can serve two uses -
+        /// the backward lean in Fall is both the fall loop and the death - and a
+        /// sprite has one pivot.
+        /// </summary>
+        private static Vector2[] RegisterFrames(Sprite[] frames, FrameAnchor anchor, float standingCentre)
+        {
+            var offsets = new Vector2[frames.Length];
+            var shapes = new Figure[frames.Length];
+
+            for (int i = 0; i < frames.Length; i++)
+            {
+                if (PlayerAnimationImport.TryShape(frames[i], out shapes[i]) && !shapes[i].IsEmpty) continue;
+
+                if (!_warnedUnmeasured)
+                {
+                    _warnedUnmeasured = true;
+                    Debug.LogWarning("[ArvinRunner] The player frames have not been measured this session, " +
+                                     "so their clips are not registered and the runner will jitter. Use " +
+                                     "Build Playable Project, which imports them first.");
+                }
+
+                return offsets;
+            }
+
+            // How far ahead of its centre of mass the clip holds its head, on
+            // average - taken back off, so holding the head still does not move
+            // the clip as a whole.
+            float lead = 0f;
+            if (anchor == FrameAnchor.Feet)
+            {
+                for (int i = 0; i < frames.Length; i++)
+                    lead += (shapes[i].HeadX - shapes[i].CentroidX) / frames[i].pixelsPerUnit;
+                lead /= frames.Length;
+            }
+
+            for (int i = 0; i < frames.Length; i++)
+            {
+                Sprite sprite = frames[i];
+                Figure shape = shapes[i];
+                float ppu = sprite.pixelsPerUnit;
+
+                // The texture point that should land on the sprite transform. A
+                // single sprite's rect is its whole texture, so sprite.pivot and
+                // the measurements share one pixel space.
+                Vector2 point;
+                switch (anchor)
+                {
+                    case FrameAnchor.Feet:
+                        point = new Vector2(shape.HeadX - lead * ppu, shape.Bounds.y);
+                        break;
+
+                    case FrameAnchor.Mass:
+                        point = new Vector2(shape.CentroidX, shape.Bounds.y);
+                        break;
+
+                    default:
+                        point = new Vector2(shape.CentroidX, shape.CentroidY - standingCentre * ppu);
+                        break;
+                }
+
+                offsets[i] = (sprite.pivot - point) / ppu;
+            }
+
+            return offsets;
         }
 
         // ---- Procedural tricks --------------------------------------------- //
@@ -484,11 +758,40 @@ namespace ArvinRunner.EditorTools
             return EditorUtil.CreateAsset(set, $"{DataFolder}/PlayerTricks.asset");
         }
 
-        private static ParallaxTheme CreateTheme(string assetName, Color sky, Color tint)
+        /// <summary>The seven night-time themes the day ones replaced, so a rebuilt
+        /// project does not keep them lying about in Assets/Data.</summary>
+        private static void RemoveLegacyThemes()
+        {
+            foreach (string old in new[] { "Night", "Dusk", "Sodium", "Smog", "Storm", "Dawn", "Blackout" })
+            {
+                string path = $"{DataFolder}/Theme_{old}.asset";
+                if (AssetDatabase.LoadAssetAtPath<ParallaxTheme>(path) != null) AssetDatabase.DeleteAsset(path);
+            }
+        }
+
+        /// <summary>
+        /// A backdrop from one tint. The camera clears to the tint at the middle
+        /// of the sky gradient (which runs 1.00 at the horizon to 0.93 overhead),
+        /// so any gap above the sky strip matches it.
+        /// </summary>
+        private static ParallaxTheme CreateTheme(string assetName, Color tint)
         {
             var theme = ScriptableObject.CreateInstance<ParallaxTheme>();
-            theme.skyColour = sky;
+            theme.skyColour = new Color(tint.r * 0.965f, tint.g * 0.965f, tint.b * 0.965f);
 
+            // The sun keeps some of its own warmth under any tint, so a cool
+            // theme still has a sun rather than a grey disc.
+            var sunTint = new Color(Mathf.Min(1f, 0.35f + 0.65f * tint.r),
+                                    Mathf.Min(1f, 0.35f + 0.65f * tint.g) * 0.86f,
+                                    Mathf.Min(1f, 0.35f + 0.65f * tint.b) * 0.52f);
+
+            // Far to near. Each layer scrolls faster and follows the camera
+            // further vertically than the one behind it, and sits darker - which
+            // together are what turn five flat strips into distance. The offsets
+            // put the ridge crests around the horizon, the towers rising above
+            // it, and the house roofs just clearing the rooftops the runner is on,
+            // with the street band behind them reaching the bottom of the screen
+            // so a gap between rooftops never shows empty sky.
             theme.layers = new[]
             {
                 new ParallaxLayerDef
@@ -499,20 +802,32 @@ namespace ArvinRunner.EditorTools
                 },
                 new ParallaxLayerDef
                 {
-                    name = "Far", sprite = PlaceholderArt.Load("skyline_far"),
-                    parallax = 0.25f, verticalParallax = 0.75f, yOffset = -2f,
-                    sortingOrder = -200, tint = tint, autoScrollSpeed = 0.15f
+                    name = "Sun", sprite = PlaceholderArt.Load("sun"), tiled = false,
+                    parallax = 0f, verticalParallax = 0.9f, xOffset = 7.5f, yOffset = 5.2f,
+                    sortingOrder = -280, tint = sunTint
                 },
                 new ParallaxLayerDef
                 {
-                    name = "Mid", sprite = PlaceholderArt.Load("skyline_mid"),
-                    parallax = 0.5f, verticalParallax = 0.55f, yOffset = -4f,
+                    name = "Ridge", sprite = PlaceholderArt.Load("ridge"),
+                    parallax = 0.08f, verticalParallax = 0.8f, yOffset = 2.2f,
+                    sortingOrder = -250, tint = tint
+                },
+                new ParallaxLayerDef
+                {
+                    name = "Hills", sprite = PlaceholderArt.Load("hills"),
+                    parallax = 0.18f, verticalParallax = 0.7f, yOffset = 1.2f,
+                    sortingOrder = -200, tint = tint
+                },
+                new ParallaxLayerDef
+                {
+                    name = "Towers", sprite = PlaceholderArt.Load("towers"),
+                    parallax = 0.38f, verticalParallax = 0.55f, yOffset = 2.9f,
                     sortingOrder = -150, tint = tint
                 },
                 new ParallaxLayerDef
                 {
-                    name = "Near", sprite = PlaceholderArt.Load("skyline_near"),
-                    parallax = 0.75f, verticalParallax = 0.35f, yOffset = -7f,
+                    name = "Houses", sprite = PlaceholderArt.Load("houses"),
+                    parallax = 0.62f, verticalParallax = 0.4f, yOffset = -4.3f,
                     sortingOrder = -100, tint = tint
                 }
             };
@@ -581,9 +896,16 @@ namespace ArvinRunner.EditorTools
 
             root.AddComponent<PlayerSensors>();
 
+            // Charged by the controller, read by the HUD. On the player rather
+            // than the game systems because it is the runner's power and has to
+            // survive being respawned with them.
+            var meter = root.AddComponent<SuperJumpMeter>();
+            EditorUtil.SetFloat(meter, "chargeSeconds", config.superJumpChargeTime);
+
             var controller = root.AddComponent<PlayerController>();
             EditorUtil.SetObject(controller, "config", config);
             EditorUtil.SetObject(controller, "animator", driver);
+            EditorUtil.SetObject(controller, "meter", meter);
 
             return SavePrefab(root, $"{PrefabFolder}/Player.prefab");
         }
@@ -600,7 +922,7 @@ namespace ArvinRunner.EditorTools
             renderer.sprite = PlaceholderArt.Load("box");
             renderer.drawMode = SpriteDrawMode.Tiled;
             renderer.tileMode = SpriteTileMode.Continuous;
-            renderer.color = new Color(0.20f, 0.21f, 0.30f);
+            renderer.color = new Color(0.34f, 0.36f, 0.42f);
             renderer.sortingOrder = 5;
 
             var strip = root.AddComponent<GroundStrip>();
@@ -626,7 +948,7 @@ namespace ArvinRunner.EditorTools
             poleRenderer.drawMode = SpriteDrawMode.Tiled;
             poleRenderer.tileMode = SpriteTileMode.Continuous;
             poleRenderer.size = new Vector2(0.18f, 6f);
-            poleRenderer.color = new Color(0.85f, 0.87f, 0.92f, 0.9f);
+            poleRenderer.color = new Color(0.24f, 0.26f, 0.32f);   // dark, against a pale sky
             poleRenderer.sortingOrder = 11;
 
             var banner = new GameObject("Banner");
@@ -676,10 +998,10 @@ namespace ArvinRunner.EditorTools
         // ================================================================= //
 
         private static LevelSet CreateLevels(LevelChunk[] chunks,
-                                             ParallaxTheme night, ParallaxTheme dusk,
-                                             ParallaxTheme sodium, ParallaxTheme smog,
-                                             ParallaxTheme storm, ParallaxTheme dawn,
-                                             ParallaxTheme blackout)
+                                             ParallaxTheme morning, ParallaxTheme afternoon,
+                                             ParallaxTheme golden, ParallaxTheme haze,
+                                             ParallaxTheme overcast, ParallaxTheme sunrise,
+                                             ParallaxTheme fog)
         {
             LevelChunk Find(string name)
             {
@@ -693,21 +1015,21 @@ namespace ArvinRunner.EditorTools
             // Level 1 teaches one move at a time, with flat rooftop between each.
             LevelDefinition one = Sequenced(1, "First Steps",
                 "Swipe up to jump, again in the air to flip. Swipe down to slide.",
-                night, 45f,
+                morning, 45f,
                 Find("Chunk_Flat"), Find("Chunk_Cones"), Find("Chunk_Skip"),
                 Find("Chunk_Wreckers"), Find("Chunk_SlideGate"), Find("Chunk_Rails"),
                 Find("Chunk_Flat"));
 
             LevelDefinition two = Sequenced(2, "Rooftops",
                 "Not everything waits for you. Some of it is coming the other way.",
-                night, 95f,
+                morning, 95f,
                 Find("Chunk_Barriers"), Find("Chunk_Traffic"), Find("Chunk_Overpass"),
                 Find("Chunk_Spikes"), Find("Chunk_Oncoming"), Find("Chunk_FenceLine"),
                 Find("Chunk_WideGap"), Find("Chunk_StepsDown"), Find("Chunk_Flat"));
 
             LevelDefinition three = Sequenced(3, "Construction",
                 "Jump into a wall to run up it, then grab the ledge.",
-                dusk, 130f,
+                afternoon, 130f,
                 Find("Chunk_StreetWorks"), Find("Chunk_DeliveryYard"), Find("Chunk_Collapsing"),
                 Find("Chunk_WallClimb"), Find("Chunk_Crates"), Find("Chunk_ScaffoldTower"),
                 Find("Chunk_AirStrike"), Find("Chunk_DigSite"), Find("Chunk_Scaffold"),
@@ -716,11 +1038,11 @@ namespace ArvinRunner.EditorTools
             // Levels 4 and 5 are assembled from a pool - fast to make, fixed seed
             // so the layout is identical on every attempt.
             LevelDefinition four = Assembled(4, "Skyline", "Watch the beam rhythm before you commit.",
-                dusk, 90f, chunks, 380f, seed: 4471,
+                afternoon, 90f, chunks, 380f, seed: 4471,
                 curve: AnimationCurve.Linear(0f, 2f, 1f, 4f));
 
             LevelDefinition five = Assembled(5, "Storm", "The wind will cut your jump short. Commit early.",
-                night, 120f, chunks, 480f, seed: 8823,
+                morning, 120f, chunks, 480f, seed: 8823,
                 curve: AnimationCurve.EaseInOut(0f, 3f, 1f, 5f));
 
             // ---- the second half ----------------------------------------
@@ -739,7 +1061,7 @@ namespace ArvinRunner.EditorTools
 
             LevelDefinition six = Sequenced(6, "Rush Hour",
                 "The street is full. Vault the low ones, run the roofs of the rest.",
-                sodium, 95f,
+                golden, 95f,
                 Find("Chunk_Traffic"), Find("Chunk_Wreckers"), Find("Chunk_BusStop"),
                 Find("Chunk_LimoGap"), Find("Chunk_Flat"), Find("Chunk_BusJump"),
                 Find("Chunk_DeliveryYard"), Find("Chunk_Oncoming"), Find("Chunk_FireLane"),
@@ -747,7 +1069,7 @@ namespace ArvinRunner.EditorTools
 
             LevelDefinition seven = Sequenced(7, "Demolition",
                 "Nothing here holds still. Read the rhythm before you commit to it.",
-                smog, 105f,
+                haze, 105f,
                 Find("Chunk_Crusher"), Find("Chunk_Collapsing"), Find("Chunk_WreckingBall"),
                 Find("Chunk_Flat"), Find("Chunk_PressAlley"), Find("Chunk_DigSite"),
                 Find("Chunk_Trampoline"), Find("Chunk_Glass"), Find("Chunk_StreetWorks"),
@@ -756,7 +1078,7 @@ namespace ArvinRunner.EditorTools
 
             LevelDefinition eight = Sequenced(8, "Air Support",
                 "The gunship marks the roof before it fires. Be somewhere else.",
-                storm, 100f,
+                overcast, 100f,
                 Find("Chunk_Oncoming"), Find("Chunk_AirStrike"), Find("Chunk_Flat"),
                 Find("Chunk_BikeGauntlet"), Find("Chunk_FireLane"), Find("Chunk_StrikeRun"),
                 Find("Chunk_Flat"), Find("Chunk_LaserGap"), Find("Chunk_Collapsing"),
@@ -764,7 +1086,7 @@ namespace ArvinRunner.EditorTools
 
             LevelDefinition nine = Sequenced(9, "The Towers",
                 "Jump into a wall to run up it, grab the ledge, and keep going.",
-                dawn, 100f,
+                sunrise, 100f,
                 Find("Chunk_WallClimb"), Find("Chunk_Scaffold"), Find("Chunk_ScaffoldTower"),
                 Find("Chunk_Flat"), Find("Chunk_LiftBeam"), Find("Chunk_TowerLasers"),
                 Find("Chunk_Crates"), Find("Chunk_Flat"), Find("Chunk_WideGap"),
@@ -772,7 +1094,7 @@ namespace ArvinRunner.EditorTools
 
             LevelDefinition ten = Sequenced(10, "Blackout",
                 "Everything the city has, one after another. Do not stop moving.",
-                blackout, 115f,
+                fog, 115f,
                 Find("Chunk_LaserGap"), Find("Chunk_Glass"), Find("Chunk_Gust"),
                 Find("Chunk_Flat"), Find("Chunk_MovingPlatforms"), Find("Chunk_CraneGap"),
                 Find("Chunk_GustLift"), Find("Chunk_Flat"), Find("Chunk_StrikeRun"),
@@ -944,7 +1266,7 @@ namespace ArvinRunner.EditorTools
             camera.orthographic = true;
             camera.orthographicSize = 7.5f;
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = new Color(0.05f, 0.06f, 0.13f);
+            camera.backgroundColor = new Color(0.81f, 0.89f, 0.97f);
             camera.transform.position = new Vector3(0f, 0f, -10f);
             cameraObject.AddComponent<AudioListener>();
 
@@ -952,7 +1274,7 @@ namespace ArvinRunner.EditorTools
             var backgroundObject = new GameObject("Background");
             var background = backgroundObject.AddComponent<ParallaxBackground>();
             EditorUtil.SetObject(background, "theme",
-                AssetDatabase.LoadAssetAtPath<ParallaxTheme>($"{DataFolder}/Theme_Night.asset"));
+                AssetDatabase.LoadAssetAtPath<ParallaxTheme>($"{DataFolder}/Theme_Morning.asset"));
             EditorUtil.SetObject(background, "camera", camera);
 
             Music(AudioImport.MenuTrack, 0.6f);
@@ -1107,7 +1429,7 @@ namespace ArvinRunner.EditorTools
                                     "0", 44, TextAnchor.UpperRight);
 
             // --- progress bar ----------------------------------------------
-            GameObject track = Panel(canvasObject, "ProgressTrack", new Color(1f, 1f, 1f, 0.15f));
+            GameObject track = Panel(canvasObject, "ProgressTrack", new Color(0f, 0f, 0f, 0.3f));
             RectTransform trackRect = track.GetComponent<RectTransform>();
             trackRect.anchorMin = new Vector2(0.5f, 1f);
             trackRect.anchorMax = new Vector2(0.5f, 1f);
@@ -1177,6 +1499,43 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(hud, "levelText", levelText);
             EditorUtil.SetObject(hud, "timeText", timeText);
             EditorUtil.SetObject(hud, "pickupText", pickupText);
+            // --- super-jump gauge ------------------------------------------
+            //
+            // Bottom-left, away from the progress bar along the top and the
+            // pause button in the corner. It has to be glanceable without
+            // taking the eye off the runner, which is why it carries a colour
+            // change and a pulse rather than only a length.
+            var powerTrack = new GameObject("PowerTrack", typeof(RectTransform), typeof(Image));
+            powerTrack.transform.SetParent(canvasObject.transform, false);
+            var powerRect = (RectTransform)powerTrack.transform;
+            powerRect.anchorMin = powerRect.anchorMax = new Vector2(0f, 0f);
+            powerRect.pivot = new Vector2(0f, 0f);
+            powerRect.anchoredPosition = new Vector2(40f, 40f);
+            powerRect.sizeDelta = new Vector2(320f, 34f);
+            powerTrack.GetComponent<Image>().color = new Color(0f, 0f, 0f, 0.45f);
+
+            var powerFillObject = new GameObject("PowerFill", typeof(RectTransform), typeof(Image));
+            powerFillObject.transform.SetParent(powerTrack.transform, false);
+            var powerFillRect = (RectTransform)powerFillObject.transform;
+            powerFillRect.anchorMin = Vector2.zero;
+            powerFillRect.anchorMax = Vector2.one;
+            powerFillRect.offsetMin = new Vector2(3f, 3f);
+            powerFillRect.offsetMax = new Vector2(-3f, -3f);
+
+            var powerFill = powerFillObject.GetComponent<Image>();
+            powerFill.sprite = PlaceholderArt.Load("box");
+            powerFill.type = Image.Type.Filled;
+            powerFill.fillMethod = Image.FillMethod.Horizontal;
+            powerFill.fillAmount = 0f;
+
+            Text powerLabel = Label(powerTrack, "PowerLabel",
+                                    new Vector2(0f, 0f), new Vector2(0f, 0f),
+                                    new Vector2(4f, 46f), new Vector2(320f, 28f),
+                                    "POWER", 22, TextAnchor.LowerLeft);
+
+            EditorUtil.SetObject(hud, "powerFill", powerFill);
+            EditorUtil.SetObject(hud, "powerLabel", powerLabel);
+
             EditorUtil.SetObject(hud, "progressFill", fillImage);
             EditorUtil.SetObject(hud, "progressTrack", trackRect);
 
@@ -1223,6 +1582,7 @@ namespace ArvinRunner.EditorTools
             text.raycastTarget = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Overflow;
+            Outlined(go);
 
             return text;
         }
@@ -1267,8 +1627,10 @@ namespace ArvinRunner.EditorTools
             rect.anchoredPosition = position;
             rect.sizeDelta = new Vector2(320f, 96f);
 
+            // Dark glass rather than light: the backgrounds are daylight now,
+            // and a pale button on a pale sky has nothing to find.
             var image = go.AddComponent<Image>();
-            image.color = new Color(1f, 1f, 1f, 0.18f);
+            image.color = new Color(0f, 0f, 0f, 0.42f);
 
             var button = go.AddComponent<Button>();
             button.targetGraphic = image;
@@ -1289,8 +1651,21 @@ namespace ArvinRunner.EditorTools
             text.alignment = TextAnchor.MiddleCenter;
             text.color = Color.white;
             text.raycastTarget = false;
+            Outlined(textObject);
 
             return button;
+        }
+
+        /// <summary>
+        /// A dark outline on white text. The HUD sits straight on the sky, which is
+        /// daylight now; white with an edge reads on both the pale backdrop and
+        /// the dark panels.
+        /// </summary>
+        private static void Outlined(GameObject textObject)
+        {
+            var outline = textObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.75f);
+            outline.effectDistance = new Vector2(2f, -2f);
         }
     }
 }

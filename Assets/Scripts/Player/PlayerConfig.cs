@@ -13,9 +13,16 @@ namespace ArvinRunner
         [Header("Run")]
         [Tooltip("Horizontal speed the runner holds automatically.")]
         public float runSpeed = 9f;
-        [Tooltip("Speed gained per second of survival, up to maxRunSpeed.")]
-        public float speedRampPerSecond = 0.12f;
-        public float maxRunSpeed = 15f;
+        [Tooltip("Speed gained per second of survival, up to maxRunSpeed. Paced " +
+                 "so the ramp spans a whole level rather than topping out in the " +
+                 "first twenty seconds and sitting there.")]
+        public float speedRampPerSecond = 0.045f;
+
+        [Tooltip("Ceiling on the speed ramp. Held down to what the run art can " +
+                 "actually sell - see the run notes in ArvinRunnerSetup. " +
+                 "Past about 11 the drawn stride cannot keep up with the ground " +
+                 "and the feet visibly skate.")]
+        public float maxRunSpeed = 11f;
         [Tooltip("How fast the runner recovers speed after a stumble.")]
         public float acceleration = 30f;
 
@@ -47,6 +54,16 @@ namespace ArvinRunner
         public float rollDuration = 0.5f;
         [Range(0.2f, 0.9f)] public float rollHeightFraction = 0.5f;
 
+        [Header("Super jump")]
+        [Tooltip("Seconds of running to charge one super jump.")]
+        public float superJumpChargeTime = 15f;
+        [Tooltip("Peak height of the super jump. Around twice the normal jump, " +
+                 "so it clears a tower face rather than just a tall crate.")]
+        public float superJumpHeight = 6.4f;
+        [Tooltip("Speed multiplier carried through the super jump, so it covers " +
+                 "ground as well as height. Cleared on landing.")]
+        public float superJumpSpeedMultiplier = 1.35f;
+
         [Header("Vault")]
         [Tooltip("Obstacles no taller than this (above the feet) can be vaulted.")]
         public float maxVaultHeight = 1.6f;
@@ -75,6 +92,12 @@ namespace ArvinRunner
         public float ledgeClimbDuration = 0.45f;
         [Tooltip("Ledge grab is ignored while rising faster than this.")]
         public float maxLedgeGrabRiseSpeed = 2f;
+
+        [Header("Crash")]
+        [Tooltip("Time spent stuck against geometry before the run counts as a " +
+                 "crash. The climb animation is paced to exactly this, so the " +
+                 "scramble running out is the moment the runner does.")]
+        public float wallCrashGrace = 0.35f;
 
         [Header("Feel")]
         [Tooltip("Seconds of slow motion when the player dies.")]
