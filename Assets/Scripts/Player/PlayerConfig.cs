@@ -67,11 +67,28 @@ namespace ArvinRunner
         [Header("Vault")]
         [Tooltip("Obstacles no taller than this (above the feet) can be vaulted.")]
         public float maxVaultHeight = 1.6f;
-        [Tooltip("How far ahead we look for something to vault.")]
-        public float vaultProbeDistance = 1.1f;
+        [Tooltip("How far ahead a swipe up turns into a vault. 1.1 was a tenth of a " +
+                 "second at running speed, so vaults almost never happened; further " +
+                 "out, the vault is keyed to where the obstacle actually is, so a " +
+                 "longer take-off is the natural one.")]
+        public float vaultProbeDistance = 2.4f;
+        [Tooltip("Only the fallback pace of the vault clip. The vault itself takes " +
+                 "as long as running its distance would.")]
         public float vaultDuration = 0.35f;
-        [Tooltip("Extra height the arc adds over the obstacle top.")]
+        [Tooltip("Extra height the arc adds as the body passes over the hands.")]
         public float vaultArcHeight = 0.55f;
+        [Tooltip("How far ahead of the body the hands are drawn as they plant. " +
+                 "Measured off the handJump art, and what puts the hands on the " +
+                 "obstacle rather than in front of it or inside it.")]
+        public float vaultHandReach = 0.33f;
+        [Tooltip("Obstacles up to this wide are vaulted clean over; wider ones are " +
+                 "vaulted up onto.")]
+        public float vaultOverWidth = 2.0f;
+        [Tooltip("Share of the move after the plant spent with the weight on the hands, " +
+                 "before the body arcs over them. 0.4 is the share of the handJump " +
+                 "clip its three planted frames take - 11, 10 and 5 - so the hands stay " +
+                 "on the obstacle for exactly as long as they are drawn on it.")]
+        [Range(0f, 0.9f)] public float vaultSupportShare = 0.4f;
 
         [Header("Wall run")]
         public bool wallRunEnabled = true;

@@ -26,6 +26,7 @@ MonoBehaviour:
     offsets: []
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   clips:
@@ -113,6 +114,7 @@ MonoBehaviour:
     - {x: 0.030820413, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 0
@@ -183,6 +185,7 @@ MonoBehaviour:
     - {x: 0.011728687, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 2
@@ -223,6 +226,7 @@ MonoBehaviour:
     - {x: 0, y: 0.04160383}
     followJump: 1
     apexFrame: 6
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 15
@@ -258,6 +262,7 @@ MonoBehaviour:
     - {x: 0.044878565, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 0
   - anim: 2
@@ -296,6 +301,7 @@ MonoBehaviour:
     - {x: 0, y: 0.24456322}
     followJump: 1
     apexFrame: 6
+    followVault: 0
     landing: land_flip
     exitToFrame: -1
   - anim: 4
@@ -334,6 +340,7 @@ MonoBehaviour:
     - {x: 0, y: 0.24456322}
     followJump: 1
     apexFrame: 6
+    followVault: 0
     landing: land_flip
     exitToFrame: -1
   - anim: 13
@@ -372,6 +379,7 @@ MonoBehaviour:
     - {x: 0, y: 0.24456322}
     followJump: 1
     apexFrame: 6
+    followVault: 0
     landing: land_flip
     exitToFrame: -1
   - anim: 15
@@ -392,6 +400,7 @@ MonoBehaviour:
     - {x: -0.051927052, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 11
   - anim: 12
@@ -426,6 +435,7 @@ MonoBehaviour:
     - {x: 0.00000007023788, y: -0.12535118}
     followJump: 1
     apexFrame: 5
+    followVault: 0
     landing: land_lowflip
     exitToFrame: -1
   - anim: 15
@@ -446,6 +456,7 @@ MonoBehaviour:
     - {x: 0.03517759, y: -0.0000000021949338}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 2
   - anim: 4
@@ -478,6 +489,7 @@ MonoBehaviour:
     - {x: 0, y: 0.16112131}
     followJump: 1
     apexFrame: 4
+    followVault: 0
     landing: land_double
     exitToFrame: -1
   - anim: 15
@@ -502,6 +514,7 @@ MonoBehaviour:
     - {x: -0.059799545, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 11
   - anim: 3
@@ -532,17 +545,18 @@ MonoBehaviour:
     - {x: 0, y: 0.23292294}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 5
     frames:
-    - {fileID: 21300000, guid: a2646a352c3e34a4e90661dbd92cbe02, type: 3}
-    - {fileID: 21300000, guid: ce8d53d06cb52d84f944eb4c0efedba3, type: 3}
-    - {fileID: 21300000, guid: d595b542d009fb74a986a7b4e74c9f88, type: 3}
-    - {fileID: 21300000, guid: 5166817156c819442b090126f8f63ce1, type: 3}
     - {fileID: 21300000, guid: 66c357cd2a4ab724d9c007e7107c8416, type: 3}
     - {fileID: 21300000, guid: 2fe3b4dddef08044ab177e5bf77ca39c, type: 3}
-    fps: 25
+    - {fileID: 21300000, guid: 02ecf3851faa5ef4e8e344af769f2c15, type: 3}
+    - {fileID: 21300000, guid: 99cbce7cb45344443a74e3408b09c6f1, type: 3}
+    - {fileID: 21300000, guid: 67672c2de270d544d92097339dd3a0c7, type: 3}
+    - {fileID: 21300000, guid: 47fa6a7e1a4797643acbfffe46d983ff, type: 3}
+    fps: 23.076923
     loop: 0
     strideDistance: 0
     strideReferenceSpeed: 0
@@ -555,20 +569,20 @@ MonoBehaviour:
     - {x: 0, y: 0}
     - {x: 0, y: 0}
     - {x: 0, y: 0}
-    - {x: 0, y: 0}
+    - {x: 0.000000084938826, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 16
     frames:
-    - {fileID: 21300000, guid: 67672c2de270d544d92097339dd3a0c7, type: 3}
-    - {fileID: 21300000, guid: 47fa6a7e1a4797643acbfffe46d983ff, type: 3}
-    - {fileID: 21300000, guid: 99cbce7cb45344443a74e3408b09c6f1, type: 3}
-    - {fileID: 21300000, guid: 02ecf3851faa5ef4e8e344af769f2c15, type: 3}
-    - {fileID: 21300000, guid: 4362f196412f45a4f9bac1f0bad3c98b, type: 3}
-    - {fileID: 21300000, guid: 21a482c757966fb4b9b3d79509cad247, type: 3}
-    - {fileID: 21300000, guid: 658b275bc4827754a9b6820595e5d5f5, type: 3}
+    - {fileID: 21300000, guid: e26423d959f52754b83eeb8121ed79af, type: 3}
+    - {fileID: 21300000, guid: 034a54ca0578e214fb4926d3a4ba6366, type: 3}
+    - {fileID: 21300000, guid: 5c4b76ff83d3a194eb8f080b5fb62b4c, type: 3}
+    - {fileID: 21300000, guid: aa95c93cef594a847894e5e5eaba2d87, type: 3}
+    - {fileID: 21300000, guid: bbe9664e273f0344a8163c61f3e0b4f1, type: 3}
+    - {fileID: 21300000, guid: 85ca9cba5efe4594bba387c1cb912175, type: 3}
     fps: 25
     loop: 0
     strideDistance: 0
@@ -577,17 +591,17 @@ MonoBehaviour:
     name: 
     weights: []
     offsets:
-    - {x: -0.05295148, y: 0}
-    - {x: -0.06486257, y: 0}
-    - {x: -0.05681096, y: 0}
-    - {x: -0.09458914, y: 0}
-    - {x: 0.09186898, y: 0}
-    - {x: 0.057295006, y: 0}
-    - {x: 0.12005016, y: 0}
+    - {x: -0.08950123, y: 0}
+    - {x: -0.036488786, y: 0}
+    - {x: -0.040327, y: 0}
+    - {x: 0.046053704, y: 0}
+    - {x: 0.040677927, y: 0}
+    - {x: 0.07958526, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
-    exitToFrame: 11
+    exitToFrame: 3
   - anim: 6
     frames:
     - {fileID: 21300000, guid: 3a5f4df6283123d409bf0ecc8ab17021, type: 3}
@@ -614,40 +628,77 @@ MonoBehaviour:
     - {x: -0.0145421075, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 11
   - anim: 7
     frames:
-    - {fileID: 21300000, guid: f6bd856bfc8efa24f8a80edd26bc0321, type: 3}
-    - {fileID: 21300000, guid: 29b3b131feb91ba4eb586c58e605f4a7, type: 3}
-    - {fileID: 21300000, guid: 18553ee3aea70b94ea2b95b04661d394, type: 3}
-    - {fileID: 21300000, guid: a28db2d1bb15f60478a7638f5aa11bcd, type: 3}
-    - {fileID: 21300000, guid: 10922df5bce4aaa47bb2aff57a59b11e, type: 3}
-    - {fileID: 21300000, guid: ed7a06d6de5f9e24abb5ad9e6f270b39, type: 3}
-    - {fileID: 21300000, guid: b62e8d5caa536784fb08eb7d97dbbb4a, type: 3}
-    - {fileID: 21300000, guid: 1ddb494cfd0b84740a604db9eb576a74, type: 3}
-    - {fileID: 21300000, guid: 4402e84906eda564e9b49794fb48efe8, type: 3}
-    fps: 25.714287
+    - {fileID: 21300000, guid: 8f1f29850f30249408ed1f03b77380e6, type: 3}
+    - {fileID: 21300000, guid: d118bb8350496584cb357ab4f1323efc, type: 3}
+    - {fileID: 21300000, guid: 1a7ba0723de05f54a9d8b7fc458a9140, type: 3}
+    - {fileID: 21300000, guid: 6cdc16cce8f552d40a621854fd48e55e, type: 3}
+    - {fileID: 21300000, guid: 71d0064d70de9614a840b4946b6c671d, type: 3}
+    - {fileID: 21300000, guid: 0608a83fe06405548bc34d66a879769d, type: 3}
+    - {fileID: 21300000, guid: 1028201f7a4338942943f934326fc81c, type: 3}
+    - {fileID: 21300000, guid: 4273825427774404a8401062558eb9a4, type: 3}
+    fps: 22.857143
     loop: 0
     strideDistance: 0
     strideReferenceSpeed: 0
     strideGrowth: 0
     name: 
+    weights:
+    - 1
+    - 1
+    - 1
+    - 1
+    - 1.3
+    - 1
+    - 1
+    - 1.2
+    offsets:
+    - {x: 0, y: 0}
+    - {x: -0.000000042969052, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: -6.7139144e-10}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    - {x: 0, y: 0}
+    followJump: 0
+    apexFrame: 1
+    followVault: 1
+    landing: land_vault
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: fdc0b71923bcb4a47a82cabd65531ae0, type: 3}
+    - {fileID: 21300000, guid: e70ca1e1c2b76f24baa001f7c205a111, type: 3}
+    - {fileID: 21300000, guid: 503d8e65edb27d2479d49177faf5d8b2, type: 3}
+    - {fileID: 21300000, guid: 3c20cc0ff858439458194e346be6460c, type: 3}
+    - {fileID: 21300000, guid: 439a8fea127a9bf4bace1be8db130443, type: 3}
+    - {fileID: 21300000, guid: c0bfa7f86c8ba5b48ab9664395c117f6, type: 3}
+    - {fileID: 21300000, guid: f53b8e233d337ec42b06a9f4b9495a7e, type: 3}
+    fps: 23.333332
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_vault
     weights: []
     offsets:
-    - {x: 0, y: -0.25027096}
-    - {x: 0, y: 0.21012357}
-    - {x: 0, y: 0.21955371}
-    - {x: 0, y: 0.25048482}
-    - {x: 0, y: 0.31790644}
-    - {x: 0, y: 0.42047885}
-    - {x: 0, y: 0.39686278}
-    - {x: 0, y: 0.1595896}
-    - {x: 0, y: 0.12319645}
+    - {x: 0.028709901, y: 0}
+    - {x: 0.04126374, y: -6.7139144e-10}
+    - {x: -0.034150384, y: 0}
+    - {x: 0.027670136, y: -6.7139144e-10}
+    - {x: -0.0019849984, y: 0}
+    - {x: -0.004390406, y: 0}
+    - {x: -0.057117987, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
-    exitToFrame: -1
+    exitToFrame: 10
   - anim: 8
     frames:
     - {fileID: 21300000, guid: 762337d2cf4e2724ab60befcffa2d5d7, type: 3}
@@ -682,6 +733,7 @@ MonoBehaviour:
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 9
@@ -704,6 +756,7 @@ MonoBehaviour:
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 10
@@ -726,6 +779,7 @@ MonoBehaviour:
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: 23
   - anim: 14
@@ -754,6 +808,7 @@ MonoBehaviour:
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 11
@@ -813,6 +868,7 @@ MonoBehaviour:
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1
   - anim: 17
@@ -851,5 +907,6 @@ MonoBehaviour:
     - {x: 0, y: 0.00000002051893}
     followJump: 0
     apexFrame: 0
+    followVault: 0
     landing: 
     exitToFrame: -1

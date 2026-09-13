@@ -62,10 +62,17 @@ namespace ArvinRunner
                  "whatever the height or the gravity. fps is then only a fallback.")]
         public bool followJump;
 
-        [Tooltip("With followJump, the frame that belongs at the top of the arc.")]
+        [Tooltip("With followJump, the frame that belongs at the top of the arc. With " +
+                 "followVault, the frame on screen as the hands land on the obstacle.")]
         public int apexFrame;
 
-        [Tooltip("With followJump, the name of the clip that plays on touching down out " +
+        [Tooltip("Play along the runner's vault rather than a clock: the first frame at " +
+                 "take-off, apexFrame as the hands meet the obstacle and the last as the " +
+                 "vault ends - however far off the obstacle was and however fast the " +
+                 "runner is going. The last frame is held through any drop after it.")]
+        public bool followVault;
+
+        [Tooltip("With followJump or followVault, the name of the clip that plays on touching down out " +
                  "of this one. Empty uses the Land slot.")]
         public string landing;
 

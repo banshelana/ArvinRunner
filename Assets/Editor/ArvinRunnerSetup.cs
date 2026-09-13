@@ -382,15 +382,20 @@ namespace ArvinRunner.EditorTools
 
             // ---- on the ground ------------------------------------------------ //
 
-            // Slide: down onto the chest over a quarter second, then held flat for
-            // as long as the slide lasts.
-            Add(PlayerAnim.Slide, "Tackle", FileNumbers(4, 9), FrameAnchor.Mass, 0.24f, false);
+            // Slide: a lunge from the run (8, 9) down into the crawl, held on its
+            // lowest pose for as long as the slide lasts. The crawl frames are in
+            // the order the body drops - 13, 12, 10, 11 come out 1.00, 0.92, 0.94
+            // and 0.82 tall - which is also the order that measures smoothest,
+            // and ends on the one that fits closest to the 0.79 slide collider.
+            Add(PlayerAnim.Slide, "Tackle", new[] { 8, 9, 13, 12, 10, 11 }, FrameAnchor.Mass, 0.26f, false);
 
-            // Up off the floor into the stride: the low lunge, then back up
-            // through the sprint frames the slide went down through, in reverse.
-            // Stopping at the lunge left the head 0.7 units short of the run.
-            Add(PlayerAnim.GetUp, "Tackle", new[] { 10, 11, 12, 13, 3, 2, 1 }, FrameAnchor.Feet, 0.28f, false)
-                .exitToFrame = RunFrame(8);
+            // Up off the floor into the stride: pushing up out of the crawl (14-17)
+            // and the folder's own first strides (18, 19), which end at running
+            // height and hand the run its frame 18 - the head moves 0.00 across
+            // the join, and the pose 34%. Stopping at 17 left it 0.1 short with
+            // the pose 56% out.
+            Add(PlayerAnim.GetUp, "Tackle", FileNumbers(14, 19), FrameAnchor.Feet, 0.24f, false)
+                .exitToFrame = RunFrame(18);
 
             // Hard landing: down onto a knee and a hand and driven back up into
             // the sprint. Most of the super jumps end here - they come down faster
@@ -398,8 +403,37 @@ namespace ArvinRunner.EditorTools
             Add(PlayerAnim.Roll, "BigJump", FileNumbers(16, 22), FrameAnchor.Feet, config.rollDuration, false)
                 .exitToFrame = RunFrame(8);
 
-            // Vault: the jump's tuck, legs drawn through, over the vault's own arc.
-            Add(PlayerAnim.Vault, "Jump", FileNumbers(5, 13), FrameAnchor.Air, config.vaultDuration, false);
+            // The hand vault. Played along the vault itself rather than a clock
+            // (followVault): the reach at take-off (4), the hands landing on the
+            // obstacle (11) at the moment PlayerController puts them on its top,
+            // then weight onto the hands (10, 5), the tuck over them (6), the push
+            // (7), the pop (12) and the flight off the far side (13), held through
+            // any drop.
+            //
+            // The folder is several takes rather than one: 14-16 are a dive onto
+            // the hands, left out, and the tuck-push-pop run above is the order a
+            // body can do the move in, picked from the frames that measured
+            // closest together. The run it starts from and ends in is the game's
+            // own run cycle, so 1-3 go unused.
+            if (PlayerAnimationImport.Frames("HandJump").Length > 1)
+            {
+                SpriteAnimationClip vault = Add(PlayerAnim.Vault, "HandJump", new[] { 4, 11, 10, 5, 6, 7, 12, 13 },
+                                                FrameAnchor.Mass, config.vaultDuration, false,
+                                                weights: new[] { 1f, 1f, 1f, 1f, 1.3f, 1f, 1f, 1.2f });
+                vault.followVault = true;
+                vault.apexFrame = 1;
+                vault.landing = "land_vault";
+
+                // Onto the feet, absorbing it, and straight back into the stride.
+                // Ends at running height on 24, which hands the run its frame 24:
+                // the head moves 0.02 across the join.
+                Add(PlayerAnim.Land, "HandJump", new[] { 19, 20, 17, 21, 22, 23, 24 }, FrameAnchor.Feet, 0.3f,
+                    false, "land_vault").exitToFrame = RunFrame(24);
+            }
+            else
+            {
+                Add(PlayerAnim.Vault, "Jump", FileNumbers(5, 13), FrameAnchor.Air, config.vaultDuration, false);
+            }
 
             // ---- on the wall ----------------------------------------------------- //
 

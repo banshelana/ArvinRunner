@@ -603,15 +603,61 @@ namespace ArvinRunner
 
         // ---- Vault -------------------------------------------------------- //
 
+        /// <summary>How far through the current vault, 0 to 1, for the animator.</summary>
+        public float VaultProgress => State == PlayerState.Vaulting
+            ? Mathf.Clamp01(_stateTime / Mathf.Max(0.01f, _vaultDuration))
+            : 1f;
+
+        /// <summary>The share of the vault at which the hands meet the obstacle.</summary>
+        public float VaultPlant { get; private set; }
+
+        private float _vaultDuration = 0.35f;
+        private Vector2 _vaultPlant;
+
+        /// <summary>
+        /// A hand vault keyed to the obstacle in front, rather than a fixed hop.
+        ///
+        /// The old one always travelled 2.3 units in 0.35s - 6.6 a second against
+        /// a run of 9 to 11, so every vault braked visibly - and nothing tied it to
+        /// the obstacle, so the hands the art draws planting met nothing. Now:
+        ///
+        ///  * The hands plant just past the obstacle's leading edge, on its top.
+        ///    The plant frame draws them vaultHandReach ahead of the body, so the
+        ///    body is put that far short of the spot.
+        ///  * Horizontal speed carries straight through: the vault takes as long
+        ///    as running its distance would.
+        ///  * Narrow obstacles are vaulted clean over, to the far side; wide ones -
+        ///    a car, a long crate - up onto, and the run carries on along the top.
+        /// </summary>
         private void BeginVault()
         {
             _rb.isKinematic = true;
             _rb.velocity = Vector2.zero;
 
+            Bounds obstacle = _sensors.VaultCollider.bounds;
+            float feetTop = _sensors.VaultTopY;
+            float top = feetTop + FeetOffset;
+            float halfWidth = _sensors.Width * 0.5f;
+
             _moveFrom = _rb.position;
-            _moveTo = new Vector2(_rb.position.x + _sensors.Width + config.vaultProbeDistance + 0.4f,
-                                  _sensors.VaultTopY + FeetOffset + 0.05f);
+
+            float plantX = Mathf.Max(_moveFrom.x + 0.2f,
+                                     obstacle.min.x + 0.15f - config.vaultHandReach);
+            _vaultPlant = new Vector2(plantX, top);
+
+            float overX = obstacle.max.x + halfWidth + 0.15f;
+            bool over = obstacle.size.x <= config.vaultOverWidth && RoomToStand(overX, feetTop);
+
+            float endX = over ? overX : Mathf.Min(plantX + 1.6f, obstacle.max.x - halfWidth);
+            endX = Mathf.Max(endX, plantX + 0.6f);
+
+            _moveTo = new Vector2(endX, top + 0.05f);
             _moveArc = config.vaultArcHeight;
+
+            float speed = Mathf.Max(CurrentSpeed, config.runSpeed * 0.7f);
+            float distance = Mathf.Max(0.5f, endX - _moveFrom.x);
+            _vaultDuration = Mathf.Clamp(distance / speed, 0.2f, 0.7f);
+            VaultPlant = Mathf.Clamp((plantX - _moveFrom.x) / distance, 0.1f, 0.8f);
 
             IgnoreCollider(_sensors.VaultCollider);
             PlayAnim(PlayerAnim.Vault);
@@ -620,8 +666,8 @@ namespace ArvinRunner
 
         private void TickVaulting()
         {
-            float t = Mathf.Clamp01(_stateTime / config.vaultDuration);
-            _rb.MovePosition(ArcLerp(_moveFrom, _moveTo, _moveArc, t));
+            float t = Mathf.Clamp01(_stateTime / _vaultDuration);
+            _rb.MovePosition(VaultPosition(t));
 
             if (t >= 1f)
             {
@@ -630,6 +676,51 @@ namespace ArvinRunner
                 _rb.velocity = new Vector2(CurrentSpeed, 0f);
                 SetState(PlayerState.Falling);
             }
+        }
+
+        /// <summary>
+        /// Three parts of one move. Up to the plant, rising from the run onto the
+        /// obstacle's top and easing in so the hands arrive rather than slam; a
+        /// stretch with the weight on the hands, level with the top; then over on
+        /// a shallow arc to the end. Horizontally it is one straight line at
+        /// constant speed throughout, which is what keeps the run's momentum.
+        ///
+        /// The level stretch is what keeps the hands on the obstacle. Arcing from
+        /// the instant of contact lifted them clear of the top within one display
+        /// frame, while the art still drew them pressing down on it for three.
+        /// </summary>
+        private Vector2 VaultPosition(float t)
+        {
+            float x = Mathf.Lerp(_moveFrom.x, _moveTo.x, t);
+            float plant = VaultPlant;
+
+            if (t < plant)
+            {
+                float u = t / plant;
+                float rise = u * u * (3f - 2f * u);
+                return new Vector2(x, Mathf.Lerp(_moveFrom.y, _vaultPlant.y, rise));
+            }
+
+            float v = (t - plant) / Mathf.Max(0.01f, 1f - plant);
+            float support = config.vaultSupportShare;
+            if (v < support) return new Vector2(x, _vaultPlant.y);
+
+            float w = (v - support) / Mathf.Max(0.01f, 1f - support);
+            float y = Mathf.Lerp(_vaultPlant.y, _moveTo.y, w) + _moveArc * Mathf.Sin(w * Mathf.PI);
+            return new Vector2(x, y);
+        }
+
+        /// <summary>Room for a standing runner with their feet at feetY, ignoring the
+        /// obstacle being vaulted.</summary>
+        private bool RoomToStand(float x, float feetY)
+        {
+            var centre = new Vector2(x, feetY + _standSize.y * 0.5f + 0.05f);
+            var size = new Vector2(_sensors.Width * 0.9f, _standSize.y * 0.9f);
+
+            foreach (Collider2D hit in Physics2D.OverlapBoxAll(centre, size, 0f, GameLayers.SolidMask))
+                if (hit != _sensors.VaultCollider) return false;
+
+            return true;
         }
 
         // ================================================================= //

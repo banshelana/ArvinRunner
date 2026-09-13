@@ -73,9 +73,12 @@ running, deep crouch) by silhouette area and, where the pose allows, by height.
 `DrawingScale` in `PlayerAnimationImport.cs` holds the result, and the base scale
 comes from the jump's upright first and last frames at 1.80 units:
 
-| Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| drawn at | 1.18 | 1.02 | 1.02 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 |
+| Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall | lose | handJump |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| drawn at | 1.18 | 1.02 | 0.86 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 | 0.78 | 0.85 |
+
+`Tackle` was redrawn after the first measurement — a lunge into a crawl rather
+than a feet-first slide — and re-measured on its running frames.
 
 A redrawn folder that is off-scale and unlisted gets a warning rather than
 silence.
@@ -146,8 +149,13 @@ The step lengthens with speed (`strideGrowth` 0.85) rather than the legs
 quickening, which is how runners go faster. The 24 frames are **one step, not
 two**: a silhouette shows one side, so both legs read as one.
 
-**Everything else runs on its own duration** — slide, roll, vault, the wall moves
-and the cling come straight from `PlayerConfig`.
+**The vault follows the vault.** Its frames are keyed to the move itself
+(`followVault`): the reach at take-off, the hand-plant frame appearing exactly as
+the hands reach the obstacle's top, and the last frame as the vault ends — see
+*The hand vault* below.
+
+**Everything else runs on its own duration** — slide, roll, the wall moves and
+the cling come straight from `PlayerConfig`.
 
 ### Landings, and handing back to the run
 
@@ -187,12 +195,12 @@ new art.
 | `LowFlip` | a ground jump over something small | `lowFlip` 9 10 11 12 15 13 14 17 16 18 |
 | `DoubleJump` | the air jump | `BigJump` 8 9 6 7 10–14 **or** `flipJump` 9–20 |
 | `SuperJump` | the charged jump | `flipJump` 9–20 |
-| `Land` | touching down | `jump` 17–23; flip `flipJump` 22–24; low flip `lowFlip` 22–24; double `BigJump` 15 16 20 21 22 |
+| `Land` | touching down | `jump` 17–23; flip `flipJump` 22–24; low flip `lowFlip` 22–24; double `BigJump` 15 16 20 21 22; vault `handJump` 19 20 17 21–24 |
 | `JumpFall` | falling with no jump behind it | `Fall` 12–16 and back |
-| `Slide` | sliding under an overhang | `Tackle` 4–9, held flat |
-| `GetUp` | the end of a slide | `Tackle` 10–13 then 3 2 1 |
+| `Slide` | sliding under an overhang | `Tackle` 8 9 13 12 10 11, held on 11 |
+| `GetUp` | the end of a slide | `Tackle` 14–19 |
 | `Roll` | hard landing | `BigJump` 16–22 |
-| `Vault` | going over a low obstacle | `jump` 5–13 |
+| `Vault` | a hand vault over or onto a low obstacle | `handJump` 4 11 10 5 6 7 12 13 |
 | `WallRun` | running up a wall | `climb` 8 14 16 11 10 9 12 18 17 13 15 |
 | `LedgeGrab` | hanging on a ledge | `climb` 1 2 3 2 |
 | `LedgeClimb` | pulling up over a ledge | `climb` 19–22 |
@@ -219,8 +227,43 @@ goes missing.
 **`LowFlip`** is not a state of its own — it is the same `Jumping` state as
 `JumpRise`, chosen instead of it when `PlayerSensors.LowObstacleAhead` is true at
 the moment the runner leaves the ground. That probe looks four units ahead, well
-past the 1.1 the vault probe reaches, and "small" means a top no higher than
+past the 2.4 the vault probe reaches, and "small" means a top no higher than
 `maxVaultHeight`.
+
+### The hand vault
+
+A swipe up within **2.4 units** of an obstacle no taller than 1.60 becomes a
+vault over it with the hands. The probe used to reach 1.1 — a tenth of a second
+at running speed — so vaults barely happened; further out the take-off is simply
+longer, which is how the move is really done.
+
+The old vault was a fixed hop, 2.3 units in 0.35s whatever was in front. That is
+6.6 u/s against a run of 9 to 11, so every vault braked visibly, and nothing tied
+it to the obstacle. `PlayerController.BeginVault` now builds it off the
+obstacle's actual bounds, in three parts with one constant horizontal speed:
+
+1. **Up to the plant.** Rising from the run and easing in, so the body arrives
+   with the hands on the top just past the leading edge. The plant frame draws
+   the hands `vaultHandReach` (0.33, measured off the art) ahead of the body, so
+   the body is put that far short of the spot.
+2. **Weight on the hands**, level with the top, for `vaultSupportShare` (0.4) of
+   the rest — the share of the clip the three planted frames take.
+3. **Over**, on a shallow arc, to the end.
+
+Obstacles up to **2.0 wide** (`vaultOverWidth`) — cones, tyres, pallets, the
+barricade — are vaulted clean over, if there is room to stand beyond. Wider ones
+— the barrier, AC unit, motorbike, dumpster, every car — are vaulted up onto, and
+the run carries on along the top.
+
+This was checked by simulating the vault with the same maths over a cone, a
+crate and a sedan at run speeds 9 and 11: in all 22 display frames that draw the
+hands planted, the hands are on the obstacle's top (within 0.01 units vertically,
+0.01–0.34 in from the edge). Two faults were caught that way first — the plant
+frame keyed by its middle showed the hands 0.4 units short, and arcing from the
+instant of contact lifted them off the top a frame later.
+
+The folder is several takes rather than one, so `handJump` 14–16 (a dive onto
+the hands) and 1–3 (the approach, which the game's own run supplies) go unused.
 
 **`Climb`** is not a state either. The runner is still `Running` — still driving
 into the wall, still killed by `CheckCrash` when `wallCrashGrace` runs out — and
@@ -298,15 +341,13 @@ decided by how tall it is, and nothing else.
 
 Two consequences that are easy to get wrong when adding more:
 
-- **A vault lands you *on* the obstacle, not past it.** So a car under 1.60 is
-  not a hurdle, it is raised ground you run along. That is why the limo is worth
-  more than its length suggests, and why nothing above the ceiling is placed
-  without something to step off first.
-- **Anything you intend as a step has to be about two units wide.** The vault
-  puts the runner down somewhere in a unit-wide spread past the obstacle's front
-  face; a pallet is narrower than that spread, so it is fine to hop over and
-  useless to climb onto. Every step in the vehicle chunks is a car for this
-  reason.
+- **A vault over something wider than 2.0 lands you *on* it, not past it.** So
+  a car under 1.60 is not a hurdle, it is raised ground you run along. That is
+  why the limo is worth more than its length suggests, and why nothing above the
+  ceiling is placed without something to step off first.
+- **Anything you intend as a step has to be wider than 2.0.** Narrower obstacles
+  are vaulted clean over, so a pallet is fine to vault and useless to climb onto.
+  Every step in the vehicle chunks is a car for this reason.
 
 To change how big a prop is, edit `TallestHeight` in `ArtImport.cs` and
 re-import. To change its collision shape, edit its `Boxes` in

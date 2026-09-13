@@ -208,10 +208,13 @@ namespace ArvinRunner
             float top = low.collider.bounds.max.y;
             if (top - feet.y > _config.maxVaultHeight) return;
 
-            // There has to be somewhere to come down. Without this a low step
-            // with a tall stack right behind it reads as vaultable, and the
-            // vault arc ends inside the stack.
-            float landingX = front + _config.vaultProbeDistance + Width * 0.5f;
+            // There has to be room above it. Without this a low step with a tall
+            // stack right behind it reads as vaultable, and the vault ends inside
+            // the stack. Checked just past the hand plant, which the vault passes
+            // through whether it goes over or up onto - and measured from the
+            // obstacle rather than from the probe's reach, which now runs well
+            // past a near one.
+            float landingX = low.point.x + 1.0f;
             Vector2 landingCentre = new Vector2(landingX, top + StandingHeight * 0.5f + 0.05f);
             Vector2 landingSize = new Vector2(Width * 0.9f, StandingHeight * 0.9f);
 

@@ -124,7 +124,7 @@ namespace ArvinRunner
                 _clip = landing ?? animationSet.Get(anim);
             }
 
-            if (_clip != null && _clip.followJump) _airClip = _clip;
+            if (_clip != null && (_clip.followJump || _clip.followVault)) _airClip = _clip;
             else if (anim != PlayerAnim.Land) _airClip = null;
 
             BeginClip(previous);
@@ -284,7 +284,14 @@ namespace ArvinRunner
         {
             if (_clip == null || _clip.frames == null || _clip.frames.Length <= 1 || _starts == null) return;
 
-            if (_clip.followJump && _player != null && _player.Config != null && _player.LaunchSpeed > 0.01f)
+            if (_clip.followVault && _player != null)
+            {
+                // Keyed to the vault: the plant frame as the hands meet the
+                // obstacle, whatever the distance and speed. Once the vault has
+                // ended, the last frame holds through the drop to the ground.
+                _phase = _player.State == PlayerState.Vaulting ? Mathf.Max(_phase, VaultPhase()) : 1f;
+            }
+            else if (_clip.followJump && _player != null && _player.Config != null && _player.LaunchSpeed > 0.01f)
             {
                 // Never backwards: a gust or a bump that nudges the vertical speed
                 // must not rewind a somersault.
@@ -320,6 +327,31 @@ namespace ArvinRunner
 
             int index = IndexAt(_phase);
             if (index != _frameIndex) ShowFrame(index);
+        }
+
+        /// <summary>
+        /// Where along the current vault the runner is, as a fraction of the clip:
+        /// take-off to the start of the plant frame, then the plant frame to the
+        /// end, each stretched over its own share of the vault.
+        ///
+        /// The start, not the middle - unlike a jump's apex, which is an instant
+        /// inside its frame. Contact is the moment the hands are drawn down, and
+        /// keying the middle of the frame to it put the planted hands on screen a
+        /// third of a frame early, 0.4 units short of the obstacle and below its
+        /// top. From the start, they appear as they arrive and ride the top while
+        /// the body carries over them.
+        /// </summary>
+        private float VaultPhase()
+        {
+            int plant = Mathf.Clamp(_clip.apexFrame, 0, _clip.frames.Length - 1);
+            float plantPhase = _starts[plant];
+
+            float t = _player.VaultProgress;
+            float tp = Mathf.Clamp(_player.VaultPlant, 0.01f, 0.99f);
+
+            return t < tp
+                ? plantPhase * t / tp
+                : plantPhase + (1f - plantPhase) * (t - tp) / (1f - tp);
         }
 
         /// <summary>

@@ -67,7 +67,7 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static readonly string[] SetNames =
         {
-            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose"
+            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump"
         };
 
         /// <summary>
@@ -87,13 +87,15 @@ namespace ArvinRunner.EditorTools
         ///
         ///     Idle      standing 1.20 by height, 1.17 by area         1.18
         ///     Run       running pose against Tackle's, 1.00          1.02
-        ///     Tackle    standing 1.01 / 1.02, crouch 1.06              1.02
+        ///     Tackle    redrawn; running pose 0.86 area, 0.84 height,
+        ///               0.86 thickness                                 0.86
         ///     LowFlip   standing 1.05 / 1.06, crouch 1.02              1.04
         ///     FlipJump  crouch 0.98, running 0.99                      1.00
         ///     BigJump   standing 0.96 / 0.98, crouch 0.96              0.965
         ///     Climb     standing 0.98 / 0.96                           0.96
         ///     Fall      standing 0.91 / 0.89, crouch 0.86              0.89
         ///     Lose      running pose by height 0.78, thickness 0.75    0.78
+        ///     HandJump  running pose 0.84 area, 0.85 height, 0.86 thick 0.85
         ///
         /// Lose is the one folder where the measures split: silhouette area says
         /// 0.86. Height and body thickness agree with each other and area does not,
@@ -113,13 +115,14 @@ namespace ArvinRunner.EditorTools
             ["Jump"] = 1.00f,
             ["Idle"] = 1.18f,
             ["Run"] = 1.02f,
-            ["Tackle"] = 1.02f,
+            ["Tackle"] = 0.86f,
             ["LowFlip"] = 1.04f,
             ["FlipJump"] = 1.00f,
             ["BigJump"] = 0.965f,
             ["Climb"] = 0.96f,
             ["Fall"] = 0.89f,
-            ["Lose"] = 0.78f
+            ["Lose"] = 0.78f,
+            ["HandJump"] = 0.85f
         };
 
         /// <summary>

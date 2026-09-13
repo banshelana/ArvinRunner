@@ -33,9 +33,12 @@ MonoBehaviour:
   superJumpHeight: 6.4
   superJumpSpeedMultiplier: 1.35
   maxVaultHeight: 1.6
-  vaultProbeDistance: 1.1
+  vaultProbeDistance: 2.4
   vaultDuration: 0.35
   vaultArcHeight: 0.55
+  vaultHandReach: 0.33
+  vaultOverWidth: 2
+  vaultSupportShare: 0.4
   wallRunEnabled: 1
   wallRunDuration: 0.85
   wallRunSpeed: 7
