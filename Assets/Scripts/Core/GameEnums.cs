@@ -24,7 +24,11 @@ namespace ArvinRunner
         WallRunning,
         LedgeGrab,
         LedgeClimb,
-        Dead
+        Dead,
+
+        /// <summary>Over the finish line: easing to a stop, then celebrating.
+        /// Not under player control.</summary>
+        Victory
     }
 
     /// <summary>
@@ -87,7 +91,27 @@ namespace ArvinRunner
         /// <summary>Dying by falling out of the level. Death is being stopped by
         /// something - hit, thrown back, down on the knees - which is wrong for a
         /// body dropping off the bottom of the screen.</summary>
-        DeathFall
+        DeathFall,
+
+        /// <summary>Celebrating a finished level. Played once and held on its last
+        /// pose until the level-clear panel comes up.</summary>
+        Victory,
+
+        /// <summary>Dropping onto the skateboard to go under something wide. The
+        /// Sliding state, chosen instead of Slide when the overhead ahead is at
+        /// least skateMinWidth long - see PlayerController.</summary>
+        SkateOn,
+
+        /// <summary>Lying on the board, paddling, for as long as the overhead lasts.</summary>
+        SkateGlide,
+
+        /// <summary>Up off the board into the stride, as GetUp is for the tackle.</summary>
+        SkateOff,
+
+        /// <summary>Still falling out of the level once DeathFall has tipped the
+        /// runner into the dive: the struggle, looped for as long as the body is
+        /// on screen.</summary>
+        DeathFallLoop
     }
 
     /// <summary>What killed the player - used for the death message / VFX.</summary>

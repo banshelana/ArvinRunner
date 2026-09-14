@@ -67,7 +67,7 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static readonly string[] SetNames =
         {
-            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump"
+            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump", "Victory", "Skating", "Fallout"
         };
 
         /// <summary>
@@ -96,6 +96,11 @@ namespace ArvinRunner.EditorTools
         ///     Fall      standing 0.91 / 0.89, crouch 0.86              0.89
         ///     Lose      running pose by height 0.78, thickness 0.75    0.78
         ///     HandJump  running pose 0.84 area, 0.85 height, 0.86 thick 0.85
+        ///     Victory   standing pose 0.86 height, 0.85 area           0.86
+        ///     Skating   running 1.05, standing 1.10 by height          1.07
+        ///     Fallout   redrawn as a dive; body length tip to tip
+        ///               against extended poses of known scale 0.75,
+        ///               body thickness 0.76                            0.76
         ///
         /// Lose is the one folder where the measures split: silhouette area says
         /// 0.86. Height and body thickness agree with each other and area does not,
@@ -122,7 +127,16 @@ namespace ArvinRunner.EditorTools
             ["Climb"] = 0.96f,
             ["Fall"] = 0.89f,
             ["Lose"] = 0.78f,
-            ["HandJump"] = 0.85f
+            ["HandJump"] = 0.85f,
+
+            // Height and area agree; body thickness (0.72) does not, for the same
+            // reason as Lose - that runner is drawn leaner, not smaller.
+            ["Victory"] = 0.86f,
+
+            // By height only: the skateboard adds to the silhouette, so area reads
+            // this runner 16-20% too big.
+            ["Skating"] = 1.07f,
+            ["Fallout"] = 0.76f
         };
 
         /// <summary>

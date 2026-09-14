@@ -48,6 +48,14 @@ namespace ArvinRunner
         [Tooltip("A swipe down in mid-air slams the runner to the ground this fast.")]
         public float airDiveSpeed = 22f;
 
+        [Tooltip("An overhead at least this long is gone under on the skateboard; " +
+                 "anything shorter - a scaffold rail - is tackled. 3 splits the " +
+                 "levels cleanly: rails are 1.4, the overhang 5, the decks 7 and 9.")]
+        public float skateMinWidth = 3f;
+
+        [Tooltip("How far ahead a slide looks for the overhead it is going under.")]
+        public float skateLookAhead = 8f;
+
         [Header("Roll")]
         [Tooltip("Falling faster than this on landing forces a roll.")]
         public float hardLandingSpeed = 16f;
@@ -115,6 +123,24 @@ namespace ArvinRunner
                  "crash. The climb animation is paced to exactly this, so the " +
                  "scramble running out is the moment the runner does.")]
         public float wallCrashGrace = 0.35f;
+
+        [Header("Falling out")]
+        [Tooltip("How far below the last ground stood on the runner has to be before a " +
+                 "fall is checked for being unsaveable.")]
+        public float falloutMargin = 1.5f;
+
+        [Tooltip("Share of fallGravity a body falling out of the level drops under, so the " +
+                 "struggle is on screen long enough to see.")]
+        [Range(0.1f, 1f)] public float falloutGravity = 0.45f;
+
+        [Tooltip("Fastest a body falling out of the level drops.")]
+        public float falloutMaxSpeed = 12f;
+
+        [Header("Finish")]
+        [Tooltip("Distance the runner takes to ease to a stop after crossing the " +
+                 "finish line, rather than stopping dead on it. The victory clip's " +
+                 "run-in frames play across it.")]
+        public float victoryStopDistance = 2.2f;
 
         [Header("Feel")]
         [Tooltip("Seconds of slow motion when the player dies.")]

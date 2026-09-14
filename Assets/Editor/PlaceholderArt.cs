@@ -29,11 +29,24 @@ namespace ArvinRunner.EditorTools
             WriteSprite("glass", Glass(48, 48));
             WriteSprite("finish", Checker(32, 64, 16), tileable: true);
 
-            // The helicopter strike. No art was drawn for the shot itself - the
-            // heli frames only carry the muzzle flash - so these three stand in.
-            WriteSprite("target", Target(64));
-            WriteSprite("missile", Missile(28, 10));
-            WriteSprite("blast", Blast(96));
+            // The helicopter strike: the designator's mark, the missile with its
+            // motor flame and smoke, the laser, the fireball frames and the scorch
+            // left behind. See StrikePainter for what makes each read as real.
+            int strikePpu = StrikePainter.PixelsPerUnit;
+            WriteSprite("target", ToTexture(StrikePainter.Marker(512, 192)), pixelsPerUnit: strikePpu);
+            WriteSprite("missile", ToTexture(StrikePainter.Missile(256, 64)), pixelsPerUnit: strikePpu);
+            WriteSprite("missile_flame", ToTexture(StrikePainter.Flame(128, 48)), pixelsPerUnit: strikePpu);
+            WriteSprite("laser", ToTexture(StrikePainter.Laser(64, 16)), pixelsPerUnit: strikePpu);
+            WriteSprite("scorch", ToTexture(StrikePainter.Scorch(256, 96)), pixelsPerUnit: strikePpu);
+
+            for (int i = 0; i < StrikePainter.SmokeVariants; i++)
+                WriteSprite($"smoke_{i}", ToTexture(StrikePainter.Smoke(128, i)), pixelsPerUnit: strikePpu);
+
+            for (int i = 0; i < StrikePainter.BlastFrames; i++)
+                WriteSprite($"blast_{i:00}", ToTexture(StrikePainter.Blast(256, i)), pixelsPerUnit: strikePpu);
+
+            // The single blast sprite the frames replaced.
+            if (File.Exists($"{ArtRoot}/blast.png")) AssetDatabase.DeleteAsset($"{ArtRoot}/blast.png");
 
             // The backdrop, far to near: the sun, a far ridge of hills, nearer
             // hills, a band of towers, and a street of houses. Each is painted in
@@ -181,88 +194,6 @@ namespace ArvinRunner.EditorTools
             {
                 Color c = Color.Lerp(bottom, top, y / (float)(h - 1));
                 for (int x = 0; x < w; x++) tex.SetPixel(x, y, c);
-            }
-
-            tex.Apply();
-            return tex;
-        }
-
-        // ================================================================= //
-        // The helicopter strike
-        // ================================================================= //
-
-        /// <summary>
-        /// The warning marker: a ring with cross-hairs, drawn as an outline so it
-        /// reads on top of the roof without hiding what is underneath it.
-        /// </summary>
-        private static Texture2D Target(int size)
-        {
-            var tex = NewTexture(size, size);
-            Color ink = new Color(1f, 0.35f, 0.15f, 1f);
-
-            int centre = size / 2;
-            int outer = centre - 2;
-            int inner = outer - 4;
-
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                int dx = x - centre, dy = y - centre;
-                int distance = dx * dx + dy * dy;
-
-                bool ring = distance <= outer * outer && distance >= inner * inner;
-
-                // Cross-hairs, broken at the centre so the ring stays the shape
-                // the eye catches first.
-                bool spoke = (Mathf.Abs(dx) <= 1 || Mathf.Abs(dy) <= 1) &&
-                             distance <= outer * outer &&
-                             distance >= (inner - 8) * (inner - 8);
-
-                if (ring || spoke) tex.SetPixel(x, y, ink);
-            }
-
-            tex.Apply();
-            return tex;
-        }
-
-        /// <summary>A blunt dart, pointing +X so the code can just rotate it.</summary>
-        private static Texture2D Missile(int w, int h)
-        {
-            var tex = NewTexture(w, h);
-            Color body = new Color(0.85f, 0.85f, 0.88f, 1f);
-            Color tip = new Color(1f, 0.5f, 0.2f, 1f);
-
-            FillRect(tex, 0, h / 2 - 2, w - 8, 4, body);
-            FillRect(tex, 0, 0, 5, h, body * 0.7f);        // fins at the tail
-            FillCircle(tex, w - 8, h / 2, 4, tip);         // nose
-
-            tex.Apply();
-            return tex;
-        }
-
-        /// <summary>
-        /// The impact: a hot core falling off to a soft edge. Drawn with the
-        /// falloff baked in so the sprite can simply be scaled and faded rather
-        /// than needing a particle system.
-        /// </summary>
-        private static Texture2D Blast(int size)
-        {
-            var tex = NewTexture(size, size);
-
-            int centre = size / 2;
-            float radius = centre - 1f;
-
-            Color core = new Color(1f, 0.95f, 0.70f, 1f);
-            Color edge = new Color(0.95f, 0.30f, 0.08f, 0f);
-
-            for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float dx = x - centre, dy = y - centre;
-                float distance = Mathf.Sqrt(dx * dx + dy * dy) / radius;
-                if (distance > 1f) continue;
-
-                tex.SetPixel(x, y, Color.Lerp(core, edge, distance * distance));
             }
 
             tex.Apply();

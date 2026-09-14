@@ -213,30 +213,61 @@ namespace ArvinRunner.EditorTools
 
             go.AddComponent<Hazard>();
 
-            // The placeholder target is drawn 2.0 units across, so scaling it by
-            // the radius brings it out at the lethal 2.8. It sits on the roof,
-            // under the runner.
-            const float markerSpriteSize = 2f;
-            SpriteRenderer marker = StrikePart(go, "Marker", "target",
-                                               new Color(1f, 0.35f, 0.15f), 6,
-                                               radius * 2f / markerSpriteSize);
+            // The designator's mark, lying on the roof, its outer ring exactly the
+            // lethal circle. Drawn over the roof's front face, so the lower half of
+            // the ellipse reads as the near side of a mark seen at an angle.
+            SpriteRenderer marker = StrikePart(go, "Marker", PlaceholderArt.Load("target"), 6);
+            Fit(marker, radius / StrikePainter.MarkerRingRadius);
 
-            // The fireball is 3.0 across and peaks at 1.15 of whatever scale it
-            // is given, so 0.8 lands the bright core on the lethal circle.
-            SpriteRenderer blast = StrikePart(go, "Blast", "blast",
-                                              new Color(1f, 0.85f, 0.55f), 15, 0.8f);
+            // What the fire leaves on the roof, a little wider than the fire.
+            SpriteRenderer scorch = StrikePart(go, "Scorch", PlaceholderArt.Load("scorch"), 6);
+            Fit(scorch, radius * 1.15f / StrikePainter.ScorchRadius);
 
-            // The missile, flown by the strike from the helicopter's muzzle down to
-            // the marker. The helicopter frames are a flying loop with no shot
-            // drawn in them, so this is the only missile there is. The placeholder
-            // is 0.9 units long; 1.4 brings it to 1.2, readable against a 7.4 unit
-            // aircraft.
-            SpriteRenderer missile = StrikePart(go, "Missile", "missile", Color.white, 14, 1.4f);
+            // The fireball frames, their ground line put on the roof and the fire at
+            // its widest reaching just past the lethal circle.
+            Sprite[] blastFrames = Series("blast_{0:00}", StrikePainter.BlastFrames);
+            SpriteRenderer blast = StrikePart(go, "Blast", blastFrames.Length > 0 ? blastFrames[0] : null, 15);
+            float blastWidth = radius * 1.1f / StrikePainter.BlastRadius;
+            Fit(blast, blastWidth);
+            blast.transform.localPosition = new Vector3(0f, (0.5f - StrikePainter.BlastGround) * blastWidth, 0f);
+
+            // The missile: 1.45 units of texture, about 1.3 of airframe against a
+            // 7.4 unit aircraft, with its motor flame hung off the nozzle.
+            SpriteRenderer missile = StrikePart(go, "Missile", PlaceholderArt.Load("missile"), 14);
+            Fit(missile, 1.45f);
+
+            float nozzle = 0f;
+            SpriteRenderer flame = null;
+            Sprite flameSprite = PlaceholderArt.Load("missile_flame");
+
+            if (missile.sprite != null)
+            {
+                // In the missile's own units, before its scale. The flame is a child,
+                // so it inherits that scale, and both are painted at the same PPU.
+                nozzle = (StrikePainter.MissileNozzleX - 0.5f) * missile.sprite.bounds.size.x;
+
+                if (flameSprite != null)
+                {
+                    flame = StrikePart(missile.gameObject, "Flame", flameSprite, 13);
+                    flame.transform.localScale = Vector3.one;
+                    flame.transform.localPosition = new Vector3(nozzle - flameSprite.bounds.size.x * 0.5f, 0f, 0f);
+                }
+            }
+
+            // The designator beam, stretched from the aircraft to the mark at runtime.
+            SpriteRenderer laser = StrikePart(go, "Laser", PlaceholderArt.Load("laser"), 13);
+            laser.transform.localScale = new Vector3(1f, 0.7f, 1f);
 
             var strike = go.AddComponent<MissileStrike>();
             EditorUtil.SetObject(strike, "marker", marker);
-            EditorUtil.SetObject(strike, "blast", blast);
+            EditorUtil.SetObject(strike, "laser", laser);
             EditorUtil.SetObject(strike, "missile", missile);
+            EditorUtil.SetObject(strike, "flame", flame);
+            EditorUtil.SetObject(strike, "blast", blast);
+            EditorUtil.SetObject(strike, "scorch", scorch);
+            EditorUtil.SetObjectArray(strike, "blastFrames", blastFrames);
+            EditorUtil.SetObjectArray(strike, "smokePuffs", Series("smoke_{0}", StrikePainter.SmokeVariants));
+            EditorUtil.SetFloat(strike, "nozzleOffset", nozzle);
             EditorUtil.SetFloat(strike, "warnDuration", 0.75f);
             EditorUtil.SetFloat(strike, "blastDuration", 0.9f);
             EditorUtil.SetFloat(strike, "blastRadius", radius);
@@ -244,20 +275,38 @@ namespace ArvinRunner.EditorTools
             return go;
         }
 
-        private static SpriteRenderer StrikePart(GameObject parent, string name, string sprite,
-                                                 Color tint, int sortingOrder, float scale)
+        private static SpriteRenderer StrikePart(GameObject parent, string name, Sprite sprite, int sortingOrder)
         {
             var go = new GameObject(name) { layer = parent.layer };
             go.transform.SetParent(parent.transform, false);
-            go.transform.localScale = new Vector3(scale, scale, 1f);
 
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = PlaceholderArt.Load(sprite);
-            renderer.color = tint;
+            renderer.sprite = sprite;
             renderer.sortingOrder = sortingOrder;
             renderer.enabled = false;   // MissileStrike turns these on in sequence
 
             return renderer;
+        }
+
+        /// <summary>Scales a part so its whole texture is <paramref name="worldWidth"/> across.</summary>
+        private static void Fit(SpriteRenderer renderer, float worldWidth)
+        {
+            if (renderer == null || renderer.sprite == null) return;
+
+            float scale = worldWidth / renderer.sprite.bounds.size.x;
+            renderer.transform.localScale = new Vector3(scale, scale, 1f);
+        }
+
+        /// <summary>A numbered run of generated sprites, skipping any that are missing.</summary>
+        private static Sprite[] Series(string format, int count)
+        {
+            var sprites = new List<Sprite>(count);
+            for (int i = 0; i < count; i++)
+            {
+                Sprite sprite = PlaceholderArt.Load(string.Format(format, i));
+                if (sprite != null) sprites.Add(sprite);
+            }
+            return sprites.ToArray();
         }
 
         /// <summary>

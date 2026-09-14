@@ -73,6 +73,28 @@ namespace ArvinRunner.EditorTools
             });
         }
 
+        /// <summary>Fills a serialized Vector2 array.</summary>
+        public static void SetVector2Array(Object target, string field, Vector2[] values)
+        {
+            Apply(target, field, p =>
+            {
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).vector2Value = values[i];
+            });
+        }
+
+        /// <summary>Fills a serialized float array.</summary>
+        public static void SetFloatArray(Object target, string field, float[] values)
+        {
+            Apply(target, field, p =>
+            {
+                p.arraySize = values.Length;
+                for (int i = 0; i < values.Length; i++)
+                    p.GetArrayElementAtIndex(i).floatValue = values[i];
+            });
+        }
+
         public static void SetColor(Object target, string field, Color value)
         {
             Apply(target, field, p => p.colorValue = value);

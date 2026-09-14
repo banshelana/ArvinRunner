@@ -100,7 +100,9 @@ namespace ArvinRunner
             // flying loop just keeps flying.
             if (_flipbook != null && launchDrawn) _flipbook.PlayRange(fireFirst, fireLast, looping: false);
 
-            strike.Launch(muzzle != null ? muzzle.position : transform.position);
+            // The transform rather than a point, so the designator beam follows the
+            // aircraft as it keeps flying.
+            strike.Launch(muzzle != null ? muzzle : transform);
         }
 
         private PlayerController Player()

@@ -73,9 +73,9 @@ running, deep crouch) by silhouette area and, where the pose allows, by height.
 `DrawingScale` in `PlayerAnimationImport.cs` holds the result, and the base scale
 comes from the jump's upright first and last frames at 1.80 units:
 
-| Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall | lose | handJump |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| drawn at | 1.18 | 1.02 | 0.86 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 | 0.78 | 0.85 |
+| Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall | lose | handJump | victory | skating | Fallout |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| drawn at | 1.18 | 1.02 | 0.86 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 | 0.78 | 0.85 | 0.86 | 1.07 | 0.76 |
 
 `Tackle` was redrawn after the first measurement — a lunge into a crawl rather
 than a feet-first slide — and re-measured on its running frames.
@@ -199,6 +199,9 @@ new art.
 | `JumpFall` | falling with no jump behind it | `Fall` 12–16 and back |
 | `Slide` | sliding under an overhang | `Tackle` 8 9 13 12 10 11, held on 11 |
 | `GetUp` | the end of a slide | `Tackle` 14–19 |
+| `SkateOn` | a slide under something 3+ units long | `skating` 1 2 3 4 5 7 6 8 9 18 17 |
+| `SkateGlide` | gliding under it, looped | `skating` 17 14 13 16 15 12 11 10 |
+| `SkateOff` | the end of a skate | `skating` 18–24 |
 | `Roll` | hard landing | `BigJump` 16–22 |
 | `Vault` | a hand vault over or onto a low obstacle | `handJump` 4 11 10 5 6 7 12 13 |
 | `WallRun` | running up a wall | `climb` 8 14 16 11 10 9 12 18 17 13 15 |
@@ -206,7 +209,9 @@ new art.
 | `LedgeClimb` | pulling up over a ledge | `climb` 19–22 |
 | `Climb` | stuck against something | `climb` 1–7 |
 | `Death` | hit an obstacle | `lose` 10–24 |
-| `DeathFall` | fell out of the level | `Fall` 5–16 |
+| `Victory` | crossing the finish line | `victory` 2 3 4 7 5 6 24 23 21 22 18 8 10 9 12 11 19 20 25 26 |
+| `DeathFall` | falling out of the level | `Fall` 12 13 14 15 16 15 14 13, the same as `JumpFall` |
+| `DeathFallLoop` | still falling, looped | `Fall` 12 13 14 15 16 15 14 13, the same as `JumpFall` |
 
 The death starts at the impact: `lose` 1–9 are the runner still running into
 whatever it was, and by the time `Death` plays that has happened. Every frame is
@@ -229,6 +234,59 @@ goes missing.
 the moment the runner leaves the ground. That probe looks four units ahead, well
 past the 2.4 the vault probe reaches, and "small" means a top no higher than
 `maxVaultHeight`.
+
+### Falling out of the level
+
+A fall used to end only at the kill zone, 14 units below the lowest ground. By
+then the camera had stopped following at its floor, so the runner simply dropped
+out of the bottom of the screen and the death happened off it.
+
+Now the run ends the moment a fall cannot be saved (`PlayerController.FallingOut`):
+dropping, more than `falloutMargin` (1.5) below the last ground stood on, and with
+nothing solid below or ahead near enough to fall onto at the current speed. It
+also counts as saveable if the air jump is still in hand and a ledge is within
+its reach. The check uses the geometry rather than a fixed depth, because levels
+step down, and a drop onto a lower roof has that roof under it.
+
+Then three things make the fall readable:
+
+- **The same fall pose all the way down.** The body keeps the fall it was already
+  in, leaning back, head to the left and legs to the right, rather than switching
+  clip when the run ends. The `Fallout` dive frames turned the body over partway
+  down and are no longer used.
+- **A slower drop**: gravity at `falloutGravity` (0.45) of normal and speed capped
+  at `falloutMaxSpeed` (12), so the fall stays on screen long enough to see.
+- **The camera follows him down** `fallFollowDepth` (4) units instead of shaking,
+  then holds and lets the body fall out of frame before the panel comes up.
+
+The kill zone stays as a backstop.
+
+### Tackle or skate
+
+A swipe down slides, and what the slide looks like depends on what it is going
+under. As it starts, `PlayerSensors.FindOverhead` looks up to `skateLookAhead` (8)
+units ahead for the nearest solid whose underside sits between sliding and
+standing height. It follows that solid through any pieces that carry it on, then
+measures its length:
+
+- **`skateMinWidth` (3) or longer** is skated under. The runner drops onto the
+  board, glides flat and paddling, and rides to the far end even if the swipe
+  came early, then steps off holding the board.
+- **Shorter, or nothing there**, is the tackle, as before.
+
+3 splits the levels cleanly. The scaffold rails (1.4) are tackled; the overhang
+(5), the scaffold deck (7) and the overpass deck (9) are skated. A press head is a
+hazard, not a solid, so sliding under one is always the tackle.
+
+### Finishing a level
+
+Crossing the finish line no longer stops the runner dead. `PlayerController.Finish`
+puts them in a `Victory` state that brakes evenly over `victoryStopDistance`
+(2.2 units) while the victory clip slows them from a run to a stand. Then they pump
+a fist, throw both arms up, and hold one fist raised. Crossed in the air, the
+jump plays out and the celebration starts on touchdown. `finishScreenDelay` went
+from 1.2 to 2.6s, so the 2.35s clip is seen before the level-clear panel covers
+it.
 
 ### The hand vault
 
@@ -590,22 +648,83 @@ sharing a tag never get placed back to back.
 | `Hazard` | ends the run on contact; `Armed` can be toggled |
 | `CollapsingPlatform` | gives way shortly after you step on it |
 | `MovingPlatform` | ping-pongs, and carries the player |
-| `SwingingCrane` | pendulum wrecking ball |
+| `SwingingCrane` | tower crane swinging a steel crate, drawn from `Art/MovingObstacles/Crane` |
 | `LaserGate` | beam that pulses on and off as the runner approaches |
-| `CrusherPress` | slams down on a cycle; slide through the gap |
+| `CrusherPress` | slam press drawn from `Art/MovingObstacles/presser`, timed to the runner's approach; slide under the waiting head |
 | `BreakableGlass` | only smashes if you hit it fast enough |
 | `Trampoline` | launches the runner and refreshes the double jump |
 | `GustZone` | pulsing crosswind that shortens jumps |
 | `Collectible` | pickup, feeds the score |
 | `MovingObstacle` | travels leftward once the runner is near; despawns behind them |
 | `HelicopterStrike` | fires one missile at a marked point as it passes |
-| `MissileStrike` | the marker and the fire it leaves |
+| `MissileStrike` | the laser mark, the missile's flight and smoke, the fireball and the scorch |
 | `SpriteFlipbook` | cycles an obstacle's frames, or plays a slice of them once |
+
+### The crane
+
+The swinging obstacle in `Chunk_WreckingBall` (levels 4, 5 and 7) and
+`Chunk_CraneGap` (levels 9 and 10) is a tower crane swinging a steel crate, built
+from the frames in `Art/MovingObstacles/Crane`.
+
+- **Taken apart on import.** `CraneImport` (run by the build, or
+  **ArvinRunner → Re-import Crane**) splits the frames into one sprite of the
+  tower and jib - the pixels every frame shares - and one sprite per frame of the
+  rope, hook and crate, written to `Art/Generated/Crane`. `CraneRig` measures the
+  swing: the pivot, and the angle each drawing shows.
+- **Smooth at any frame rate.** The drawings are 24 over a four-second swing, under
+  six a second. So `SwingingCrane` turns the load to the true angle every rendered
+  frame, taken off a smooth curve through the drawings' angles, and shows the
+  nearest drawing turned by the few degrees between. Every pixel is still the
+  artist's.
+- **Scale and timing.** The crane is 6.6 tall, which makes the crate 1.8 across,
+  riding 0.2 above the roof at the bottom of its swing and 0.6 at the ends -
+  well under the 3.2 jump. On a flat roof one jump
+  gets over it at any point in the swing; over the gap, jump plus air jump always
+  does. The swing takes a real pendulum's time for its length, about 4.2 seconds,
+  so it reads as a heavy load.
+- **What hits.** A box of 85% of the crate, fitted to the crate in each drawing.
+  The crate hangs on its slings and tilts less than the rope, so the box is
+  measured per drawing rather than carried rigidly with the swing. The tower and
+  rope are scenery.
+- **Replacing the art.** Keep every frame on one canvas, the tower identical
+  in each, and the load swinging through one whole cycle at even steps in time.
+  Rebuild, and everything above is re-measured. Without frames, the crane falls
+  back to the old red pendulum.
+
+### The press
+
+The slamming obstacle in `Chunk_Crusher` (levels 4, 5 and 7) and
+`Chunk_PressAlley` (levels 7 and 10) is a hydraulic slam press, built from the
+frames in `Art/MovingObstacles/presser`.
+
+- **Measured on import.** `PressImport` (run by the build, or
+  **ArvinRunner → Re-import Press**) has `PressRig` find, in every frame, the top of
+  the base plate - set flush with the roof - and the head block, and sort the frames
+  into waiting, slamming, holding and rising. Frames drawn on taller canvases (the
+  two with the lamp's glow) line up by the machine's foot.
+- **Timed like a press.** Waiting takes 1.0s, the slam 0.15, the hold 0.45 and the
+  rise 0.7 - a 2.3s cycle, about the old block's. Frames inside each part share its
+  time evenly, which keeps the easing and acceleration the artist drew.
+- **Scale.** The gap under the waiting head is 1.3: too low to run through, high
+  enough to slide under. That makes the machine 4.2 wide and 4.9 tall.
+- **What kills.** The head block (92% of its drawn width) and the piston rod, both
+  moved onto each frame's drawing. The frame, posts and hoses are scenery.
+- **Timed to the runner, not the clock.** The drawn head comes all the way down onto
+  the plate, so on a clock about half of all arrivals would be unsurvivable however
+  well the slide was timed. Like `LaserGate`, the press's place in its cycle is
+  keyed to how far away the runner is, 23 units of approach per cycle: it slams over
+  and over as the runner comes in, is always waiting when they reach it, and slams
+  0.4s later - just behind a runner who slid. Simulated at speeds 9-11: one slide per
+  press gets through every time, and running through standing never does.
+- **Replacing the art.** One cycle starting with the head waiting at the top, the
+  head a dark block between the posts, the machine standing on a dark base plate.
+  Rebuild, and everything above is re-measured. Without frames, the press falls back
+  to the old red block.
 
 ### Chunks that stack two mechanics
 
 `ChunkFactoryAdvanced.cs` holds the chunks that put two demands on the same beat
-— a beam standing in the middle of a gap, a wrecking ball swinging across one,
+— a beam standing in the middle of a gap, a crane swinging its load across one,
 two presses half a cycle apart, a gunship strike that lands just before the roof
 starts giving way. They exist because a library that teaches one thing per chunk
 runs out of room to escalate: before them there was a single difficulty-5 chunk
@@ -697,9 +816,25 @@ The launch point is under the front of the cabin, between the skids.
 
 The marker is what makes the strike fair rather than memorised, and it is drawn
 to the same radius as the blast that follows — a marker smaller than the fire
-would be a lie. The marker and fireball are generated in `PlaceholderArt`
-alongside the spikes and coins, and so is the missile, which `MissileStrike` flies
-from the helicopter's muzzle down to the marker.
+would be a lie. All of the strike's art is painted in code by `StrikePainter`, with nothing to
+draw by hand:
+
+- **The mark** is a laser designator's spot lying on the roof in perspective, an
+  ellipse rather than a circle, its outer ring exactly the lethal radius. A beam
+  runs from the aircraft to it and follows the aircraft as it flies on, and the
+  mark pulses faster as the shot closes.
+- **The missile** is shaded as a lit cylinder, with fins, a warning band and a
+  radome nose. It drops off the rail, lights its motor, and accelerates into a
+  curving dive, turned along its flight. Its smoke trail is laid by distance
+  flown, not by time. At a fixed rate the puffs ended up 0.3 units apart near
+  impact and the trail broke into beads.
+- **The impact** shakes the camera, and 16 painted frames swell from a white
+  flash into a fireball throwing sparks and debris, then cool into smoke that
+  rises and thins. The roof keeps a scorch mark for a few seconds after.
+
+None of the timing a player reads changed. The warning is still 0.75s, and the
+fire is lethal for exactly 0.9s. The smoke and scorch that outlast it are
+harmless.
 
 The helicopter's frames are **one flying loop**: 24 frames in which the rotor
 swaps between a spread blade and an edge-on one every frame and the body bobs

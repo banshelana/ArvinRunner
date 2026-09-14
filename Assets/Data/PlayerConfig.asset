@@ -26,6 +26,8 @@ MonoBehaviour:
   slideSpeedMultiplier: 1.15
   slideHeightFraction: 0.45
   airDiveSpeed: 22
+  skateMinWidth: 3
+  skateLookAhead: 8
   hardLandingSpeed: 16
   rollDuration: 0.5
   rollHeightFraction: 0.5
@@ -50,5 +52,9 @@ MonoBehaviour:
   ledgeClimbDuration: 0.45
   maxLedgeGrabRiseSpeed: 2
   wallCrashGrace: 0.35
+  falloutMargin: 1.5
+  falloutGravity: 0.45
+  falloutMaxSpeed: 12
+  victoryStopDistance: 2.2
   deathSlowMoDuration: 0.6
   deathTimeScale: 0.25

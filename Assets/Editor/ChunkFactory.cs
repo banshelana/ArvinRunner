@@ -238,27 +238,16 @@ namespace ArvinRunner.EditorTools
             return root;
         }
 
-        /// <summary>A crane swinging a wrecking ball across the roof.</summary>
+        /// <summary>A tower crane swinging its load across the roof.</summary>
         private static GameObject WreckingBall()
         {
             GameObject root = NewChunk("Chunk_WreckingBall", 30f, 0f, 0f, 4,
                                        ChunkSkill.Timing | ChunkSkill.Jump, "crane");
             Ground(root, 0f, 0f, 30f);
 
-            // The pivot rotates; the arm and ball hang beneath it.
-            var pivot = new GameObject("CranePivot");
-            pivot.transform.SetParent(root.transform, false);
-            pivot.transform.localPosition = new Vector3(15f, 9f, 0f);
-            pivot.AddComponent<SwingingCrane>();
-
-            GameObject arm = Box(pivot, "Arm", 0f, -3.25f, 0.25f, 6.5f, GameLayers.Ground, MetalTone,
-                                 anchorBottom: false, centred: true, collider: false);
-            arm.transform.localPosition = new Vector3(0f, -3.25f, 0f);
-
-            GameObject ball = Box(pivot, "Ball", 0f, -7f, 2.2f, 2.2f, GameLayers.Hazard, HazardTone,
-                                  anchorBottom: false, centred: true, trigger: true);
-            ball.transform.localPosition = new Vector3(0f, -7f, 0f);
-            ball.AddComponent<Hazard>();
+            // The crate sweeps the middle of the roof, 12.4 to 17.8; the tower
+            // stands just behind where it swings, 10.9 to 12.5.
+            Crane(root, 15f, 0f, phase: 0f);
 
             return root;
         }
@@ -305,23 +294,7 @@ namespace ArvinRunner.EditorTools
                                        ChunkSkill.Slide | ChunkSkill.Timing, "press");
             Ground(root, 0f, 0f, 28f);
 
-            var rig = new GameObject("Press");
-            rig.transform.SetParent(root.transform, false);
-            rig.transform.localPosition = new Vector3(13f, 0f, 0f);
-
-            Box(rig, "Frame", 0f, 6.4f, 4.5f, 0.6f, GameLayers.Ground, MetalTone,
-                anchorBottom: false, centred: true, collider: false);
-
-            GameObject head = Box(rig, "Head", 0f, 4.6f, 3.4f, 2.2f, GameLayers.Hazard, HazardTone,
-                                  anchorBottom: false, centred: true, trigger: true);
-            head.transform.localPosition = new Vector3(0f, 4.6f, 0f);
-            head.AddComponent<Hazard>();
-
-            var press = rig.AddComponent<CrusherPress>();
-            EditorUtil.SetObject(press, "head", head.transform);
-            EditorUtil.SetFloat(press, "travel", 2.4f);
-            EditorUtil.SetFloat(press, "holdUp", 1.0f);
-            EditorUtil.SetFloat(press, "holdDown", 0.4f);
+            Press(root, 13f, phase: 0f);
 
             return root;
         }

@@ -92,6 +92,21 @@ namespace ArvinRunner
         // The state before the current one, so a state can start differently
         // depending on how it was reached - see ArrivalAnim.
         private PlayerState _previousState;
+
+        // Victory: how hard the runner brakes, and whether the celebration has
+        // started - it waits for the feet to be on the ground.
+        private float _victoryBraking;
+        private bool _celebrating;
+
+        // The slide in progress is on the skateboard rather than a tackle, and
+        // lasts until the runner is past the far end of the overhead.
+        private bool _skating;
+        private float _skateUntilX;
+
+        // Falling out of the level: the height of the last ground stood on, and
+        // whether the body now dropping is one that has already lost.
+        private float _lastGroundedFeetY;
+        private bool _fallingOut;
         private float _speedBoost = 1f;    // slide / powerup multiplier
         private bool _superJumpQueued;     // set the instant before SetState(Jumping)
         private float _runTime;            // drives the difficulty speed ramp
@@ -151,9 +166,12 @@ namespace ArvinRunner
             _runTime = 0f;
             _speedBoost = 1f;
             _rb.drag = 0f;
+            _fallingOut = false;
+            _lastGroundedFeetY = spawnPosition.y;
             _blockedTime = 0f;
             _usedDoubleJump = false;
             _superJumpQueued = false;
+            _skating = false;
             LaunchSpeed = 0f;
             if (meter != null) meter.ResetCharge();
             _wallRunClaimed = null;
@@ -171,7 +189,23 @@ namespace ArvinRunner
             _stateTime += Time.fixedDeltaTime;
 
             if (State == PlayerState.Dead)
+            {
+                // A body falling out of the level drops at a speed the struggle
+                // can be read at, rather than gone in a blink.
+                if (_fallingOut && _rb.velocity.y < -config.falloutMaxSpeed)
+                    _rb.velocity = new Vector2(_rb.velocity.x, -config.falloutMaxSpeed);
+
+                // Tipped over into the dive: keep struggling until the body is gone.
+                if (_fallingOut && _stateAnim == PlayerAnim.DeathFall && ClipFinished)
+                    PlayAnim(PlayerAnim.DeathFallLoop);
                 return;
+            }
+
+            if (State == PlayerState.Victory)
+            {
+                TickVictory();
+                return;
+            }
 
             if (!ControlEnabled)
             {
@@ -189,6 +223,7 @@ namespace ArvinRunner
             if (_sensors.Grounded)
             {
                 _lastGroundedTime = Time.time;
+                _lastGroundedFeetY = _capsule.bounds.min.y;
                 _wallRunClaimed = null;   // touching down re-arms the wall run
             }
 
@@ -224,7 +259,11 @@ namespace ArvinRunner
                     break;
 
                 case PlayerState.Running:
-                    PlayAnim(ArrivalAnim(_previousState));
+                    // Off the board is its own get-up; everything else as before.
+                    PlayAnim(_previousState == PlayerState.Sliding && _skating
+                        ? PlayerAnim.SkateOff
+                        : ArrivalAnim(_previousState));
+                    _skating = false;
                     _usedDoubleJump = false;
                     break;
 
@@ -281,7 +320,17 @@ namespace ArvinRunner
                 case PlayerState.Sliding:
                     SetColliderFraction(config.slideHeightFraction);
                     _speedBoost = config.slideSpeedMultiplier;
-                    PlayAnim(PlayerAnim.Slide);
+
+                    // Under something long - a deck, an overhang - on the
+                    // skateboard; under something short, or nothing, the tackle.
+                    // Decided once, here, from what the slide is heading under.
+                    _skating = _sensors.FindOverhead(config.skateLookAhead,
+                                                     _standSize.y * config.slideHeightFraction,
+                                                     out float overheadStart, out float overheadEnd)
+                               && overheadEnd - overheadStart >= config.skateMinWidth;
+                    _skateUntilX = overheadEnd + _sensors.Width * 0.5f + 0.1f;
+
+                    PlayAnim(_skating ? PlayerAnim.SkateOn : PlayerAnim.Slide);
                     OnSlideStarted?.Invoke();
                     break;
 
@@ -310,6 +359,15 @@ namespace ArvinRunner
 
                 case PlayerState.LedgeClimb:
                     BeginLedgeClimb();
+                    break;
+
+                case PlayerState.Victory:
+                    // Across the line on the ground, the celebration starts at
+                    // once; in the air, whatever was playing carries on until
+                    // the feet are down - see TickVictory.
+                    _speedBoost = 1f;
+                    _celebrating = false;
+                    if (_sensors.Grounded) Celebrate();
                     break;
 
                 case PlayerState.Dead:
@@ -379,7 +437,8 @@ namespace ArvinRunner
             // once it has played. Not while clinging: the cling holds the slot
             // until the runner is free, and hands it back to whichever of these
             // it covered.
-            if (!_clinging && (_stateAnim == PlayerAnim.Land || _stateAnim == PlayerAnim.GetUp) && ClipFinished)
+            if (!_clinging && (_stateAnim == PlayerAnim.Land || _stateAnim == PlayerAnim.GetUp ||
+                               _stateAnim == PlayerAnim.SkateOff) && ClipFinished)
                 PlayAnim(PlayerAnim.Run);
 
             // The super jump is its own gesture rather than an upgrade of the
@@ -417,8 +476,15 @@ namespace ArvinRunner
                 return;
             }
 
-            // Sliding under a low ceiling: keep going until there is headroom.
-            bool expired = _stateTime >= config.slideDuration;
+            // On the board: down onto it, then gliding until the slide ends.
+            if (_skating && _stateAnim == PlayerAnim.SkateOn && ClipFinished)
+                PlayAnim(PlayerAnim.SkateGlide);
+
+            // Sliding under a low ceiling: keep going until there is headroom. A
+            // skate also rides out to the far end of what it went under, so a
+            // swipe taken early does not stand the runner up beneath it.
+            bool expired = _stateTime >= config.slideDuration &&
+                           !(_skating && transform.position.x < _skateUntilX);
             if (expired && _sensors.CeilingBlocked) return;
 
             if (ConsumeUp() && !_sensors.CeilingBlocked)
@@ -454,6 +520,15 @@ namespace ArvinRunner
             // Rising -> falling swap keeps the animation honest.
             if (State != PlayerState.Falling && _rb.velocity.y <= 0.01f)
                 SetState(PlayerState.Falling);
+
+            // Past saving: the run is over now, not when the body reaches the kill
+            // zone 14 units down and off the bottom of the screen - so the fall is
+            // something the player gets to see.
+            if (FallingOut())
+            {
+                Kill(DeathCause.Fell);
+                return;
+            }
 
             // The trick that carried the runner over the apex has finished, so
             // the fall can have the slot back. Usually it never comes up - the
@@ -491,6 +566,34 @@ namespace ArvinRunner
                 // Dive-slam: cut straight down, then roll out of the landing.
                 _rb.velocity = new Vector2(_rb.velocity.x, -config.airDiveSpeed);
             }
+        }
+
+        /// <summary>
+        /// True once a fall cannot be saved: dropping, clearly below the last
+        /// ground stood on, and with nothing solid under the runner or ahead of
+        /// them near enough to fall onto at the speed they are going - nor high
+        /// enough to reach with the air jump if they still have it.
+        ///
+        /// Checked against geometry rather than a fixed depth, because the levels
+        /// step down: a drop to a lower roof has that roof under it and is fine.
+        /// </summary>
+        private bool FallingOut()
+        {
+            if (_rb.velocity.y >= 0f) return false;
+
+            Bounds body = _capsule.bounds;
+            float feet = body.min.y;
+            if (feet > _lastGroundedFeetY - config.falloutMargin) return false;
+
+            float reach = CanAirJump() ? config.doubleJumpHeight : 0f;
+            float left = body.min.x;
+            float right = body.max.x + Mathf.Abs(_rb.velocity.x) * 1.5f + 2f;
+            float bottom = feet - 40f;
+            float top = feet + reach + 0.3f;
+
+            return Physics2D.OverlapBox(new Vector2((left + right) * 0.5f, (bottom + top) * 0.5f),
+                                        new Vector2(right - left, top - bottom), 0f,
+                                        GameLayers.SolidMask) == null;
         }
 
         private bool CanAirJump()
@@ -939,8 +1042,13 @@ namespace ArvinRunner
 
             if (cause == DeathCause.Fell)
             {
-                // Out of the bottom of the screen: carry on falling, tumbling.
-                _rb.velocity = new Vector2(_rb.velocity.x * 0.2f, _rb.velocity.y);
+                // Falling and struggling: most of the forward speed gone, dropping
+                // under lighter gravity and a capped speed so the struggle is on
+                // screen while the camera follows it down - see CameraFollow.
+                _fallingOut = true;
+                _rb.gravityScale = config.fallGravity * config.falloutGravity;
+                _rb.velocity = new Vector2(_rb.velocity.x * 0.35f,
+                                           Mathf.Max(_rb.velocity.y, -config.falloutMaxSpeed));
                 PlayAnim(PlayerAnim.DeathFall);
             }
             else
@@ -955,12 +1063,42 @@ namespace ArvinRunner
             OnDied?.Invoke(cause);
         }
 
-        /// <summary>Called by the finish line - coast to a stop, do not kill.</summary>
+        /// <summary>
+        /// Called by the finish line: ease to a stop and celebrate.
+        ///
+        /// The runner used to stop dead on the line, from running speed to
+        /// standing in one physics step. Now they brake evenly over
+        /// victoryStopDistance - the braking that covers exactly that distance
+        /// from the speed they crossed at - while the victory clip's run-in
+        /// frames slow them from a run to a stand.
+        /// </summary>
         public void Finish()
         {
             ControlEnabled = false;
-            _rb.velocity = new Vector2(0f, _rb.velocity.y);
-            if (State != PlayerState.Dead) SetState(PlayerState.Idle);
+            if (State == PlayerState.Dead) return;
+
+            float speed = Mathf.Max(0f, _rb.velocity.x);
+            float distance = config != null ? Mathf.Max(0.1f, config.victoryStopDistance) : 2.2f;
+            _victoryBraking = Mathf.Max(1f, speed * speed / (2f * distance));
+
+            SetState(PlayerState.Victory);
+        }
+
+        private void TickVictory()
+        {
+            float vx = Mathf.MoveTowards(_rb.velocity.x, 0f, _victoryBraking * Time.fixedDeltaTime);
+            _rb.velocity = new Vector2(vx, _rb.velocity.y);
+            CurrentSpeed = vx;
+
+            ApplyGravity();
+
+            if (!_celebrating && _sensors.Grounded) Celebrate();
+        }
+
+        private void Celebrate()
+        {
+            _celebrating = true;
+            PlayAnim(PlayerAnim.Victory);
         }
 
         /// <summary>Bounce pads and springs call this.</summary>

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace ArvinRunner.EditorTools
@@ -70,8 +71,8 @@ namespace ArvinRunner.EditorTools
         }
 
         /// <summary>
-        /// The wrecking ball swings across a gap instead of along a roof. Same
-        /// ball, entirely different question - a mistimed jump has nowhere to
+        /// The crane swings its load across a gap instead of along a roof. Same
+        /// crate, entirely different question - a mistimed jump has nowhere to
         /// land rather than just costing the run.
         /// </summary>
         private static GameObject CraneGap()
@@ -81,7 +82,14 @@ namespace ArvinRunner.EditorTools
             Ground(root, 0f, 0f, 12f);
             Ground(root, 19f, 0f, 15f);
 
-            Crane(root, 15.5f, 9f, phase: 0f);
+            // The tower's foot at the very edge of the near roof, so the crate
+            // swings out over the gap - 11.8 to 17.2 - and only just reaches back
+            // over the ledge at the end of its swing. Simulated against the jump:
+            // one jump gets across through 40-60% of the swing depending on speed,
+            // and jump plus air jump through all of it.
+            CraneImport.Rig art = CraneImport.Load();
+            float swingX = art != null ? 12f - art.BaseRight - 0.05f : 15.5f;
+            Crane(root, swingX, 0f, phase: 0f);
 
             Coins(root, 13f, 3.2f, 4, 1.3f, 1.0f);
             return root;
@@ -97,7 +105,11 @@ namespace ArvinRunner.EditorTools
                                        ChunkSkill.Slide | ChunkSkill.Timing, "press");
             Ground(root, 0f, 0f, 34f);
 
-            // Half a cycle apart, so one is always rising as the other falls.
+            // Half a cycle apart, so one is always rising as the other falls. The
+            // drawn presses are each timed to the runner's arrival instead, and
+            // still read that way: ten units apart is under half their 23-unit
+            // cycle, so the second is slamming as the runner comes out from under
+            // the first - and waiting again by the time they reach it. Two slides.
             Press(root, 12f, phase: 0f);
             Press(root, 22f, phase: 0.5f);
 
@@ -298,8 +310,73 @@ namespace ArvinRunner.EditorTools
             return beam;
         }
 
-        /// <summary>A crane whose ball sweeps the ground at x.</summary>
-        private static GameObject Crane(GameObject parent, float x, float height, float phase)
+        /// <summary>
+        /// A tower crane standing on the roof at groundY, its load swinging
+        /// through x - x is where the crate hangs at rest, and the tower stands
+        /// to its left.
+        ///
+        /// Built from <see cref="CraneImport"/>: the tower is one still sprite,
+        /// and the rope, hook and crate turn on a child about the drawn pivot,
+        /// with the crate's collider on the same child so it goes wherever the
+        /// crate is drawn. The tower has no collider - it stands behind the
+        /// runner, the way scenery does. Without crane frames this falls back to
+        /// the old red pendulum.
+        /// </summary>
+        private static GameObject Crane(GameObject parent, float x, float groundY, float phase)
+        {
+            CraneImport.Rig art = CraneImport.Load();
+            if (art == null) return PendulumCrane(parent, x, groundY + 9f, phase);
+
+            var root = new GameObject("Crane");
+            root.transform.SetParent(parent.transform, false);
+            root.transform.localPosition = new Vector3(x, groundY + art.PivotHeight, 0f);
+
+            // In front of the roof, behind the runner and the load.
+            var tower = new GameObject("Tower");
+            tower.transform.SetParent(root.transform, false);
+            var towerRenderer = tower.AddComponent<SpriteRenderer>();
+            towerRenderer.sprite = art.Tower;
+            towerRenderer.sortingOrder = 9;
+
+            var swing = new GameObject("Swing");
+            swing.transform.SetParent(root.transform, false);
+
+            var load = new GameObject("Load");
+            load.transform.SetParent(swing.transform, false);
+            var loadRenderer = load.AddComponent<SpriteRenderer>();
+            loadRenderer.sprite = art.Loads[0];
+            loadRenderer.sortingOrder = 10;
+            load.transform.localRotation = Quaternion.Euler(0f, 0f, -art.Angles[0]);
+
+            // On the load rather than the swing: the crate hangs on its slings and
+            // tilts less than the rope, so it is placed on each drawing's own
+            // crate as the drawings change.
+            var crate = new GameObject("Crate") { layer = GameLayers.Hazard };
+            crate.transform.SetParent(load.transform, false);
+            crate.transform.localPosition = art.CrateCentres[0];
+            crate.transform.localRotation = Quaternion.Euler(0f, 0f, art.CrateTilts[0]);
+            var box = crate.AddComponent<BoxCollider2D>();
+            box.size = art.CrateSize * CraneImport.CrateHitShare;
+            box.isTrigger = true;
+            crate.AddComponent<Hazard>();
+
+            var crane = root.AddComponent<SwingingCrane>();
+            EditorUtil.SetObject(crane, "pivot", swing.transform);
+            EditorUtil.SetObject(crane, "load", loadRenderer);
+            EditorUtil.SetObjectArray(crane, "frames", art.Loads);
+            EditorUtil.SetFloatArray(crane, "frameAngles", art.Angles);
+            EditorUtil.SetObject(crane, "crate", crate.transform);
+            EditorUtil.SetVector2Array(crane, "crateCentres", art.CrateCentres);
+            EditorUtil.SetFloatArray(crane, "crateTilts", art.CrateTilts);
+            EditorUtil.SetFloat(crane, "period", art.Period);
+            EditorUtil.SetFloat(crane, "phase", phase);
+
+            return root;
+        }
+
+        /// <summary>The crane before there was crane art: a red ball on a grey
+        /// arm, swinging from a pivot at height.</summary>
+        private static GameObject PendulumCrane(GameObject parent, float x, float height, float phase)
         {
             var pivot = new GameObject("CranePivot");
             pivot.transform.SetParent(parent.transform, false);
@@ -321,7 +398,74 @@ namespace ArvinRunner.EditorTools
         }
 
         /// <summary>An industrial press with its head at x.</summary>
+        /// <summary>
+        /// The slam press, standing on the roof at x: its base plate flush with
+        /// the roof, the head waiting high enough to slide under.
+        ///
+        /// Built from <see cref="PressImport"/>. The machine is one sprite that
+        /// changes frame by frame; the head and the piston rod kill, on colliders
+        /// that <see cref="CrusherPress"/> moves onto them as each frame draws
+        /// them. The frame and posts are scenery. Without press frames this falls
+        /// back to the old red block.
+        /// </summary>
         private static GameObject Press(GameObject parent, float x, float phase)
+        {
+            PressImport.Rig art = PressImport.Load();
+            if (art == null) return PressBlock(parent, x, phase);
+
+            var rig = new GameObject("Press");
+            rig.transform.SetParent(parent.transform, false);
+            rig.transform.localPosition = new Vector3(x, 0f, 0f);
+
+            // In front of the roof, behind the runner.
+            var body = new GameObject("Body");
+            body.transform.SetParent(rig.transform, false);
+            var renderer = body.AddComponent<SpriteRenderer>();
+            renderer.sprite = art.Frames[0];
+            renderer.sortingOrder = 9;
+
+            var head = new GameObject("Head") { layer = GameLayers.Hazard };
+            head.transform.SetParent(rig.transform, false);
+
+            var headBox = head.AddComponent<BoxCollider2D>();
+            headBox.isTrigger = true;
+            headBox.offset = art.HeadCentres[0];
+            headBox.size = art.HeadSizes[0];
+
+            var rodBox = head.AddComponent<BoxCollider2D>();
+            rodBox.isTrigger = true;
+
+            head.AddComponent<Hazard>();
+
+            // The head's drawn width, trimmed at the rounded ends.
+            var sizes = art.HeadSizes
+                           .Select(s => new Vector2(s.x * PressImport.HeadHitShare, s.y))
+                           .ToArray();
+
+            var press = rig.AddComponent<CrusherPress>();
+            EditorUtil.SetObject(press, "body", renderer);
+            EditorUtil.SetObjectArray(press, "frames", art.Frames);
+            EditorUtil.SetFloatArray(press, "frameDurations", art.Durations);
+            EditorUtil.SetObject(press, "headBox", headBox);
+            EditorUtil.SetObject(press, "rodBox", rodBox);
+            EditorUtil.SetVector2Array(press, "headCentres", art.HeadCentres);
+            EditorUtil.SetVector2Array(press, "headSizes", sizes);
+            EditorUtil.SetVector2(press, "rodSpan", new Vector2(art.RodLeft, art.RodRight));
+            EditorUtil.SetFloat(press, "rodTop", art.RodTop);
+
+            // Timed to the runner's arrival rather than to a phase - see
+            // CrusherPress. Every drawn press is waiting when the runner reaches
+            // it; phase only offsets the clock a press falls back to with no runner.
+            EditorUtil.SetFloat(press, "arrivalTime", art.ArrivalTime);
+            EditorUtil.SetFloat(press, "wavelength", art.Wavelength);
+            EditorUtil.SetFloat(press, "phase", phase);
+
+            return rig;
+        }
+
+        /// <summary>The press before there was press art: a red block on a grey
+        /// frame, moved between two heights.</summary>
+        private static GameObject PressBlock(GameObject parent, float x, float phase)
         {
             var rig = new GameObject("Press");
             rig.transform.SetParent(parent.transform, false);

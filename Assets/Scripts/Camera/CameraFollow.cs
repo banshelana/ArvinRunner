@@ -33,6 +33,14 @@ namespace ArvinRunner
         [SerializeField] private bool clampBottom = true;
         [SerializeField] private float minimumY = -6f;
 
+        [Header("Falling out")]
+        [Tooltip("How far the camera follows a body falling out of the level before it " +
+                 "stops and lets the body drop out of frame.")]
+        [SerializeField] private float fallFollowDepth = 4f;
+        [SerializeField] private float fallFollowSmoothing = 0.2f;
+        [Tooltip("Where the falling body is held, relative to the camera centre.")]
+        [SerializeField] private float fallFraming = 0.5f;
+
         [Header("Shake")]
         [SerializeField] private float deathShakeAmount = 0.35f;
         [SerializeField] private float deathShakeDuration = 0.4f;
@@ -41,7 +49,9 @@ namespace ArvinRunner
         private float _xVelocity, _yVelocity, _lookVelocity;
         private float _lookAhead;
         private float _anchoredY;
-        private float _shakeTimer, _shakeStrength;
+        private float _shakeTimer, _shakeStrength, _shakeDuration = 0.01f;
+        private bool _fallingOut;
+        private float _fallFloorY;
 
         private void Awake()
         {
@@ -80,6 +90,7 @@ namespace ArvinRunner
 
             _anchoredY = target.position.y;
             _lookAhead = 0f;
+            _fallingOut = false;
             transform.position = new Vector3(DesiredX(), DesiredY(), transform.position.z);
         }
 
@@ -91,7 +102,8 @@ namespace ArvinRunner
             UpdateVerticalAnchor();
 
             float x = Mathf.SmoothDamp(transform.position.x, DesiredX(), ref _xVelocity, horizontalSmoothing);
-            float y = Mathf.SmoothDamp(transform.position.y, DesiredY(), ref _yVelocity, verticalSmoothing);
+            float y = Mathf.SmoothDamp(transform.position.y, DesiredY(), ref _yVelocity,
+                                       _fallingOut ? fallFollowSmoothing : verticalSmoothing);
 
             transform.position = new Vector3(x, y, transform.position.z) + ShakeOffset();
         }
@@ -134,14 +146,42 @@ namespace ArvinRunner
 
         private float DesiredY()
         {
+            // Following a fall down past the usual floor, as far as fallFollowDepth.
+            if (_fallingOut) return Mathf.Max(target.position.y + fallFraming, _fallFloorY);
+
             float y = _anchoredY + verticalOffset;
             return clampBottom ? Mathf.Max(y, minimumY) : y;
         }
 
         private void HandleDeath(DeathCause cause)
         {
-            _shakeTimer = deathShakeDuration;
-            _shakeStrength = deathShakeAmount;
+            if (cause == DeathCause.Fell)
+            {
+                // Nothing was hit, so no jolt. The camera drops with the body a
+                // little way instead, then lets it fall out of the bottom of frame.
+                _fallingOut = true;
+                _fallFloorY = transform.position.y - fallFollowDepth;
+                return;
+            }
+
+            Shake(deathShakeAmount, deathShakeDuration);
+        }
+
+        /// <summary>
+        /// Shakes the view, falling off over <paramref name="duration"/>. A bigger
+        /// shake replaces one in progress; a smaller one never cuts it short.
+        /// </summary>
+        public void Shake(float amount, float duration)
+        {
+            float remaining = _shakeTimer > 0f
+                ? _shakeStrength * Mathf.Clamp01(_shakeTimer / Mathf.Max(0.01f, _shakeDuration))
+                : 0f;
+
+            if (amount < remaining) return;
+
+            _shakeStrength = amount;
+            _shakeDuration = Mathf.Max(0.01f, duration);
+            _shakeTimer = _shakeDuration;
         }
 
         private Vector3 ShakeOffset()
@@ -149,7 +189,7 @@ namespace ArvinRunner
             if (_shakeTimer <= 0f) return Vector3.zero;
 
             _shakeTimer -= Time.unscaledDeltaTime;
-            float falloff = Mathf.Clamp01(_shakeTimer / Mathf.Max(0.01f, deathShakeDuration));
+            float falloff = Mathf.Clamp01(_shakeTimer / Mathf.Max(0.01f, _shakeDuration));
 
             return (Vector3)(Random.insideUnitCircle * (_shakeStrength * falloff));
         }

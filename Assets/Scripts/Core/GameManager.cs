@@ -30,7 +30,10 @@ namespace ArvinRunner
         [Header("Flow")]
         [Tooltip("Delay before the death screen appears, so the fall is readable.")]
         [SerializeField] private float deathScreenDelay = 0.9f;
-        [SerializeField] private float finishScreenDelay = 1.2f;
+        [Tooltip("Real time between crossing the finish line and the level-clear " +
+                 "panel. Long enough for the runner to stop and celebrate: the " +
+                 "victory clip is 2.35s, and the panel covers the scene.")]
+        [SerializeField] private float finishScreenDelay = 2.6f;
         [Tooltip("Start running immediately instead of waiting for the first swipe.")]
         [SerializeField] private bool autoStart;
 

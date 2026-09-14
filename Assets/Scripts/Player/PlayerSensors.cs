@@ -126,6 +126,68 @@ namespace ArvinRunner
             }
         }
 
+        /// <summary>
+        /// The low ceiling ahead the runner would have to go under, and where it
+        /// begins and ends: the nearest solid whose underside is between sliding
+        /// and standing height within <paramref name="lookAhead"/>, followed
+        /// through any pieces that carry it on. False when there is none.
+        ///
+        /// Asked once, when a slide starts, rather than every step. Things that
+        /// stand on the roof - crates, a kerb, a wall - reach the floor and are
+        /// not overheads. Neither are hazards: a press head is a trigger on its
+        /// own layer, so sliding under one is always the tackle.
+        /// </summary>
+        public bool FindOverhead(float lookAhead, float slideHeight, out float startX, out float endX)
+        {
+            startX = endX = 0f;
+            if (_capsule == null) return false;
+
+            Bounds body = _capsule.bounds;
+            float feet = FeetPosition.y;
+            float low = feet + slideHeight + 0.02f;
+            float high = feet + StandingHeight - 0.02f;
+            if (high <= low) return false;
+
+            float band = (low + high) * 0.5f;
+            float from = body.min.x;
+            float nearest = float.MaxValue;
+
+            foreach (Collider2D hit in Physics2D.OverlapBoxAll(new Vector2(from + lookAhead * 0.5f, band),
+                                                               new Vector2(lookAhead, high - low), 0f,
+                                                               GameLayers.SolidMask))
+            {
+                if (!IsOverhead(hit, low) || hit.bounds.max.x < from) continue;
+                if (hit.bounds.min.x >= nearest) continue;
+
+                nearest = hit.bounds.min.x;
+                endX = hit.bounds.max.x;
+            }
+
+            if (nearest == float.MaxValue) return false;
+            startX = nearest;
+
+            // A deck built from several boxes end to end is one overhead.
+            for (int guard = 0; guard < 16; guard++)
+            {
+                bool grew = false;
+                foreach (Collider2D hit in Physics2D.OverlapBoxAll(new Vector2(endX + 0.25f, band),
+                                                                   new Vector2(0.5f, high - low), 0f,
+                                                                   GameLayers.SolidMask))
+                {
+                    if (!IsOverhead(hit, low) || hit.bounds.max.x <= endX + 0.01f) continue;
+                    endX = hit.bounds.max.x;
+                    grew = true;
+                }
+
+                if (!grew) break;
+            }
+
+            return true;
+        }
+
+        private static bool IsOverhead(Collider2D hit, float low) =>
+            hit != null && !hit.isTrigger && hit.bounds.min.y >= low - 0.05f;
+
         private void SampleCeiling()
         {
             Bounds b = _capsule.bounds;

@@ -49,6 +49,12 @@ namespace ArvinRunner.EditorTools
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Importing moving obstacles", 0.27f);
                 MovingObstacleImport.ImportAll();
 
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing the crane", 0.28f);
+                CraneImport.ImportAll();
+
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing the press", 0.29f);
+                PressImport.ImportAll();
+
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Importing audio", 0.3f);
                 AudioImport.ImportAll();
 
@@ -320,6 +326,31 @@ namespace ArvinRunner.EditorTools
             // Breathing, as drawn - 7% changes frame to frame and loops cleanly.
             Add(PlayerAnim.Idle, "Idle", FileNumbers(1, 28), FrameAnchor.Feet, 2.8f, true);
 
+            // Over the finish line: slowing from a run to a stand (2, 3, 4, 7, 5, 6)
+            // while PlayerController brakes over victoryStopDistance, a fist pump
+            // (24, 23, 21, 22), both arms thrown up (18, 8, 10, 9, 12, 11, 19, 20)
+            // and one fist raised (25, 26), held until the level-clear panel.
+            //
+            // In this order 22% of the silhouette changes frame to frame, worst 42%;
+            // as filed it was 30%, worst 56%. The hop (13-17) is left out: every way
+            // into or out of it measures 56-59%, which reads as a pop. So is frame 1,
+            // a sprint 55% unlike the rest - the game's own run leads in instead.
+            //
+            // The run-in frames are weighted light so they fill the ~0.4s the braking
+            // takes, and the poses the eye rests on - arms up, the raised fist - heavy.
+            if (PlayerAnimationImport.Frames("Victory").Length > 1)
+            {
+                Add(PlayerAnim.Victory, "Victory",
+                    new[] { 2, 3, 4, 7, 5, 6, 24, 23, 21, 22, 18, 8, 10, 9, 12, 11, 19, 20, 25, 26 },
+                    FrameAnchor.Feet, 2.35f, false,
+                    weights: new[] { 0.55f, 0.55f, 0.55f, 0.55f, 0.55f, 0.55f,
+                                     1f, 1f, 1f, 1f, 1f, 1.2f, 1.2f, 1.2f, 1.4f, 1.4f, 1f, 1f, 1.2f, 1.6f });
+            }
+            else
+            {
+                Add(PlayerAnim.Victory, "Idle", FileNumbers(1, 28), FrameAnchor.Feet, 2.8f, true);
+            }
+
             // ---- in the air ----------------------------------------------------- //
 
             bool flipDrawn = PlayerAnimationImport.Frames("FlipJump").Length > 1;
@@ -396,6 +427,35 @@ namespace ArvinRunner.EditorTools
             // the pose 56% out.
             Add(PlayerAnim.GetUp, "Tackle", FileNumbers(14, 19), FrameAnchor.Feet, 0.24f, false)
                 .exitToFrame = RunFrame(18);
+
+            // The skate, for going under something long - PlayerController picks it
+            // over the tackle when the overhead ahead is at least skateMinWidth.
+            //
+            //  * On: running with the board (1-3), dropping it and crouching onto it
+            //    (4-9), and down flat (18, 17). 18 is a push-up pose used in reverse:
+            //    straight from the crouch to lying flat is a 66% jump, through it 53.
+            //  * Glide: lying on the board paddling with a foot, looped in the order
+            //    that measures smoothest - 19% frame to frame. Every one of them is
+            //    0.62-0.73 tall, under the 0.79 slide collider.
+            //  * Off: pushing up (18-21), stepping off (22), standing with the board
+            //    (23, 24) at running height, which hands the run its frame 15 with the
+            //    head moving 0.00. Ending on 22 would pop it 0.23.
+            if (PlayerAnimationImport.Frames("Skating").Length > 1)
+            {
+                Add(PlayerAnim.SkateOn, "Skating", new[] { 1, 2, 3, 4, 5, 7, 6, 8, 9, 18, 17 }, FrameAnchor.Mass,
+                    0.36f, false, weights: new[] { 0.6f, 0.6f, 0.8f, 1f, 1f, 1f, 1f, 1f, 1f, 1f, 1f });
+                Add(PlayerAnim.SkateGlide, "Skating", new[] { 17, 14, 13, 16, 15, 12, 11, 10 }, FrameAnchor.Mass,
+                    0.6f, true);
+                Add(PlayerAnim.SkateOff, "Skating", FileNumbers(18, 24), FrameAnchor.Feet, 0.34f, false)
+                    .exitToFrame = RunFrame(15);
+            }
+            else
+            {
+                Add(PlayerAnim.SkateOn, "Tackle", new[] { 8, 9, 13, 12, 10, 11 }, FrameAnchor.Mass, 0.26f, false);
+                Add(PlayerAnim.SkateGlide, "Tackle", new[] { 11 }, FrameAnchor.Mass, 0.5f, true);
+                Add(PlayerAnim.SkateOff, "Tackle", FileNumbers(14, 19), FrameAnchor.Feet, 0.24f, false)
+                    .exitToFrame = RunFrame(18);
+            }
 
             // Hard landing: down onto a knee and a hand and driven back up into
             // the sprint. Most of the super jumps end here - they come down faster
@@ -478,10 +538,17 @@ namespace ArvinRunner.EditorTools
                 Add(PlayerAnim.Death, "Fall", FileNumbers(5, 16), FrameAnchor.Mass, 0.8f, false);
             }
 
-            // Falling out of the level keeps the tumble - over backwards and down -
-            // which suits a body dropping off the bottom of the screen, where
-            // kneeling on a floor that is not there would not.
-            Add(PlayerAnim.DeathFall, "Fall", FileNumbers(5, 16), FrameAnchor.Mass, 0.8f, false);
+            // Falling out of the level: the same fall the runner is already in -
+            // leaning back, head to the left and legs out to the right - carried on
+            // all the way down. Both slots play the JumpFall clip exactly, so the
+            // pose does not change at the moment the run ends.
+            //
+            // The Fallout folder is a forward dive, and it was tried here twice: the
+            // body turned over from head-left to head-right partway down, which read
+            // as the runner changing pose mid-fall rather than falling. Its frames
+            // are still imported, and unused.
+            Add(PlayerAnim.DeathFall, "Fall", new[] { 12, 13, 14, 15, 16, 15, 14, 13 }, FrameAnchor.Air, 0.7f, true);
+            Add(PlayerAnim.DeathFallLoop, "Fall", new[] { 12, 13, 14, 15, 16, 15, 14, 13 }, FrameAnchor.Air, 0.7f, true);
 
             set.fallback = new SpriteAnimationClip { anim = PlayerAnim.Idle, frames = held, fps = 1f, loop = true };
             set.clips = clips.ToArray();
