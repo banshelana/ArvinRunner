@@ -497,21 +497,37 @@ namespace ArvinRunner.EditorTools
 
             // ---- on the wall ----------------------------------------------------- //
 
-            // Hand over hand, knee stepping up. As filed it goes back and forth;
-            // looped in this order it is 21% frame to frame against 28%.
-            Add(PlayerAnim.WallRun, "Climb", new[] { 8, 14, 16, 11, 10, 9, 12, 18, 17, 13, 15 },
-                FrameAnchor.Mass, 0.46f, true);
+            // The climb folder is one take: running in (1-5), crouching into the
+            // wall (6-7), springing at it (8), climbing hand over hand with the
+            // knee stepping up (9-15), pulling over the top (16-17), a stumble
+            // (18), stepping out into the stride (19-21), and a crouch, rise and
+            // stand (22-24). 18 matches nothing else in the folder (65% from its
+            // nearest frame) and 24 is drawn about half as large again as the
+            // rest, so neither is used; nor are the crouch and stand, since the
+            // runner never stops on top.
 
-            // Hanging from the ledge: both arms up, a slow sway.
-            Add(PlayerAnim.LedgeGrab, "Climb", new[] { 1, 2, 3, 2 }, FrameAnchor.Mass, 0.5f, true);
+            // Hand over hand, knee stepping up: 34% frame to frame looped in this
+            // order, the smoothest the climbing frames go round.
+            Add(PlayerAnim.WallRun, "Climb", new[] { 9, 10, 11, 13, 14, 15, 12 },
+                FrameAnchor.Mass, 0.56f, true);
 
-            // Over the top and up on his feet.
-            Add(PlayerAnim.LedgeClimb, "Climb", FileNumbers(19, 22), FrameAnchor.Mass,
-                config.ledgeClimbDuration, false).exitToFrame = RunFrame(15);
+            // Hanging from the ledge: tucked, hands up by the head, a slow sway.
+            Add(PlayerAnim.LedgeGrab, "Climb", new[] { 13, 14, 15, 14 }, FrameAnchor.Mass, 0.5f, true);
 
-            // Stuck against something: reaching up and patting at it, paced to the
-            // crash grace so the scramble runs out at the moment the runner does.
-            Add(PlayerAnim.Climb, "Climb", FileNumbers(1, 7), FrameAnchor.Mass, config.wallCrashGrace, false);
+            // Over the top: the pull, the knee onto the roof, rising on it and
+            // stepping out. 23 - rising out of the crouch - bridges the knee-up and
+            // the step better than the stumble it replaces (35%, 39% against 45%,
+            // 53%). Ends on a stride closest to the run's frame 19 (34%).
+            Add(PlayerAnim.LedgeClimb, "Climb", new[] { 16, 17, 23, 19, 21 }, FrameAnchor.Mass,
+                config.ledgeClimbDuration, false).exitToFrame = RunFrame(19);
+
+            // Stuck against something: crouching into it, springing, and reaching
+            // up the face - the move the wall run carries on, since it ends on 11
+            // and the wall run goes round through 11. Paced to the crash grace so
+            // the scramble runs out at the moment the runner does, and held on the
+            // reach. On the feet, because the runner is still on the ground.
+            Add(PlayerAnim.Climb, "Climb", new[] { 6, 7, 8, 9, 10, 11 }, FrameAnchor.Feet,
+                config.wallCrashGrace, false, weights: new[] { 0.8f, 1f, 1.2f, 1f, 1f, 1f });
 
             // Death, from hitting something: flung back with the arms thrown up
             // (10-15), down into a crouch (16-18), onto the hands (19-21) and

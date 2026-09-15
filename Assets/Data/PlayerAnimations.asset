@@ -884,18 +884,14 @@ MonoBehaviour:
     exitToFrame: 10
   - anim: 8
     frames:
-    - {fileID: 21300000, guid: 762337d2cf4e2724ab60befcffa2d5d7, type: 3}
-    - {fileID: 21300000, guid: 2e8727970ba1da0409ca4dd99a40adba, type: 3}
-    - {fileID: 21300000, guid: 000332e8367f264489e202af5c4bc2e1, type: 3}
-    - {fileID: 21300000, guid: 25178642854562343b09fd51227ff367, type: 3}
-    - {fileID: 21300000, guid: 5af399e3b2bd3f2439f19322be4790eb, type: 3}
     - {fileID: 21300000, guid: d7d5e3f6344e3244ca2add46e3a86029, type: 3}
-    - {fileID: 21300000, guid: 28fade31d07e69d4e9119f3eab704ddd, type: 3}
-    - {fileID: 21300000, guid: 72d076838fa8efd4692d9368f180e479, type: 3}
-    - {fileID: 21300000, guid: ed50c53a6da2deb45a750e0cd17de66b, type: 3}
+    - {fileID: 21300000, guid: 5af399e3b2bd3f2439f19322be4790eb, type: 3}
+    - {fileID: 21300000, guid: 25178642854562343b09fd51227ff367, type: 3}
     - {fileID: 21300000, guid: a68e9a1db4eb8b44094e56c5b83be1fc, type: 3}
+    - {fileID: 21300000, guid: 2e8727970ba1da0409ca4dd99a40adba, type: 3}
     - {fileID: 21300000, guid: 39832adc25a7fed4e885aa38f42ce2a9, type: 3}
-    fps: 23.913044
+    - {fileID: 21300000, guid: 28fade31d07e69d4e9119f3eab704ddd, type: 3}
+    fps: 12.5
     loop: 1
     strideDistance: 0
     strideReferenceSpeed: 0
@@ -905,10 +901,6 @@ MonoBehaviour:
     offsets:
     - {x: 0, y: 0}
     - {x: 0, y: 0}
-    - {x: 0.000000019022758, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0.000000019022758, y: 0}
     - {x: 0, y: 0}
     - {x: 0, y: 0}
     - {x: 0, y: 0}
@@ -921,10 +913,10 @@ MonoBehaviour:
     exitToFrame: -1
   - anim: 9
     frames:
-    - {fileID: 21300000, guid: 7daf3a2c9e35fb64ea5679b93ec23ae1, type: 3}
-    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
-    - {fileID: 21300000, guid: b22fb04d43a0b2a4e82248614a937c3e, type: 3}
-    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
+    - {fileID: 21300000, guid: a68e9a1db4eb8b44094e56c5b83be1fc, type: 3}
+    - {fileID: 21300000, guid: 2e8727970ba1da0409ca4dd99a40adba, type: 3}
+    - {fileID: 21300000, guid: 39832adc25a7fed4e885aa38f42ce2a9, type: 3}
+    - {fileID: 21300000, guid: 2e8727970ba1da0409ca4dd99a40adba, type: 3}
     fps: 8
     loop: 1
     strideDistance: 0
@@ -944,11 +936,12 @@ MonoBehaviour:
     exitToFrame: -1
   - anim: 10
     frames:
+    - {fileID: 21300000, guid: 000332e8367f264489e202af5c4bc2e1, type: 3}
+    - {fileID: 21300000, guid: ed50c53a6da2deb45a750e0cd17de66b, type: 3}
+    - {fileID: 21300000, guid: 9802e0287d286f948ae3525db6d99e69, type: 3}
     - {fileID: 21300000, guid: 8f030698c79f0f74eb7070a83eb0ae0e, type: 3}
-    - {fileID: 21300000, guid: 3b169344f550d7047b1e09c2b2b87398, type: 3}
     - {fileID: 21300000, guid: 8104efb4c181bf14cb0076c3a722db5a, type: 3}
-    - {fileID: 21300000, guid: ba2165e288c31e348991ce7b0c2a8f15, type: 3}
-    fps: 8.888889
+    fps: 11.111112
     loop: 0
     strideDistance: 0
     strideReferenceSpeed: 0
@@ -959,36 +952,41 @@ MonoBehaviour:
     - {x: 0, y: 0}
     - {x: 0, y: 0}
     - {x: 0, y: 0}
+    - {x: 0.000000033818235, y: 0}
     - {x: 0, y: 0}
     followJump: 0
     apexFrame: 0
     followVault: 0
     landing: 
-    exitToFrame: 23
+    exitToFrame: 1
   - anim: 14
     frames:
-    - {fileID: 21300000, guid: 7daf3a2c9e35fb64ea5679b93ec23ae1, type: 3}
-    - {fileID: 21300000, guid: 06898d81449d7144b99878901933ea32, type: 3}
-    - {fileID: 21300000, guid: b22fb04d43a0b2a4e82248614a937c3e, type: 3}
-    - {fileID: 21300000, guid: 2406d984665461c45847736550f87214, type: 3}
-    - {fileID: 21300000, guid: 11ba63aa6e467f148ad199b086cd88bb, type: 3}
     - {fileID: 21300000, guid: cd7cc6668ddb607488ed00a75976c106, type: 3}
     - {fileID: 21300000, guid: 1bf543dad11c62e458cbdbf1c5fe7827, type: 3}
-    fps: 20
+    - {fileID: 21300000, guid: 762337d2cf4e2724ab60befcffa2d5d7, type: 3}
+    - {fileID: 21300000, guid: d7d5e3f6344e3244ca2add46e3a86029, type: 3}
+    - {fileID: 21300000, guid: 5af399e3b2bd3f2439f19322be4790eb, type: 3}
+    - {fileID: 21300000, guid: 25178642854562343b09fd51227ff367, type: 3}
+    fps: 17.142857
     loop: 0
     strideDistance: 0
     strideReferenceSpeed: 0
     strideGrowth: 0
     name: 
-    weights: []
+    weights:
+    - 0.8
+    - 1
+    - 1.2
+    - 1
+    - 1
+    - 1
     offsets:
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
-    - {x: 0, y: 0}
+    - {x: -0.057742406, y: 0}
+    - {x: -0.04840353, y: 0}
+    - {x: -0.06181419, y: 0}
+    - {x: 0.096277, y: 0}
+    - {x: 0.11494507, y: 0}
+    - {x: -0.04326198, y: 0}
     followJump: 0
     apexFrame: 0
     followVault: 0

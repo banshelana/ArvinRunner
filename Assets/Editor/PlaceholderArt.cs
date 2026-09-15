@@ -24,7 +24,15 @@ namespace ArvinRunner.EditorTools
             WriteSprite("box", Box(32, 32), tileable: true);
             WriteSprite("runner", Runner(28, 56));
             WriteSprite("spikes", Spikes(64, 24));
-            WriteSprite("coin", Coin(24));
+
+            // The coin: half a turn of a minted gold coin, and the sparkle that
+            // glints on it. See CoinPainter for what makes it read as metal.
+            int coinPpu = CoinPainter.PixelsPerUnit;
+            WriteSprite("coin", ToTexture(CoinPainter.Coin(CoinPainter.FrameSize, 0)), pixelsPerUnit: coinPpu);
+            for (int i = 0; i < CoinPainter.SpinFrames; i++)
+                WriteSprite($"coin_{i:00}", ToTexture(CoinPainter.Coin(CoinPainter.FrameSize, i)), pixelsPerUnit: coinPpu);
+            WriteSprite("coin_glint", ToTexture(CoinPainter.Glint(CoinPainter.GlintSize)), pixelsPerUnit: coinPpu);
+
             WriteSprite("beam", Box(8, 8, border: false), tileable: true);
             WriteSprite("glass", Glass(48, 48));
             WriteSprite("finish", Checker(32, 64, 16), tileable: true);
@@ -133,18 +141,6 @@ namespace ArvinRunner.EditorTools
                     tex.SetPixel(t * toothWidth + x, y, Color.white);
             }
 
-            tex.Apply();
-            return tex;
-        }
-
-        private static Texture2D Coin(int size)
-        {
-            var tex = NewTexture(size, size);
-            // A dark rim, so a gold coin still reads against a pale sky. The tint
-            // multiplies it into a deep amber edge rather than washing it out.
-            FillCircle(tex, size / 2, size / 2, size / 2 - 1, new Color(0.28f, 0.28f, 0.28f));
-            FillCircle(tex, size / 2, size / 2, size / 2 - 3, Color.white);
-            FillCircle(tex, size / 2, size / 2, size / 4, new Color(1f, 1f, 1f, 0.45f));
             tex.Apply();
             return tex;
         }

@@ -92,7 +92,8 @@ namespace ArvinRunner.EditorTools
         ///     LowFlip   standing 1.05 / 1.06, crouch 1.02              1.04
         ///     FlipJump  crouch 0.98, running 0.99                      1.00
         ///     BigJump   standing 0.96 / 0.98, crouch 0.96              0.965
-        ///     Climb     standing 0.98 / 0.96                           0.96
+        ///     Climb     redrawn; its running frames against Run's at
+        ///               matched poses, 1.04-1.12, median 1.06 x 1.02   1.08
         ///     Fall      standing 0.91 / 0.89, crouch 0.86              0.89
         ///     Lose      running pose by height 0.78, thickness 0.75    0.78
         ///     HandJump  running pose 0.84 area, 0.85 height, 0.86 thick 0.85
@@ -124,7 +125,7 @@ namespace ArvinRunner.EditorTools
             ["LowFlip"] = 1.04f,
             ["FlipJump"] = 1.00f,
             ["BigJump"] = 0.965f,
-            ["Climb"] = 0.96f,
+            ["Climb"] = 1.08f,
             ["Fall"] = 0.89f,
             ["Lose"] = 0.78f,
             ["HandJump"] = 0.85f,

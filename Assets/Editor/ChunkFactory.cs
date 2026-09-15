@@ -456,17 +456,43 @@ namespace ArvinRunner.EditorTools
                 float y = baseY + Mathf.Sin(t * Mathf.PI) * arcHeight;
                 go.transform.localPosition = new Vector3(startX + i * spacing, y, 0f);
 
+                // Painted in full colour, so untinted.
+                Sprite[] spin = CoinFrames();
                 var renderer = go.AddComponent<SpriteRenderer>();
-                renderer.sprite = PlaceholderArt.Load("coin");
-                renderer.color = new Color(1f, 0.74f, 0.16f);   // deeper gold, with the sprite's dark rim
+                renderer.sprite = spin.Length > 0 ? spin[0] : PlaceholderArt.Load("coin");
                 renderer.sortingOrder = 8;
+
+                // Where the softbox catches the rim, up and to the left.
+                var sparkle = new GameObject("Glint");
+                sparkle.transform.SetParent(go.transform, false);
+                sparkle.transform.localPosition = new Vector3(-0.2f, 0.2f, 0f);
+                sparkle.transform.localScale = Vector3.zero;
+                var glint = sparkle.AddComponent<SpriteRenderer>();
+                glint.sprite = PlaceholderArt.Load("coin_glint");
+                glint.sortingOrder = 9;
 
                 var circle = go.AddComponent<CircleCollider2D>();
                 circle.radius = 0.45f;
                 circle.isTrigger = true;
 
-                go.AddComponent<Collectible>();
+                var pickup = go.AddComponent<Collectible>();
+                EditorUtil.SetObject(pickup, "body", renderer);
+                EditorUtil.SetObjectArray(pickup, "spinFrames", spin);
+                EditorUtil.SetObject(pickup, "glint", glint);
             }
+        }
+
+        /// <summary>The coin's turn, as generated, or empty if it has not been.</summary>
+        private static Sprite[] CoinFrames()
+        {
+            var frames = new System.Collections.Generic.List<Sprite>();
+            for (int i = 0; i < CoinPainter.SpinFrames; i++)
+            {
+                Sprite frame = PlaceholderArt.Load($"coin_{i:00}");
+                if (frame == null) return new Sprite[0];
+                frames.Add(frame);
+            }
+            return frames.ToArray();
         }
 
         private static LevelChunk Save(GameObject root)

@@ -58,24 +58,25 @@
   <ItemGroup>
     <Compile Include="Assets\Editor\BackdropPainter.cs" />
     <Compile Include="Assets\Editor\SpriteMeasure.cs" />
+    <Compile Include="Assets\Editor\StrikePainter.cs" />
     <Compile Include="Assets\Editor\ChunkFactory.cs" />
+    <Compile Include="Assets\Editor\CraneRig.cs" />
+    <Compile Include="Assets\Editor\PressImport.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryProps.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryRoutes.cs" />
     <Compile Include="Assets\Editor\EditorUtil.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryMoving.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryVehicles.cs" />
+    <Compile Include="Assets\Editor\CraneImport.cs" />
     <Compile Include="Assets\Editor\ArvinRunnerSetup.cs" />
     <Compile Include="Assets\Editor\PlaceholderArt.cs" />
+    <Compile Include="Assets\Editor\PressRig.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryAdvanced.cs" />
     <Compile Include="Assets\Editor\ArtImport.cs" />
     <Compile Include="Assets\Editor\PlayerAnimationImport.cs" />
     <Compile Include="Assets\Editor\AudioImport.cs" />
     <Compile Include="Assets\Editor\MovingObstacleImport.cs" />
-    <Compile Include="Assets\Editor\StrikePainter.cs" />
-    <Compile Include="Assets\Editor\CraneImport.cs" />
-    <Compile Include="Assets\Editor\CraneRig.cs" />
-    <Compile Include="Assets\Editor\PressImport.cs" />
-    <Compile Include="Assets\Editor\PressRig.cs" />
+    <Compile Include="Assets\Editor\CoinPainter.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

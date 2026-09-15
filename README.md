@@ -75,7 +75,7 @@ comes from the jump's upright first and last frames at 1.80 units:
 
 | Folder | Idle | Run | Tackle | LowFlip | Jump | FlipJump | BigJump | Climb | Fall | lose | handJump | victory | skating | Fallout |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| drawn at | 1.18 | 1.02 | 0.86 | 1.04 | 1.00 | 1.00 | 0.965 | 0.96 | 0.89 | 0.78 | 0.85 | 0.86 | 1.07 | 0.76 |
+| drawn at | 1.18 | 1.02 | 0.86 | 1.04 | 1.00 | 1.00 | 0.965 | 1.08 | 0.89 | 0.78 | 0.85 | 0.86 | 1.07 | 0.76 |
 
 `Tackle` was redrawn after the first measurement — a lunge into a crawl rather
 than a feet-first slide — and re-measured on its running frames.
@@ -204,10 +204,10 @@ new art.
 | `SkateOff` | the end of a skate | `skating` 18–24 |
 | `Roll` | hard landing | `BigJump` 16–22 |
 | `Vault` | a hand vault over or onto a low obstacle | `handJump` 4 11 10 5 6 7 12 13 |
-| `WallRun` | running up a wall | `climb` 8 14 16 11 10 9 12 18 17 13 15 |
-| `LedgeGrab` | hanging on a ledge | `climb` 1 2 3 2 |
-| `LedgeClimb` | pulling up over a ledge | `climb` 19–22 |
-| `Climb` | stuck against something | `climb` 1–7 |
+| `WallRun` | running up a wall | `climb` 9 10 11 13 14 15 12 |
+| `LedgeGrab` | hanging on a ledge | `climb` 13 14 15 14 |
+| `LedgeClimb` | pulling up over a ledge | `climb` 16 17 23 19 21 |
+| `Climb` | stuck against something: crouch, spring, reach up | `climb` 6–11 |
 | `Death` | hit an obstacle | `lose` 10–24 |
 | `Victory` | crossing the finish line | `victory` 2 3 4 7 5 6 24 23 21 22 18 8 10 9 12 11 19 20 25 26 |
 | `DeathFall` | falling out of the level | `Fall` 12 13 14 15 16 15 14 13, the same as `JumpFall` |
@@ -584,7 +584,7 @@ walls in front of them and 2.2:1 lighter than the rooftops, so the foreground
 never merges into the street behind it.
 
 Things that only read because the sky used to be dark were
-changed with it: coins have a dark rim and a deeper gold, glass is a deeper blue,
+changed with it: coins are a deep gold with a shadowed edge, glass is a deeper blue,
 the finish pole is dark, and HUD text carries a dark outline over dark-glass
 buttons.
 
@@ -654,7 +654,7 @@ sharing a tag never get placed back to back.
 | `BreakableGlass` | only smashes if you hit it fast enough |
 | `Trampoline` | launches the runner and refreshes the double jump |
 | `GustZone` | pulsing crosswind that shortens jumps |
-| `Collectible` | pickup, feeds the score |
+| `Collectible` | pickup, feeds the score; the painted coin turns, glints, and flares when collected |
 | `MovingObstacle` | travels leftward once the runner is near; despawns behind them |
 | `HelicopterStrike` | fires one missile at a marked point as it passes |
 | `MissileStrike` | the laser mark, the missile's flight and smoke, the fireball and the scorch |
@@ -690,6 +690,27 @@ from the frames in `Art/MovingObstacles/Crane`.
   in each, and the load swinging through one whole cycle at even steps in time.
   Rebuild, and everything above is re-measured. Without frames, the crane falls
   back to the old red pendulum.
+
+### The coins
+
+Coins are painted by `CoinPainter` into `Art/Generated` (`coin_00`–`coin_15`,
+`coin_glint`) each build. They are drawn as a minted gold coin with a raised
+rim, a shallow dish and a faceted star, not as a tinted disc.
+
+- **A real solid.** Each of the 16 frames of half a turn traces rays against a
+  disc with two faces and a reeded edge, so the coin shows its thickness as it
+  turns rather than squashing flat.
+- **Lit like metal.** Every point reflects a studio (bright above, dark floor
+  below, a softbox up-left) through gold. The light stays put as the coin turns,
+  so highlights slide across the face and flash along the edge. The gold is
+  deeper than real gold and the outer edge falls into shadow, so it stands out
+  against the pale day skies.
+- **In play** (`Collectible`): half a turn every 0.8s. Coins in an arc are offset
+  by their position along the level, so the arc ripples. A sparkle glints on the
+  rim every 2.6s, only while the coin faces the camera. On pickup the coin lifts,
+  swells, spins faster and fades over 0.28s under a large flare.
+- **Tuning.** Relief, colours and lighting are constants at the top of
+  `CoinPainter`; timing is on the `Collectible` fields.
 
 ### The press
 
