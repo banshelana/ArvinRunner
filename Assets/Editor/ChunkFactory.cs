@@ -70,6 +70,13 @@ namespace ArvinRunner.EditorTools
             // Two mechanics at once - the escalation the late levels need.
             chunks.AddRange(CreateAdvancedChunks());
 
+            // Drones and ruined buildings, for the war zone. Kept last and out of
+            // the assembled levels' pool - see ArvinRunnerSetup.CreateLevels.
+            chunks.AddRange(CreateWarzoneChunks());
+
+            // People on benches. Also kept out of the assembled levels' pool.
+            chunks.AddRange(CreateBystanderChunks());
+
             return chunks.ToArray();
         }
 

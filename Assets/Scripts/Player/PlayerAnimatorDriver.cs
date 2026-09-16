@@ -47,6 +47,7 @@ namespace ArvinRunner
         private SpriteAnimationClip _clip;
         private TrickClip _trick;
         private PlayerAnim _current = PlayerAnim.Idle;
+        private string _currentName;
 
         // How far through the clip, from 0 to 1. A fraction rather than seconds
         // or a frame count, because a clip is driven one of three ways - by the
@@ -105,12 +106,21 @@ namespace ArvinRunner
         /// work when the slot actually changes, which is also when a new random
         /// variant gets picked.
         /// </summary>
-        public void Play(PlayerAnim anim)
+        public void Play(PlayerAnim anim) => Play(anim, null);
+
+        /// <summary>
+        /// Switch to a slot, or to one named clip inside it - how the runner asks
+        /// for the dive over a bench rather than whichever jump came up. A name
+        /// nothing answers to falls back to the slot's usual random pick, so a
+        /// missing folder costs the flourish and not the jump.
+        /// </summary>
+        public void Play(PlayerAnim anim, string clipName)
         {
-            if (_current == anim && _clip != null) return;
+            if (_current == anim && _currentName == clipName && _clip != null) return;
 
             SpriteAnimationClip previous = _clip;
             _current = anim;
+            _currentName = clipName;
             _trickTime = 0f;
 
             if (animationSet != null)
@@ -121,7 +131,9 @@ namespace ArvinRunner
                     ? animationSet.Find(_airClip.landing)
                     : null;
 
-                _clip = landing ?? animationSet.Get(anim);
+                SpriteAnimationClip named = string.IsNullOrEmpty(clipName) ? null : animationSet.Find(clipName);
+
+                _clip = named ?? landing ?? animationSet.Get(anim);
             }
 
             if (_clip != null && (_clip.followJump || _clip.followVault)) _airClip = _clip;

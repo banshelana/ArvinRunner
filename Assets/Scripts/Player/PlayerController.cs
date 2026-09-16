@@ -293,7 +293,10 @@ namespace ArvinRunner
                     // Read while the sensors still have a ground reading - they
                     // stop sampling the vault and low-obstacle probes the moment
                     // the runner leaves the roof, and this runs on that frame.
-                    PlayAnim(_sensors.LowObstacleAhead ? PlayerAnim.LowFlip : PlayerAnim.JumpRise);
+                    // Someone sitting in the way gets the dive that was drawn for it -
+                    // a front flip over a head - rather than an ordinary jump.
+                    if (SittingAhead()) PlayAnim(PlayerAnim.JumpRise, "jump_over");
+                    else PlayAnim(_sensors.LowObstacleAhead ? PlayerAnim.LowFlip : PlayerAnim.JumpRise);
                     OnJumped?.Invoke();
                     break;
 
@@ -1119,7 +1122,7 @@ namespace ArvinRunner
             _rb.velocity += force * Time.fixedDeltaTime;
         }
 
-        private void PlayAnim(PlayerAnim anim)
+        private void PlayAnim(PlayerAnim anim, string clipName = null)
         {
             // Remembered so a cling can hand the slot back afterwards, and
             // cleared because a state change outranks something that was only
@@ -1127,7 +1130,19 @@ namespace ArvinRunner
             _stateAnim = anim;
             _clinging = false;
 
-            if (animator != null) animator.Play(anim);
+            if (animator != null) animator.Play(anim, clipName);
+        }
+
+        /// <summary>
+        /// True when the thing the runner is about to jump is a person on a bench.
+        /// Read off the low-obstacle probe, which is already sampled at the moment
+        /// of take-off and looks four units ahead - about as far out as a jump over
+        /// them is ever committed to.
+        /// </summary>
+        private bool SittingAhead()
+        {
+            Collider2D ahead = _sensors.ObstacleAhead;
+            return ahead != null && ahead.GetComponentInParent<StartledBystander>() != null;
         }
     }
 }

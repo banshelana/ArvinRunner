@@ -67,7 +67,21 @@ namespace ArvinRunner
         [Tooltip("How long the scorch stays on the roof, fading over its last third.")]
         [SerializeField] private float scorchDuration = 3.5f;
 
+        /// <summary>How the strike gets from the aircraft to the roof.</summary>
+        public enum Delivery
+        {
+            /// <summary>Off a rail under power: a curving, accelerating dive trailing smoke.</summary>
+            Missile,
+
+            /// <summary>Released and left to fall: no motor, no trail, dropping faster all the way.</summary>
+            Bomb
+        }
+
         [Header("Flight")]
+        [Tooltip("Missile flies the powered dive; Bomb drops on its own weight. " +
+                 "The warning, the blast and the lethal window are the same either way.")]
+        [SerializeField] private Delivery delivery = Delivery.Missile;
+
         [Tooltip("How far below the launch point the missile sags before its motor " +
                  "pulls it into the dive - the drop off the rail.")]
         [SerializeField] private float railDrop = 0.8f;
@@ -220,6 +234,12 @@ namespace ArvinRunner
             if (missile == null) return;
             Show(missile, true);
 
+            if (delivery == Delivery.Bomb)
+            {
+                FlyBomb(t, target);
+                return;
+            }
+
             // A curve rather than a straight line: the missile leaves the rail
             // nearly level, sags, and is pulled into a steepening dive. The flight
             // clock is raised to a power so it accelerates all the way in.
@@ -285,6 +305,32 @@ namespace ArvinRunner
             }
 
             _lastNozzle = nozzle;
+        }
+
+        /// <summary>
+        /// A bomb has no motor to steer it. It leaves with the aircraft's own drift
+        /// and falls: steady across, faster and faster down, so it turns from
+        /// level to nose-down on the way. No flame and no trail.
+        /// </summary>
+        private void FlyBomb(float t, Vector3 target)
+        {
+            Vector3 from = _from;
+            Vector3 to = target + Vector3.up * 0.1f;
+
+            missile.transform.position = new Vector3(Mathf.Lerp(from.x, to.x, t),
+                                                     from.y + (to.y - from.y) * t * t,
+                                                     from.z);
+
+            var heading = new Vector3(to.x - from.x, 2f * t * (to.y - from.y), 0f);
+            if (heading.sqrMagnitude < 1e-4f) heading = Vector3.down;
+
+            // A wobble off the rack that settles as it picks up speed.
+            float wobble = Mathf.Sin(_time * 22f) * 6f * (1f - t);
+            float angle = Mathf.Atan2(heading.y, heading.x) * Mathf.Rad2Deg + wobble;
+            missile.transform.rotation = Quaternion.Euler(0f, 0f, angle);
+            missile.flipY = heading.x < 0f;
+
+            Show(flame, false);
         }
 
         // ---- impact ---------------------------------------------------------------- //

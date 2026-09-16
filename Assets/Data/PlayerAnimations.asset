@@ -534,6 +534,60 @@ MonoBehaviour:
     followVault: 0
     landing: 
     exitToFrame: 2
+  - anim: 2
+    frames:
+    - {fileID: 21300000, guid: 91c20f61c387bf941a9c39ff5ef6dbdc, type: 3}
+    - {fileID: 21300000, guid: ad12aa54dcab78746b3b324b65478894, type: 3}
+    - {fileID: 21300000, guid: a6ce6bb6d03c3e44983d8750427c9f41, type: 3}
+    - {fileID: 21300000, guid: 059e5a753f634e14b8d5b70ad4360d0d, type: 3}
+    - {fileID: 21300000, guid: 785d86549c7c1d9419edc7ed0babaaab, type: 3}
+    - {fileID: 21300000, guid: e49359baf324c8040acb60fa3b248380, type: 3}
+    - {fileID: 21300000, guid: f9d563fa7a4c5e54f94a0f154c9f2a8f, type: 3}
+    - {fileID: 21300000, guid: ff5ea45c92047e34e98e4559382a8125, type: 3}
+    - {fileID: 21300000, guid: f04316fcc4a6d974d9c19a12d548f124, type: 3}
+    fps: 13.118695
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: jump_over
+    weights: []
+    offsets:
+    - {x: 0, y: -0.2937771}
+    - {x: 0, y: -0.02793016}
+    - {x: 0, y: 0.07957744}
+    - {x: 0, y: 0.3402185}
+    - {x: 0, y: 0.2127596}
+    - {x: 0, y: 0.09883331}
+    - {x: 0, y: 0.24772751}
+    - {x: 0, y: 0.47247478}
+    - {x: 0, y: 0.23595062}
+    followJump: 1
+    apexFrame: 4
+    followVault: 0
+    landing: land_over
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: 8d3307548ca087b479d98bbcf008a802, type: 3}
+    - {fileID: 21300000, guid: c6bb278e13be03e4dad4624e68b75daf, type: 3}
+    - {fileID: 21300000, guid: 7da08b9cfeffc6744aee51b50f527306, type: 3}
+    fps: 10
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_over
+    weights: []
+    offsets:
+    - {x: 0.034519117, y: 0}
+    - {x: -0.06870606, y: 0}
+    - {x: 0.03418696, y: 0}
+    followJump: 0
+    apexFrame: 0
+    followVault: 0
+    landing: 
+    exitToFrame: 23
   - anim: 4
     frames:
     - {fileID: 21300000, guid: b2434a7d98ddd724caf784558c0e7299, type: 3}

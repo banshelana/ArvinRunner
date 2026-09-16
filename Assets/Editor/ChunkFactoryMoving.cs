@@ -199,11 +199,11 @@ namespace ArvinRunner.EditorTools
         /// the marker the player reads and the fire that kills them are the same
         /// circle - a marker smaller than the blast would be a lie.
         /// </summary>
-        private static GameObject Strike(GameObject parent, float x, float groundY)
+        private static GameObject Strike(GameObject parent, float x, float groundY, bool bomb = false)
         {
             const float radius = 1.4f;
 
-            var go = new GameObject("MissileStrike") { layer = GameLayers.Hazard };
+            var go = new GameObject(bomb ? "BombStrike" : "MissileStrike") { layer = GameLayers.Hazard };
             go.transform.SetParent(parent.transform, false);
             go.transform.localPosition = new Vector3(x, groundY, 0f);
 
@@ -233,14 +233,17 @@ namespace ArvinRunner.EditorTools
 
             // The missile: 1.45 units of texture, about 1.3 of airframe against a
             // 7.4 unit aircraft, with its motor flame hung off the nozzle.
-            SpriteRenderer missile = StrikePart(go, "Missile", PlaceholderArt.Load("missile"), 14);
-            Fit(missile, 1.45f);
+            // A bomb is the same slot - it is what flies in - painted fatter and
+            // shorter, with no motor and so no flame.
+            SpriteRenderer missile = StrikePart(go, bomb ? "Bomb" : "Missile",
+                                                PlaceholderArt.Load(bomb ? "bomb" : "missile"), 14);
+            Fit(missile, bomb ? 1.2f : 1.45f);
 
             float nozzle = 0f;
             SpriteRenderer flame = null;
             Sprite flameSprite = PlaceholderArt.Load("missile_flame");
 
-            if (missile.sprite != null)
+            if (missile.sprite != null && !bomb)
             {
                 // In the missile's own units, before its scale. The flame is a child,
                 // so it inherits that scale, and both are painted at the same PPU.
@@ -255,8 +258,14 @@ namespace ArvinRunner.EditorTools
             }
 
             // The designator beam, stretched from the aircraft to the mark at runtime.
-            SpriteRenderer laser = StrikePart(go, "Laser", PlaceholderArt.Load("laser"), 13);
-            laser.transform.localScale = new Vector3(1f, 0.7f, 1f);
+            // Not for a bomb: the aircraft is nearly over the mark when it lets
+            // go, so a beam would be a stub pointing straight down.
+            SpriteRenderer laser = null;
+            if (!bomb)
+            {
+                laser = StrikePart(go, "Laser", PlaceholderArt.Load("laser"), 13);
+                laser.transform.localScale = new Vector3(1f, 0.7f, 1f);
+            }
 
             var strike = go.AddComponent<MissileStrike>();
             EditorUtil.SetObject(strike, "marker", marker);
@@ -267,6 +276,7 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(strike, "scorch", scorch);
             EditorUtil.SetObjectArray(strike, "blastFrames", blastFrames);
             EditorUtil.SetObjectArray(strike, "smokePuffs", Series("smoke_{0}", StrikePainter.SmokeVariants));
+            EditorUtil.SetInt(strike, "delivery", (int)(bomb ? MissileStrike.Delivery.Bomb : MissileStrike.Delivery.Missile));
             EditorUtil.SetFloat(strike, "nozzleOffset", nozzle);
             EditorUtil.SetFloat(strike, "warnDuration", 0.75f);
             EditorUtil.SetFloat(strike, "blastDuration", 0.9f);

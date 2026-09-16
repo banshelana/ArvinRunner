@@ -67,7 +67,7 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static readonly string[] SetNames =
         {
-            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump", "Victory", "Skating", "Fallout"
+            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump", "Victory", "Skating", "Fallout", "overJump"
         };
 
         /// <summary>
@@ -129,6 +129,11 @@ namespace ArvinRunner.EditorTools
             ["Fall"] = 0.89f,
             ["Lose"] = 0.78f,
             ["HandJump"] = 0.85f,
+
+            // The dive over someone sitting down. Standing pose against the jump's
+            // own standing frame: 1.19 by height, 1.16 by area; the run-out against
+            // the run cycle: 1.16 and 1.10 once the run's own 1.02 is taken off.
+            ["overJump"] = 1.15f,
 
             // Height and area agree; body thickness (0.72) does not, for the same
             // reason as Lose - that runner is drawn leaner, not smaller.

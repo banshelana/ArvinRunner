@@ -104,14 +104,6 @@ namespace ArvinRunner.EditorTools
                 FallbackTint = new Color(0.92f, 0.72f, 0.16f)
             },
 
-            ["coupe"] = new PropSpec
-            {
-                Sprite = "coupe", Layer = GameLayers.Vaultable,
-                Boxes = new[] { new PropBox(0.02f, 0f, 0.96f, 1f) },
-                FallbackSize = new Vector2(3.28f, 1.45f),
-                FallbackTint = new Color(0.20f, 0.34f, 0.52f)
-            },
-
             ["hatchback"] = new PropSpec
             {
                 Sprite = "hatchback", Layer = GameLayers.Vaultable,
@@ -236,14 +228,30 @@ namespace ArvinRunner.EditorTools
             return root;
         }
 
-        /// <summary>A yard of scrap. Everything here is under the vault ceiling,
-        /// so it plays as one long rhythm rather than a set of decisions.</summary>
-        private static GameObject Wreckers()
+        /// <summary>
+        /// A yard of scrap, and a man reading on a bench at the front of it who
+        /// has to be jumped. Everything after him is under the vault ceiling, so
+        /// once he is cleared the yard plays as one long rhythm.
+        ///
+        /// He is at the front on purpose: the jump over him lands about eleven to
+        /// thirteen units in, which leaves the tyres a comfortable vault away.
+        ///
+        /// <paramref name="oldWoman"/> builds Chunk_WreckersGran instead, the same
+        /// yard with the old woman on the bench, for a level that has already had
+        /// the newspaper man. It is tagged as a bench chunk so it stays out of the
+        /// assembled levels' pool.
+        /// </summary>
+        private static GameObject Wreckers(bool oldWoman = false)
         {
-            GameObject root = NewChunk("Chunk_Wreckers", 30f, 0f, 0f, 2, ChunkSkill.Vault, "wreck");
+            GameObject root = NewChunk(oldWoman ? "Chunk_WreckersGran" : "Chunk_Wreckers", 30f, 0f, 0f, 2,
+                                       ChunkSkill.Jump | ChunkSkill.Vault, oldWoman ? "bench" : "wreck");
             Ground(root, 0f, 0f, 30f);
 
-            Prop(root, "coupe", 7f, 0f);        // 3.28 wide
+            // Bench about 2.3 wide, head at 1.70.
+            if (oldWoman) OldWoman(root, 7f, 0f);
+            else NewspaperMan(root, 7f, 0f);
+            Coins(root, 6.8f, 2.9f, 4, 1.0f, 0.6f);
+
             Prop(root, "tires", 15f, 0f);       // 0.94 wide, 1.45 tall
             Prop(root, "pallet", 19f, 0f);      // 1.07 wide
             Prop(root, "motorbike", 24f, 0f);   // 2.26 wide
@@ -311,9 +319,13 @@ namespace ArvinRunner.EditorTools
         }
 
         /// <summary>
-        /// A box van, with the coupe in front of it as the step up. The tyres
+        /// A box van, with the hatchback in front of it as the step up. The tyres
         /// and pallet on the far side are only ever hopped over, so their being
         /// too narrow to land on does not matter there.
+        ///
+        /// The step was the coupe until the coupe was retired. The hatchback is the
+        /// same job at the same size - 3.33 wide against 3.28, roof at 1.50 against
+        /// 1.45 - and is already the step in front of the bus.
         /// </summary>
         private static GameObject DeliveryYard()
         {
@@ -321,7 +333,7 @@ namespace ArvinRunner.EditorTools
                                        ChunkSkill.Vault | ChunkSkill.Jump, "van");
             Ground(root, 0f, 0f, 32f);
 
-            Prop(root, "coupe", 6f, 0f);        // the step: 3.28 wide, roof at 1.45
+            Prop(root, "hatchback", 6f, 0f);    // the step: 3.33 wide, roof at 1.50
             Prop(root, "van", 11f, 0f);         // 5.54 wide, roof at 2.50
             Prop(root, "tires", 21f, 0f);
             Prop(root, "pallet", 26f, 0f);

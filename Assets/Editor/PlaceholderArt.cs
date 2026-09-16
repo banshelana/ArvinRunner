@@ -44,6 +44,7 @@ namespace ArvinRunner.EditorTools
             WriteSprite("target", ToTexture(StrikePainter.Marker(512, 192)), pixelsPerUnit: strikePpu);
             WriteSprite("missile", ToTexture(StrikePainter.Missile(256, 64)), pixelsPerUnit: strikePpu);
             WriteSprite("missile_flame", ToTexture(StrikePainter.Flame(128, 48)), pixelsPerUnit: strikePpu);
+            WriteSprite("bomb", ToTexture(StrikePainter.Bomb(256, 72)), pixelsPerUnit: strikePpu);
             WriteSprite("laser", ToTexture(StrikePainter.Laser(64, 16)), pixelsPerUnit: strikePpu);
             WriteSprite("scorch", ToTexture(StrikePainter.Scorch(256, 96)), pixelsPerUnit: strikePpu);
 

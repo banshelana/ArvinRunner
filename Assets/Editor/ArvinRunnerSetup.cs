@@ -75,6 +75,9 @@ namespace ArvinRunner.EditorTools
                 ParallaxTheme overcast = CreateTheme("Theme_Overcast", new Color(0.87f, 0.90f, 0.95f));
                 ParallaxTheme sunrise = CreateTheme("Theme_Sunrise", new Color(1.00f, 0.88f, 0.85f));
                 ParallaxTheme fog = CreateTheme("Theme_Fog", new Color(0.90f, 0.90f, 0.93f));
+                // Dust hanging over the war zone. Paler than Golden, which already
+                // clears the contrast bar, so this one does too.
+                ParallaxTheme dust = CreateTheme("Theme_Dust", new Color(0.98f, 0.90f, 0.78f));
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building prefabs", 0.45f);
                 TrickSet tricks = CreateTrickSet();
@@ -88,7 +91,7 @@ namespace ArvinRunner.EditorTools
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Authoring levels", 0.75f);
                 LevelSet campaign = CreateLevels(chunks, morning, afternoon, golden,
-                                                 haze, overcast, sunrise, fog);
+                                                 haze, overcast, sunrise, fog, dust);
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the game scene", 0.88f);
                 BuildScene(player, pad, finish, killZone, campaign, morning);
@@ -395,6 +398,35 @@ namespace ArvinRunner.EditorTools
                  config.jumpHeight, "land_lowflip");
             Add(PlayerAnim.Land, "LowFlip", new[] { 22, 23, 24 }, FrameAnchor.Feet, 0.2f, false, "land_lowflip")
                 .exitToFrame = RunFrame(17);
+
+            // The dive over someone sitting down - the man reading his paper, the
+            // old woman on her bench. Drawn as a front flip that clears a head:
+            // the push-off (8), the reach out over them (9), the tuck (10-12), the
+            // turn coming round (13-15), and the legs reaching for the ground (16).
+            //
+            // The folder opens with a run-in and a crouch and closes with a
+            // run-out. None of those are used, for the reason every other jump
+            // skips its crouch: the swipe is the take-off, and the game's own run
+            // is what this leaves and comes back to.
+            //
+            // Named, so it is never picked at random for an ordinary jump.
+            // PlayerController asks for it when the thing ahead is someone sitting.
+            if (PlayerAnimationImport.Frames("overJump").Length > 1)
+            {
+                int[] over = { 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+
+                SpriteAnimationClip dive = Add(PlayerAnim.JumpRise, "overJump", over, FrameAnchor.Air,
+                                               AirTime(config.jumpHeight), false, "jump_over");
+                dive.followJump = true;
+                dive.apexFrame = System.Array.IndexOf(over, 12);   // the tight tuck, at the top
+                dive.landing = "land_over";
+
+                // Feet down (17), the weight taken (18), and up to running height
+                // (19), which measured closest to the run's frame 15 of all
+                // twenty-four - so that is where the stride picks up.
+                Add(PlayerAnim.Land, "overJump", new[] { 17, 18, 19 }, FrameAnchor.Feet, 0.3f, false, "land_over")
+                    .exitToFrame = RunFrame(15);
+            }
 
             // The double jump: the kick that makes it (8, 9), the tuck on the way
             // up (6, 7), opening out from the top (10). The folder files the tuck
@@ -1118,7 +1150,7 @@ namespace ArvinRunner.EditorTools
                                              ParallaxTheme morning, ParallaxTheme afternoon,
                                              ParallaxTheme golden, ParallaxTheme haze,
                                              ParallaxTheme overcast, ParallaxTheme sunrise,
-                                             ParallaxTheme fog)
+                                             ParallaxTheme fog, ParallaxTheme dust)
         {
             LevelChunk Find(string name)
             {
@@ -1130,17 +1162,22 @@ namespace ArvinRunner.EditorTools
             }
 
             // Level 1 teaches one move at a time, with flat rooftop between each.
+            // The first jump is over the man reading on his bench rather than the
+            // cones it used to be - the same move, and one worth remembering. The
+            // scrap yard's bench is the old woman's here, so the second bench of
+            // the level is not the same joke again.
             LevelDefinition one = Sequenced(1, "First Steps",
                 "Swipe up to jump, again in the air to flip. Swipe down to slide.",
                 morning, 45f,
-                Find("Chunk_Flat"), Find("Chunk_Cones"), Find("Chunk_Skip"),
-                Find("Chunk_Wreckers"), Find("Chunk_SlideGate"), Find("Chunk_Rails"),
+                Find("Chunk_Flat"), Find("Chunk_ParkBench"), Find("Chunk_Skip"),
+                Find("Chunk_WreckersGran"), Find("Chunk_SlideGate"), Find("Chunk_Rails"),
                 Find("Chunk_Flat"));
 
             LevelDefinition two = Sequenced(2, "Rooftops",
                 "Not everything waits for you. Some of it is coming the other way.",
                 morning, 95f,
                 Find("Chunk_Barriers"), Find("Chunk_Traffic"), Find("Chunk_Overpass"),
+                Find("Chunk_BenchRow"),
                 Find("Chunk_Spikes"), Find("Chunk_Oncoming"), Find("Chunk_FenceLine"),
                 Find("Chunk_WideGap"), Find("Chunk_StepsDown"), Find("Chunk_Flat"));
 
@@ -1154,12 +1191,21 @@ namespace ArvinRunner.EditorTools
 
             // Levels 4 and 5 are assembled from a pool - fast to make, fixed seed
             // so the layout is identical on every attempt.
+            //
+            // The pool is the library as it stood when they were laid out. The
+            // seeded picker chooses by index, so any new chunk in the pool would
+            // quietly rearrange both levels for players who have learned them.
+            var classic = new List<LevelChunk>();
+            foreach (LevelChunk chunk in chunks)
+                if (chunk != null && !ChunkFactory.IsWarzone(chunk) && !ChunkFactory.IsBystander(chunk))
+                    classic.Add(chunk);
+
             LevelDefinition four = Assembled(4, "Skyline", "Watch the beam rhythm before you commit.",
-                afternoon, 90f, chunks, 380f, seed: 4471,
+                afternoon, 90f, classic.ToArray(), 380f, seed: 4471,
                 curve: AnimationCurve.Linear(0f, 2f, 1f, 4f));
 
             LevelDefinition five = Assembled(5, "Storm", "The wind will cut your jump short. Commit early.",
-                morning, 120f, chunks, 480f, seed: 8823,
+                morning, 120f, classic.ToArray(), 480f, seed: 8823,
                 curve: AnimationCurve.EaseInOut(0f, 3f, 1f, 5f));
 
             // ---- the second half ----------------------------------------
@@ -1205,7 +1251,7 @@ namespace ArvinRunner.EditorTools
                 "Jump into a wall to run up it, grab the ledge, and keep going.",
                 sunrise, 100f,
                 Find("Chunk_WallClimb"), Find("Chunk_Scaffold"), Find("Chunk_ScaffoldTower"),
-                Find("Chunk_Flat"), Find("Chunk_LiftBeam"), Find("Chunk_TowerLasers"),
+                Find("Chunk_ParkBench"), Find("Chunk_LiftBeam"), Find("Chunk_TowerLasers"),
                 Find("Chunk_Crates"), Find("Chunk_Flat"), Find("Chunk_WideGap"),
                 Find("Chunk_CraneGap"), Find("Chunk_MovingPlatforms"), Find("Chunk_Flat"));
 
@@ -1218,8 +1264,29 @@ namespace ArvinRunner.EditorTools
                 Find("Chunk_PressAlley"), Find("Chunk_BikeGauntlet"), Find("Chunk_TowerLasers"),
                 Find("Chunk_Flat"));
 
+            // ---- the war zone ------------------------------------------------
+            //
+            // Built so that no two chunks in a row ask for the same move, and the
+            // roof never stays at one height for long. The first cut of this level
+            // was drones and ruins on flat roof, and it played as one jump after
+            // another at one pace however the obstacles changed.
+            //
+            // The heights, left to right: 0, up to 4 over the tower ruin, back to 0
+            // down the steps, down to -4 into the cellar, back to 0 up the wall. The
+            // moves: jump, vault, jump, wall run, window, slide or climb, drop,
+            // window and drop, jump, wall run, then the two-drone barrage and the
+            // plain ruin with a bomb behind it to finish.
+            LevelDefinition eleven = Sequenced(11, "War Zone",
+                "Slide under the gunfire, drop into the cellars, climb the rubble. The drones mark before they strike.",
+                dust, 110f,
+                Find("Chunk_Flat"), Find("Chunk_Trench"), Find("Chunk_DroneBomb"),
+                Find("Chunk_RuinTower"), Find("Chunk_GunNest"), Find("Chunk_StepsDown"),
+                Find("Chunk_RuinBasement"), Find("Chunk_DroneMissile"), Find("Chunk_WallClimb"),
+                Find("Chunk_ParkBench"), Find("Chunk_DroneBarrage"), Find("Chunk_RuinStrike"),
+                Find("Chunk_Flat"));
+
             var campaign = ScriptableObject.CreateInstance<LevelSet>();
-            campaign.levels = new[] { one, two, three, four, five, six, seven, eight, nine, ten };
+            campaign.levels = new[] { one, two, three, four, five, six, seven, eight, nine, ten, eleven };
             return EditorUtil.CreateAsset(campaign, $"{DataFolder}/Campaign.asset");
         }
 
@@ -1438,7 +1505,7 @@ namespace ArvinRunner.EditorTools
             // ---- level select ----------------------------------------------
             GameObject levelsPanel = Overlay(canvasObject, "LevelsPanel", new Color(0f, 0f, 0f, 0.55f));
 
-            Label(levelsPanel, "LevelsTitle", CentreAnchor, CentreAnchor, new Vector2(0f, 300f),
+            Label(levelsPanel, "LevelsTitle", CentreAnchor, CentreAnchor, new Vector2(0f, 340f),
                   new Vector2(1400f, 100f), "SELECT LEVEL", 72, TextAnchor.MiddleCenter);
 
             var grid = new GameObject("Grid");
@@ -1448,15 +1515,15 @@ namespace ArvinRunner.EditorTools
             gridRect.anchorMin = CentreAnchor;
             gridRect.anchorMax = CentreAnchor;
             gridRect.pivot = CentreAnchor;
-            gridRect.anchoredPosition = new Vector2(0f, 40f);
-            // Two rows of five at 180 tall plus 26 of spacing needs 386, so the
-            // 380 this was would have clipped the second row the moment the
-            // campaign passed five levels.
-            gridRect.sizeDelta = new Vector2(1400f, 420f);
+            gridRect.anchoredPosition = new Vector2(0f, 20f);
+            // Three rows of five, for up to fifteen levels: 150 tall plus 20 of
+            // spacing needs 490. At the old 180-tall cells the eleventh level's
+            // third row ran into the Back and Reset buttons.
+            gridRect.sizeDelta = new Vector2(1400f, 490f);
 
             var layout = grid.AddComponent<GridLayoutGroup>();
-            layout.cellSize = new Vector2(230f, 180f);
-            layout.spacing = new Vector2(26f, 26f);
+            layout.cellSize = new Vector2(230f, 150f);
+            layout.spacing = new Vector2(26f, 20f);
             layout.childAlignment = TextAnchor.MiddleCenter;
             layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             layout.constraintCount = 5;
@@ -1473,8 +1540,8 @@ namespace ArvinRunner.EditorTools
                                          "", 24, TextAnchor.LowerCenter);
             templateCaption.color = new Color(1f, 1f, 1f, 0.7f);
 
-            Button back = MakeButton(levelsPanel, "BackButton", new Vector2(-180f, -260f), "Back");
-            Button reset = MakeButton(levelsPanel, "ResetButton", new Vector2(180f, -260f), "Reset");
+            Button back = MakeButton(levelsPanel, "BackButton", new Vector2(-180f, -340f), "Back");
+            Button reset = MakeButton(levelsPanel, "ResetButton", new Vector2(180f, -340f), "Reset");
 
             levelsPanel.SetActive(false);
 

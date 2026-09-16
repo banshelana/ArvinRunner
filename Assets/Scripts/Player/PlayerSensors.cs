@@ -61,6 +61,13 @@ namespace ArvinRunner
         /// </summary>
         public bool LowObstacleAhead { get; private set; }
 
+        /// <summary>
+        /// Whatever that probe found, however tall it was. Lets the controller ask
+        /// what is in front rather than only how high: clearing a crate and
+        /// clearing someone sitting on a bench are drawn as different jumps.
+        /// </summary>
+        public Collider2D ObstacleAhead { get; private set; }
+
         private CapsuleCollider2D _capsule;
         private PlayerConfig _config;
 
@@ -299,6 +306,7 @@ namespace ArvinRunner
         private void SampleLowObstacle()
         {
             LowObstacleAhead = false;
+            ObstacleAhead = null;
 
             if (_config == null || !Grounded) return;
 
@@ -311,6 +319,7 @@ namespace ArvinRunner
 
             if (hit.collider == null) return;
 
+            ObstacleAhead = hit.collider;
             LowObstacleAhead = hit.collider.bounds.max.y - feet.y <= _config.maxVaultHeight;
         }
 

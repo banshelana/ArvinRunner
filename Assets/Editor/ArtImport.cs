@@ -115,9 +115,6 @@ namespace ArvinRunner.EditorTools
             new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_taxi.png",
                           Slices = new[] { "taxi" }, TallestHeight = 1.45f, WholeImage = true },
 
-            new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_coupe.png",
-                          Slices = new[] { "coupe" }, TallestHeight = 1.45f, WholeImage = true },
-
             new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_hatchback.png",
                           Slices = new[] { "hatchback" }, TallestHeight = 1.50f, WholeImage = true },
 
@@ -147,7 +144,15 @@ namespace ArvinRunner.EditorTools
                           Slices = new[] { "excavator" }, TallestHeight = 3.40f, WholeImage = true },
 
             new ArtSpec { Path = "Assets/Art/OstaclesNew/ob_scaffold.png",
-                          Slices = new[] { "scaffold" }, TallestHeight = 4.40f, WholeImage = true }
+                          Slices = new[] { "scaffold" }, TallestHeight = 4.40f, WholeImage = true },
+
+            // -- in the air -------------------------------------------------
+            // Airframe, skids and prop together. At 1.35 it comes out about 3.9
+            // from camera ball to prop - half the helicopter, which is how a
+            // drone should read beside it. WholeImage because the prop blades
+            // stand clear of the engine and a column scan would cut them off.
+            new ArtSpec { Path = "Assets/Art/OstaclesNew/war_drone_480.png",
+                          Slices = new[] { "war_drone" }, TallestHeight = 1.35f, WholeImage = true }
         };
 
         private static readonly Dictionary<string, Sprite> Cache = new Dictionary<string, Sprite>();

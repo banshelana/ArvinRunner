@@ -51,6 +51,11 @@ namespace ArvinRunner
                  "alight a fraction before the runner reaches it rather than after.")]
         [SerializeField] private float extraLead = 0.15f;
 
+        [Tooltip("The jolt the shot gives the airframe, as a velocity. Only felt by " +
+                 "aircraft whose visual hovers (HoverBob) - a bomb let go lifts it, " +
+                 "a missile off the rail shoves it back.")]
+        [SerializeField] private Vector2 recoil;
+
         private MovingObstacle _travel;
         private SpriteFlipbook _flipbook;
         private PlayerController _player;
@@ -103,6 +108,12 @@ namespace ArvinRunner
             // The transform rather than a point, so the designator beam follows the
             // aircraft as it keeps flying.
             strike.Launch(muzzle != null ? muzzle : transform);
+
+            if (recoil != Vector2.zero)
+            {
+                HoverBob hover = GetComponentInChildren<HoverBob>();
+                if (hover != null) hover.Kick(recoil);
+            }
         }
 
         private PlayerController Player()

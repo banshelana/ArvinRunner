@@ -206,6 +206,79 @@ namespace ArvinRunner.EditorTools
             return image;
         }
 
+        /// <summary>
+        /// The drone's bomb. Side view, nose pointing +X like the missile so the
+        /// same code turns it along its fall: a fat teardrop body fullest ahead of
+        /// centre, a box tail, a warning band and a fuse cap.
+        /// </summary>
+        public static PaintImage Bomb(int width, int height)
+        {
+            var image = new PaintImage(width, height);
+            float k = width / 256f;
+            float cy = height * 0.5f;
+            float radius = 24f * k;
+
+            float tailX = 6f * k;
+            float bodyX = 44f * k;
+            float tipX = 248f * k;
+
+            var finColour = new Rgb(0.26f, 0.28f, 0.24f);
+
+            // The box tail: two fin plates and the struts that hold them, behind
+            // the body so it lays over their roots.
+            Paint(image, 4, (float x, float y, out Rgb c, out float a) =>
+            {
+                c = finColour;
+                a = 1f;
+                if (x < tailX || x > bodyX + 26f * k) return false;
+
+                float up = y - cy;
+                float span = Math.Abs(up);
+                float reach = radius * 0.95f - Math.Max(0f, x - bodyX) * 0.9f;
+                if (span > reach) return false;
+
+                bool plate = span >= reach - 3.5f * k;
+                bool strut = x <= tailX + 5f * k || span <= 2.5f * k;
+                if (!plate && !strut) return false;
+
+                c = finColour * (up > 0f ? 1.08f : 0.74f);
+                return true;
+            });
+
+            Paint(image, 4, (float x, float y, out Rgb c, out float a) =>
+            {
+                c = default;
+                a = 1f;
+                if (x < bodyX || x > tipX) return false;
+
+                // Tapered to the tail, round at the nose, fullest 60% along.
+                float u = (x - bodyX) / (tipX - bodyX);
+                float rad = radius * (u < 0.6f
+                    ? 0.35f + 0.65f * Smooth(0f, 1f, u / 0.6f)
+                    : (float)Math.Sqrt(Math.Max(0.0, 1.0 - Math.Pow((u - 0.6f) / 0.4f, 2))));
+
+                float dy = y - cy;
+                if (rad <= 0.01f || Math.Abs(dy) > rad) return false;
+
+                // Lit from above and in front, like the missile.
+                float v = dy / rad;
+                float nz = (float)Math.Sqrt(Math.Max(0f, 1f - v * v));
+                float lambert = Math.Max(0f, v * 0.55f + nz * 0.83f);
+                float spec = (float)Math.Exp(-Math.Pow((v - 0.45f) / 0.15f, 2)) * 0.28f;
+
+                var paint = new Rgb(0.34f, 0.37f, 0.30f);
+                if (x > 234f * k) paint = new Rgb(0.20f, 0.20f, 0.21f);
+                else if (Math.Abs(x - 170f * k) < 4f * k) paint = new Rgb(0.88f, 0.70f, 0.16f);
+                else if (Math.Abs(x - 110f * k) < 0.7f * k) paint = paint * 0.62f;
+
+                float shade = 0.32f + 0.85f * lambert;
+                c = paint * shade + new Rgb(spec, spec, spec);
+                return true;
+            });
+
+            return image;
+        }
+
         /// <summary>The motor plume, streaming left from a nozzle at the right edge.</summary>
         public static PaintImage Flame(int width, int height)
         {

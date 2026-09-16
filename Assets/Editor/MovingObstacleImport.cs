@@ -45,6 +45,37 @@ namespace ArvinRunner.EditorTools
 
             /// <summary>World height of the subject, measured on solid pixels.</summary>
             public float Height;
+
+            /// <summary>
+            /// Pin cropped frames by their top edge rather than their lowest solid
+            /// pixel. For art that moves about a point near its top: the drone
+            /// pitches around its tail, so its skids and nose rise and fall 11-21px
+            /// through the loop while the tail fin and prop tip hold still. Pinned
+            /// by the bottom, the drawn pitch would come out as the tail bouncing.
+            /// </summary>
+            public bool AnchorTop;
+
+            /// <summary>
+            /// Pin cropped frames on a bench: centred across on the seat, and down
+            /// on the bottom of the bench legs. Scaled from the first frame alone.
+            ///
+            /// For a figure sitting on something that does not move while he does.
+            /// The newspaper man's crops change with his arms and the flying pages,
+            /// so neither his centre of mass nor his lowest pixel holds still - in
+            /// the last six frames his shoes hang 13px below the bench legs, and
+            /// the startle frames are 40px taller for the pages above his head.
+            /// Pinned on those, the whole bench would jump and he would shrink
+            /// every time the paper went up. The bench is the one thing that is
+            /// in the same place in every drawing.
+            ///
+            /// Scaled per frame by the bench, too. Frames generated one at a time
+            /// are not drawn at one scale - the old woman's bench is 200 to 214px
+            /// across, the newspaper man's 215 to 228 - and at a single
+            /// pixels-per-unit the whole picture would swell and shrink by up to 7%
+            /// as it played. Each frame's scale is set so its bench comes out the
+            /// width the first frame's does.
+            /// </summary>
+            public bool AnchorBench;
         }
 
         private static readonly SetSpec[] Sets =
@@ -54,7 +85,23 @@ namespace ArvinRunner.EditorTools
             new SetSpec { Folder = "moto", Height = 1.55f },
 
             // Airframe and rotor together.
-            new SetSpec { Folder = "helli", Height = 2.85f }
+            new SetSpec { Folder = "helli", Height = 2.85f },
+
+            // Tail fin to skids at their lowest, the same 1.35 the still drawing
+            // was imported at, so the frames drop in without the colliders and
+            // muzzles moving. 24 frames cropped one by one, 452 wide, 151-162 tall.
+            new SetSpec { Folder = "drone", Height = 1.35f, AnchorTop = true },
+
+            // Bench feet to the top of his head while reading. 1.7 is picked
+            // against the runner, not against a real sitting man: just over the
+            // 1.6 vault ceiling, so he is jumped over rather than vaulted onto -
+            // landing on someone's head is not the joke - and under standing
+            // height, so he still reads as sitting down.
+            new SetSpec { Folder = "newspaperMan", Height = 1.7f, AnchorBench = true },
+
+            // The same height as the newspaper man, and for the same reason: over
+            // the vault ceiling, so she is jumped and never vaulted onto.
+            new SetSpec { Folder = "oldWoman", Height = 1.7f, AnchorBench = true }
         };
 
         private static readonly Dictionary<string, Sprite[]> Cache =
@@ -143,6 +190,12 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static void Apply(SetSpec spec, string[] paths, ref int done, int total)
         {
+            if (spec.AnchorBench)
+            {
+                ApplyBench(spec, paths, ref done, total);
+                return;
+            }
+
             bool aligned = SharesOneCanvas(paths);
             float pixelsPerUnit = ScaleFor(spec, paths, aligned);
 
@@ -168,6 +221,18 @@ namespace ArvinRunner.EditorTools
                     figure.Bounds.y / (float)reference.height);
             }
 
+            // For top-anchored frames: the shortest crop, whose bottom is where every
+            // frame's pivot sits - that same distance below its own top edge.
+            int shortest = int.MaxValue;
+            if (spec.AnchorTop && !aligned)
+            {
+                foreach (string path in paths)
+                {
+                    var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                    if (texture != null) shortest = Mathf.Min(shortest, texture.height);
+                }
+            }
+
             foreach (string path in paths)
             {
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
@@ -178,7 +243,13 @@ namespace ArvinRunner.EditorTools
 
                 Vector2 pivot;
 
-                if (aligned)
+                if (shortest != int.MaxValue)
+                {
+                    // Crops the same width are the same span across, so the centre
+                    // holds still; down, a fixed depth from the top edge.
+                    pivot = new Vector2(0.5f, (texture.height - shortest) / (float)texture.height);
+                }
+                else if (aligned)
                 {
                     pivot = shared;
                 }
@@ -196,6 +267,109 @@ namespace ArvinRunner.EditorTools
 
                 SpriteMeasure.ApplyFrame(path, pivot, pixelsPerUnit);
             }
+        }
+
+        /// <summary>Scales and anchors a folder of frames drawn on a bench - see SetSpec.AnchorBench.</summary>
+        private static void ApplyBench(SetSpec spec, string[] paths, ref int done, int total)
+        {
+            // The first frame sets the scale: bench feet to the top of the crop,
+            // which in a reading frame is the top of his head.
+            var first = AssetDatabase.LoadAssetAtPath<Texture2D>(paths[0]);
+            if (first == null || !TryFindBench(first, out _, out int firstLegs, out int firstSeat))
+            {
+                Debug.LogWarning($"[ArvinRunner] Could not find the bench in the first frame of " +
+                                 $"{spec.Folder}, so it keeps its previous import.");
+                return;
+            }
+
+            float firstScale = (first.height - firstLegs) / Mathf.Max(0.05f, spec.Height);
+
+            // The bench's world width, fixed by the first frame. Every frame is
+            // scaled to match it, so the drawings' own scale drift never shows.
+            float benchWidth = firstSeat / firstScale;
+
+            foreach (string path in paths)
+            {
+                EditorUtility.DisplayProgressBar("ArvinRunner", "Importing " + Path.GetFileName(path),
+                                                 0.5f + 0.5f * done++ / total);
+
+                var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+                if (texture == null) continue;
+
+                if (!TryFindBench(texture, out Vector2 pivot, out _, out int seat))
+                {
+                    Debug.LogWarning($"[ArvinRunner] Could not find the bench in {path}; it keeps its previous import.");
+                    continue;
+                }
+
+                SpriteMeasure.ApplyFrame(path, pivot, seat / Mathf.Max(0.01f, benchWidth));
+            }
+        }
+
+        /// <summary>
+        /// Finds the bench in a frame. Across, the seat: the solid span of the band
+        /// 28-36% up the crop, where the seat slats are and nothing of him reaches
+        /// past them. Down, the lowest solid row in the outer eighth of that span
+        /// at either end - the bench legs, clear of his feet in the middle.
+        /// <paramref name="legsY"/> is that row, counted up from the bottom, and
+        /// <paramref name="seatWidth"/> the seat's span in pixels.
+        /// </summary>
+        private static bool TryFindBench(Texture2D texture, out Vector2 pivot, out int legsY, out int seatWidth)
+        {
+            pivot = default;
+            legsY = -1;
+            seatWidth = 0;
+
+            Color32[] pixels;
+            try
+            {
+                pixels = texture.GetPixels32();
+            }
+            catch (UnityException)
+            {
+                return false;
+            }
+
+            int width = texture.width;
+            int height = texture.height;
+
+            int seatFrom = Mathf.RoundToInt(height * 0.28f);
+            int seatTo = Mathf.Max(seatFrom + 1, Mathf.RoundToInt(height * 0.36f));
+            int left = width, right = -1;
+
+            for (int y = seatFrom; y < seatTo; y++)
+            {
+                int row = y * width;
+                for (int x = 0; x < width; x++)
+                {
+                    if (pixels[row + x].a < SolidAlpha) continue;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                }
+            }
+
+            if (right < left) return false;
+
+            int edge = Mathf.Max(1, Mathf.RoundToInt((right - left) * 0.12f));
+
+            for (int y = 0; y < height && legsY < 0; y++)
+            {
+                int row = y * width;
+                for (int x = left; x <= right; x++)
+                {
+                    if (x > left + edge && x < right - edge) continue;
+                    if (pixels[row + x].a < SolidAlpha) continue;
+
+                    legsY = y;
+                    break;
+                }
+            }
+
+            if (legsY < 0) return false;
+
+            seatWidth = right - left + 1;
+            pivot = new Vector2((left + right + 1) * 0.5f / width, legsY / (float)height);
+            return true;
         }
 
         /// <summary>True when every frame was drawn on the same size canvas.</summary>

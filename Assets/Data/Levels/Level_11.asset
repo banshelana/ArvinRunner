@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_11
+  m_EditorClassIdentifier: 
+  levelNumber: 11
+  displayName: War Zone
+  hint: Slide under the gunfire, drop into the cellars, climb the rubble. The drones
+    mark before they strike.
+  mode: 0
+  sequence:
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 4126165846189908516, guid: a8e4866476070904fab0c8ec2f6e2fe5, type: 3}
+  - {fileID: 1166609229737836716, guid: 3ed0135bae2084145b80d7236098aa1c, type: 3}
+  - {fileID: 1436362314700968855, guid: 61313def68f0b984dae7c934f5064407, type: 3}
+  - {fileID: 1896639986947676573, guid: 5e12eb6e32256f841a6f6878ce9b830a, type: 3}
+  - {fileID: 2729181136997441213, guid: 6107681552fc29040a99b00003be2726, type: 3}
+  - {fileID: 5094854739486161751, guid: 470c96cf91d3a154097fd162aabdf977, type: 3}
+  - {fileID: 3061265572956768114, guid: 43eb1125c9d53ed43af4228b1981bdf2, type: 3}
+  - {fileID: 2970665918316092734, guid: 37b51ddb180cd3f498d43624ef7efca1, type: 3}
+  - {fileID: 5936861944330837141, guid: 28ae21724f5768548aae337ff0d35c48, type: 3}
+  - {fileID: 666391785595622120, guid: 65f64ffbbae250c48a9ff30d2975289a, type: 3}
+  - {fileID: 1594574583706283925, guid: dac704ecbbbcc834cbfd76024152155a, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: 40669a68d3c0239438c5f39801eba32a, type: 2}
+  music: {fileID: 0}
+  parTime: 110

@@ -59,7 +59,9 @@
     <Compile Include="Assets\Scripts\Camera\ParallaxTheme.cs" />
     <Compile Include="Assets\Scripts\UI\GameHUD.cs" />
     <Compile Include="Assets\Scripts\Obstacles\Hazard.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\HoverBob.cs" />
     <Compile Include="Assets\Scripts\UI\MainMenuController.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\StartledBystander.cs" />
     <Compile Include="Assets\Scripts\Camera\CameraFollow.cs" />
     <Compile Include="Assets\Scripts\Obstacles\Collectible.cs" />
     <Compile Include="Assets\Scripts\Camera\ParallaxBackground.cs" />
@@ -89,6 +91,7 @@
     <Compile Include="Assets\Scripts\Player\TrickSet.cs" />
     <Compile Include="Assets\Scripts\Core\SaveData.cs" />
     <Compile Include="Assets\Scripts\Obstacles\KillZone.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\TracerFire.cs" />
     <Compile Include="Assets\Scripts\Obstacles\LaserGate.cs" />
     <Compile Include="Assets\Scripts\Obstacles\Trampoline.cs" />
     <Compile Include="Assets\Scripts\Player\SuperJumpMeter.cs" />
@@ -96,6 +99,11 @@
     <Compile Include="Assets\Scripts\Obstacles\GustZone.cs" />
     <Compile Include="Assets\Scripts\Level\LevelBuilder.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerConfig.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\GrabPoint.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\CrocodileSnap.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\SwingRope.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\FireFlicker.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\ZipHook.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">
