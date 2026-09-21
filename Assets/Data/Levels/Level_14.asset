@@ -1,0 +1,70 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f562d09e53a58224f854c7c10d897688, type: 3}
+  m_Name: Level_14
+  m_EditorClassIdentifier: 
+  levelNumber: 14
+  displayName: Hunted
+  hint: Venom is behind you. Every crawl and every climb lets him gain - run clean
+    in between.
+  mode: 0
+  sequence:
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  - {fileID: 2374893032429590488, guid: 41f726c10fae6ea44966806f528e9c77, type: 3}
+  - {fileID: 6672769195171824643, guid: ed9631cbaca30fe49b1eacb49168b2c4, type: 3}
+  - {fileID: 6596801426346354745, guid: 3c3eeed4b0e1b0247969ac894581a719, type: 3}
+  - {fileID: 7155613537961886305, guid: 4d8d26d616ec14a48b0ed97601139f42, type: 3}
+  - {fileID: 2986558271687000459, guid: 79ff4205c909eea4eab07b654a4bdabf, type: 3}
+  - {fileID: 2970665918316092734, guid: 37b51ddb180cd3f498d43624ef7efca1, type: 3}
+  - {fileID: 2729181136997441213, guid: 6107681552fc29040a99b00003be2726, type: 3}
+  - {fileID: 3875000226681118473, guid: 3c6c6711411a161418aff9dc6be14d6f, type: 3}
+  - {fileID: 865573049458130827, guid: aee78308ff63eb745887a794f08c4020, type: 3}
+  - {fileID: 7639345555443649823, guid: 90dbe25f4b1bde842b7628ab4b5bc818, type: 3}
+  - {fileID: 3608461812425758641, guid: 2f32f47ecf14f9843821598956254bdc, type: 3}
+  - {fileID: 7649613292800829701, guid: 21bf9c2dd0e77fa42bba1eeadb9d2654, type: 3}
+  - {fileID: 3461224681785189798, guid: 50f4d10c6ef720a48b3cf7593798e32f, type: 3}
+  pool: []
+  targetLength: 400
+  difficultyCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 3
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 4
+      inSlope: 3
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  seed: 12345
+  startPadLength: 18
+  finishPadLength: 16
+  theme: {fileID: 11400000, guid: 9d5c2c4b2a2b698499e0231bcd5b9e1b, type: 2}
+  music: {fileID: 0}
+  parTime: 70
+  chase: 1
+  chasePace: 0.83
+  chaseLeash: 14
+  chaseStartLag: 6

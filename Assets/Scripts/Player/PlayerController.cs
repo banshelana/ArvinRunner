@@ -48,6 +48,30 @@ namespace ArvinRunner
 
         public PlayerState State { get; private set; } = PlayerState.Idle;
         public PlayerConfig Config => config;
+
+        /// <summary>
+        /// Swaps in a tuned copy of the config - see DifficultyTuning. The sensors
+        /// keep their own reference to it, so they are told as well; missing that
+        /// would leave the probes reading the untuned numbers.
+        /// </summary>
+        public void ApplyConfig(PlayerConfig replacement)
+        {
+            if (replacement == null) return;
+
+            config = replacement;
+            if (_sensors != null) _sensors.Initialise(config);
+        }
+
+        /// <summary>True while the feet are on something.</summary>
+        public bool Grounded => _sensors != null && _sensors.Grounded;
+
+        /// <summary>
+        /// Added to the speed the runner is driven to, by whatever he is standing
+        /// on - see <see cref="ConveyorStrip"/>. Set every step by the thing under
+        /// him and cleared at the end of this one, so walking off a belt needs no
+        /// telling: the moment nothing sets it, it is gone.
+        /// </summary>
+        public float SurfaceDrift { get; set; }
         public bool IsAlive => State != PlayerState.Dead;
 
         /// <summary>The power meter, for the HUD gauge. Null if none is wired.</summary>
@@ -103,6 +127,15 @@ namespace ArvinRunner
         private bool _skating;
         private float _skateUntilX;
 
+        // The slide in progress is flat on the ground instead, under something a
+        // slide does not fit beneath. Runs to the far end of it the same way.
+        // It slides up to the mouth of the bar and only goes flat there - see
+        // BeginCrawl.
+        private bool _crawling;
+        private bool _crawlFlat;
+        private float _crawlFromX;
+        private float _crawlUntilX;
+
         // Falling out of the level: the height of the last ground stood on, and
         // whether the body now dropping is one that has already lost.
         private float _lastGroundedFeetY;
@@ -123,6 +156,12 @@ namespace ArvinRunner
 
         // Ledge
         private float _ledgeTargetY;
+
+        // Rope and hook. _grabClaimed is the one just let go of, so the release
+        // arc cannot fall straight back onto the grip it left.
+        private GrabPoint _grab;
+        private GrabPoint _grabClaimed;
+        private float _rideDuration;
 
         private SwipeInput Input_ => SwipeInput.Instance;
 
@@ -172,8 +211,12 @@ namespace ArvinRunner
             _usedDoubleJump = false;
             _superJumpQueued = false;
             _skating = false;
+            _crawling = false;
+            _crawlFlat = false;
             LaunchSpeed = 0f;
             if (meter != null) meter.ResetCharge();
+            _grab = null;
+            _grabClaimed = null;
             _wallRunClaimed = null;
             CurrentSpeed = config != null ? config.runSpeed : 9f;
 
@@ -225,11 +268,16 @@ namespace ArvinRunner
                 _lastGroundedTime = Time.time;
                 _lastGroundedFeetY = _capsule.bounds.min.y;
                 _wallRunClaimed = null;   // touching down re-arms the wall run
+                _grabClaimed = null;      // and re-arms the rope
             }
 
             TickState();
             ApplyGravity();
             CheckCrash();
+
+            // Whatever is underfoot has had its say for this step. Anything still
+            // under him will set it again before the next one.
+            SurfaceDrift = 0f;
         }
 
         // ================================================================= //
@@ -260,10 +308,15 @@ namespace ArvinRunner
 
                 case PlayerState.Running:
                     // Off the board is its own get-up; everything else as before.
+                    // A crawl has no drawn stand-up of its own, so it takes the
+                    // slide's, which is the same move from very nearly the same
+                    // pose.
                     PlayAnim(_previousState == PlayerState.Sliding && _skating
                         ? PlayerAnim.SkateOff
                         : ArrivalAnim(_previousState));
                     _skating = false;
+                    _crawling = false;
+                    _crawlFlat = false;
                     _usedDoubleJump = false;
                     break;
 
@@ -321,12 +374,31 @@ namespace ArvinRunner
                     break;
 
                 case PlayerState.Sliding:
+                    // Three ways to go low, all off the same swipe, and all chosen
+                    // here from what is actually ahead rather than from a second
+                    // input the player would have to learn.
+                    //
+                    // The lowest thing wins. A bar under the slide height is asked
+                    // about first because a slide simply does not fit under it -
+                    // the runner would take it in the shoulder - and neither the
+                    // tackle nor the board is an answer to it.
+                    _crawling = _sensors.FindLowBar(config.skateLookAhead,
+                                                    _standSize.y * config.crawlHeightFraction,
+                                                    _standSize.y * config.slideHeightFraction,
+                                                    out float barStart, out float barEnd);
+
+                    if (_crawling)
+                    {
+                        BeginCrawl(barStart, barEnd);
+                        OnSlideStarted?.Invoke();
+                        break;
+                    }
+
                     SetColliderFraction(config.slideHeightFraction);
                     _speedBoost = config.slideSpeedMultiplier;
 
                     // Under something long - a deck, an overhang - on the
                     // skateboard; under something short, or nothing, the tackle.
-                    // Decided once, here, from what the slide is heading under.
                     _skating = _sensors.FindOverhead(config.skateLookAhead,
                                                      _standSize.y * config.slideHeightFraction,
                                                      out float overheadStart, out float overheadEnd)
@@ -364,6 +436,10 @@ namespace ArvinRunner
                     BeginLedgeClimb();
                     break;
 
+                case PlayerState.Swinging:
+                    BeginSwing();
+                    break;
+
                 case PlayerState.Victory:
                     // Across the line on the ground, the celebration starts at
                     // once; in the air, whatever was playing carries on until
@@ -398,6 +474,12 @@ namespace ArvinRunner
                 case PlayerState.LedgeGrab:
                     _rb.gravityScale = config.fallGravity;
                     break;
+
+                case PlayerState.Swinging:
+                    _rb.isKinematic = false;
+                    if (_grab != null) _grab.EndRide();
+                    _grab = null;
+                    break;
             }
         }
 
@@ -416,6 +498,7 @@ namespace ArvinRunner
                 case PlayerState.WallRunning: TickWallRun();  break;
                 case PlayerState.LedgeGrab: TickLedgeGrab();  break;
                 case PlayerState.LedgeClimb: TickLedgeClimb(); break;
+                case PlayerState.Swinging:  TickSwing();      break;
             }
         }
 
@@ -479,6 +562,9 @@ namespace ArvinRunner
                 return;
             }
 
+            // Slid up to the bar: flat from here to the far end of it.
+            if (_crawling && !_crawlFlat && transform.position.x >= _crawlFromX) GoFlat();
+
             // On the board: down onto it, then gliding until the slide ends.
             if (_skating && _stateAnim == PlayerAnim.SkateOn && ClipFinished)
                 PlayAnim(PlayerAnim.SkateGlide);
@@ -486,8 +572,15 @@ namespace ArvinRunner
             // Sliding under a low ceiling: keep going until there is headroom. A
             // skate also rides out to the far end of what it went under, so a
             // swipe taken early does not stand the runner up beneath it.
+            //
+            // A crawl rides out the same way, and it has to: the thing it is
+            // under can be a laser rather than a ceiling, and CeilingBlocked only
+            // sees solid roof. Standing up at the end of the slide timer, half way
+            // along a beam, would be a death with nothing on screen having said
+            // the runner was still under anything.
             bool expired = _stateTime >= config.slideDuration &&
-                           !(_skating && transform.position.x < _skateUntilX);
+                           !(_skating && transform.position.x < _skateUntilX) &&
+                           !(_crawling && transform.position.x < _crawlUntilX);
             if (expired && _sensors.CeilingBlocked) return;
 
             if (ConsumeUp() && !_sensors.CeilingBlocked)
@@ -541,6 +634,10 @@ namespace ArvinRunner
                 PlayAnim(PlayerAnim.JumpFall);
 
             if (Land()) return;
+
+            // Before the wall and the ledge: a rope hung against a face is caught,
+            // not scrambled up.
+            if (TryGrab()) return;
 
             // A wall in front while airborne starts a wall run automatically -
             // but only once per wall per jump.
@@ -630,6 +727,80 @@ namespace ArvinRunner
                 SetState(PlayerState.Running);
 
             return true;
+        }
+
+        // ---- Rope and hook -------------------------------------------------- //
+
+        /// <summary>Where the raised hand is: the grip a catch is measured against.</summary>
+        private Vector2 Hand => _rb.position + Vector2.up * config.gripReach;
+
+        /// <summary>
+        /// Catches a rope or a hook whose grip the raised hand has just passed.
+        /// Returns true if one was caught and the state changed.
+        ///
+        /// The one just let go of is skipped until the runner touches down, so
+        /// the release arc - which climbs back through the grip it left - does not
+        /// re-catch it and leave them swinging on the spot.
+        /// </summary>
+        private bool TryGrab()
+        {
+            GrabPoint point = GrabPoint.Nearest(Hand, config.grabRadius, _grabClaimed);
+            if (point == null) return false;
+
+            _grab = point;
+            SetState(PlayerState.Swinging);
+            return true;
+        }
+
+        private void BeginSwing()
+        {
+            if (_grab == null)
+            {
+                SetState(PlayerState.Falling);
+                return;
+            }
+
+            _grabClaimed = _grab;
+
+            // Both hands on it is a fresh start: the air jump comes back, and
+            // whatever the last take-off was carrying does not ride through the
+            // swing - the release velocity is the rope's, not the runner's.
+            _usedDoubleJump = false;
+            _speedBoost = 1f;
+
+            // Scripted from here: the grab point moves the body, as the vault
+            // and the ledge climb do.
+            _rb.isKinematic = true;
+            _rb.velocity = Vector2.zero;
+
+            _rideDuration = _grab.BeginRide(Hand);
+            PlayAnim(PlayerAnim.Swing, _grab.HangClip);
+        }
+
+        private void TickSwing()
+        {
+            if (_grab == null)
+            {
+                SetState(PlayerState.Falling);
+                return;
+            }
+
+            _rb.MovePosition(_grab.RideGrip(_stateTime) - Vector2.up * config.gripReach);
+
+            if (_stateTime < _rideDuration) return;
+
+            // Let go. The forward speed is the faster of the two: a rope never
+            // slows a fast runner down, and never lets a slow one arrive short of
+            // the landing it was laid out for.
+            Vector2 leave = _grab.ReleaseVelocity;
+
+            SetState(PlayerState.Falling);
+            _rb.velocity = new Vector2(Mathf.Max(TargetSpeed(), leave.x), leave.y);
+
+            // The release clip follows the arc, so it needs the height that arc
+            // is going to reach - see SpriteAnimationClip.followJump.
+            LaunchSpeed = leave.y;
+            PlayAnim(PlayerAnim.JumpRise, "rope_release");
         }
 
         // ---- Wall run ----------------------------------------------------- //
@@ -841,10 +1012,26 @@ namespace ArvinRunner
             CurrentSpeed = vx;
         }
 
+        /// <summary>True while the player is holding the brake and it can do anything.</summary>
+        private bool Braking => Input_ != null && Input_.Braking && _sensors.Grounded;
+
+        /// <summary>
+        /// The speed the runner is being driven to: the ramp, whatever the current
+        /// move multiplies it by, whatever he is standing on, and the brake.
+        ///
+        /// Floored at a walk. A belt running hard against him is meant to cost him
+        /// his pace, not stop him - and stopping him would kill him, because
+        /// CheckCrash reads a runner who is barely moving as one who has hit
+        /// something.
+        /// </summary>
         private float TargetSpeed()
         {
             float ramped = config.runSpeed + config.speedRampPerSecond * _runTime;
-            return Mathf.Min(ramped, config.maxRunSpeed) * _speedBoost;
+            float target = Mathf.Min(ramped, config.maxRunSpeed) * _speedBoost + SurfaceDrift;
+
+            if (Braking) target *= config.brakeSpeedMultiplier;
+
+            return Mathf.Max(2.5f, target);
         }
 
         private void ApplyGravity()
@@ -880,6 +1067,7 @@ namespace ArvinRunner
         private void CheckCrash()
         {
             bool scripted = State == PlayerState.Vaulting
+                            || State == PlayerState.Swinging
                             || State == PlayerState.LedgeClimb
                             || State == PlayerState.LedgeGrab
                             || State == PlayerState.WallRunning;
@@ -991,10 +1179,77 @@ namespace ArvinRunner
 
         // ---- Collider resizing -------------------------------------------- //
 
+        /// <summary>
+        /// Starts a crawl under a bar running from <paramref name="barStart"/> to
+        /// <paramref name="barEnd"/>.
+        ///
+        /// <b>It slides up to the bar and goes flat at its mouth</b>, rather than
+        /// going flat the moment the swipe lands. The probe looks eight units
+        /// ahead, so a swipe can come well before the bar - and going flat there
+        /// charged the runner a crawl's pace for ground that had nothing over it.
+        /// On a quiet level that was only slow. Under the flood it was lethal,
+        /// and for a reason the player could not see: the same obstacle cost more
+        /// or less depending on how early they had swiped at it. Now what a crawl
+        /// costs is the length of the thing being crawled under, and nothing else.
+        ///
+        /// The collider goes down to crawl height at once, all the same. Lower is
+        /// never the wrong side of anything, and it means the approach cannot
+        /// meet the bar a frame before the pose does.
+        /// </summary>
+        private void BeginCrawl(float barStart, float barEnd)
+        {
+            SetColliderFraction(config.crawlHeightFraction);
+
+            float half = _sensors.Width * 0.5f;
+            _crawlFromX = barStart - half - 0.3f;
+            _crawlUntilX = barEnd + half + 0.1f;
+            _crawlFlat = false;
+
+            if (transform.position.x >= _crawlFromX)
+            {
+                GoFlat();
+                return;
+            }
+
+            _speedBoost = config.slideSpeedMultiplier;
+            PlayAnim(PlayerAnim.Slide);
+        }
+
+        private void GoFlat()
+        {
+            _crawlFlat = true;
+            _speedBoost = config.crawlSpeedMultiplier;
+            PlayAnim(PlayerAnim.Crawl);
+        }
+
+        /// <summary>
+        /// Squashes the collider to a fraction of standing height, keeping its
+        /// underside on the feet.
+        ///
+        /// <b>It lies the capsule down to do it.</b> A vertical CapsuleCollider2D
+        /// cannot be shorter than it is wide - Unity turns one that is into a
+        /// circle of its own width - and this body is 0.80 across. So every
+        /// request under 0.80 was silently coming out 0.80 tall, with its centre
+        /// where the middle of the circle landed and its underside 0.085 below the
+        /// feet. The slide asks for 0.7875 and has been living on the wrong side
+        /// of that line since it was written, unnoticed because nothing in the
+        /// game was built lower than 0.79 for it to fail against. The crawl asks
+        /// for 0.63, which is a fifth under the floor, and failed at once: it
+        /// could not fit under a bar at 0.74 and so there was no getting under
+        /// anything.
+        ///
+        /// Laid on its side the capsule is a real 0.80 by 0.63, which is both the
+        /// shape that was asked for and, for a body gone flat, the shape it should
+        /// have been all along.
+        /// </summary>
         private void SetColliderFraction(float fraction)
         {
             float height = _standSize.y * fraction;
             float bottomOffset = _standOffset.y - _standSize.y * 0.5f;
+
+            _capsule.direction = height < _standSize.x
+                ? CapsuleDirection2D.Horizontal
+                : CapsuleDirection2D.Vertical;
 
             _capsule.size = new Vector2(_standSize.x, height);
             _capsule.offset = new Vector2(_standOffset.x, bottomOffset + height * 0.5f);
@@ -1002,6 +1257,7 @@ namespace ArvinRunner
 
         private void RestoreCollider()
         {
+            _capsule.direction = CapsuleDirection2D.Vertical;
             _capsule.size = _standSize;
             _capsule.offset = _standOffset;
         }

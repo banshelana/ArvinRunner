@@ -28,6 +28,16 @@ namespace ArvinRunner.EditorTools
     {
         public const string RootFolder = "Assets/Art/MovingObstacles";
 
+        /// <summary>
+        /// The other place frame folders live: whatever is chasing the runner
+        /// through a level. Not an obstacle in a chunk, but imported exactly like
+        /// one, so it is searched alongside the obstacles rather than given its
+        /// own importer.
+        /// </summary>
+        public const string ChasingFolder = "Assets/Art/Chasing";
+
+        private static readonly string[] SearchRoots = { RootFolder, ChasingFolder };
+
         /// <summary>The helicopter frames are 1448x653, so 2048 never downscales one.</summary>
         private const int MaxTextureSize = 2048;
 
@@ -76,6 +86,42 @@ namespace ArvinRunner.EditorTools
             /// width the first frame's does.
             /// </summary>
             public bool AnchorBench;
+
+            /// <summary>
+            /// Pin cropped frames by the back end of the drawn figure: its
+            /// leftmost solid pixel, and its lowest.
+            ///
+            /// For an animal that holds its hind quarters still and moves
+            /// everything in front of them. The crocodile rears up out of the
+            /// water to snap, and between the flat frames and the full lunge its
+            /// solid box goes from 307x62 to 300x122 - the head rises 65px and
+            /// the body foreshortens 15% as the tail curls, so its length is not
+            /// even constant. Anchored on the centre of mass the whole animal
+            /// lurches 26px sideways in a single frame as the tail straightens;
+            /// anchored on the snout, the body slides out from under a head that
+            /// is pinned to the one point that fans the widest.
+            ///
+            /// Overlaying all 24 frames under each rule settles it: pinned by the
+            /// tail the rear half stays sharp and only the head and jaws fan out,
+            /// which is the animation. The crops are already tight, so this is
+            /// very nearly the bottom-left corner of each one - but it is measured
+            /// rather than assumed, because a stray soft pixel in the crop would
+            /// otherwise shift the animal.
+            /// </summary>
+            public bool AnchorTail;
+
+            /// <summary>
+            /// Pin cropped frames by the head: the mean x of the top of the
+            /// figure, and its lowest pixel.
+            ///
+            /// For something that runs. It is the rule the runner's own clips use
+            /// (PlayerAnimationImport, FrameAnchor.Feet) and for the same reason:
+            /// the centre of mass swings with the arms and the trailing leg every
+            /// frame, and a sprinter's head barely moves. Venom's crops run 390 to
+            /// 477 wide as his reach opens and closes, and on the centre of mass
+            /// that shows as the whole body surging back and forth under him.
+            /// </summary>
+            public bool AnchorHead;
         }
 
         private static readonly SetSpec[] Sets =
@@ -101,7 +147,65 @@ namespace ArvinRunner.EditorTools
 
             // The same height as the newspaper man, and for the same reason: over
             // the vault ceiling, so she is jumped and never vaulted onto.
-            new SetSpec { Folder = "oldWoman", Height = 1.7f, AnchorBench = true }
+            new SetSpec { Folder = "oldWoman", Height = 1.7f, AnchorBench = true },
+
+            // The crocodile, measured at full lunge - the tallest frame, which is
+            // how ScaleFor scales a folder of individual crops. That puts the
+            // reared head 1.8 above the water and leaves the animal lying about
+            // 0.85 tall and 4.3 long, so a pit holds two or three of them and
+            // each one is worth looking at.
+            new SetSpec { Folder = "crocodile", Height = 1.8f, AnchorTail = true },
+
+            // Flame only: the smoke above it and the sparks around it are drawn
+            // well under the solid-alpha cut, so they ride along in the picture
+            // without being measured as part of it. 2.8 in a pit 3.5 deep leaves
+            // the tips below the lip and lets the smoke drift over it.
+            new SetSpec { Folder = "fire", Height = 2.8f },
+
+            // Measured at full rear, which is the tallest frame and so what
+            // ScaleFor picks. That leaves the snake lying 0.28 deep and 2.1 long
+            // when it is idling and standing 1.6 when it comes up - well inside a
+            // pit 3.5 deep, and tall enough to be read from the roof above it.
+            //
+            // No anchor flag: its crops are already bottom-tight in all 24 frames,
+            // and across, the centre of mass is the steadiest thing it has. Pinned
+            // by the tail the head swings 61px as the body gathers into the coil;
+            // pinned by the head the tail does. The mass barely moves either way,
+            // which is what a snake drawing itself in actually does.
+            new SetSpec { Folder = "snake", Height = 1.6f },
+
+            // The wave that chases the runner through level 14. 5.0 at the top of
+            // its swell, nearly three times a standing runner, and about 11.5
+            // long. The first cut was 3.2, and at that size it read as a splash
+            // rather than something that could swallow him. This is as big as it
+            // gets before it stops being a wave coming at him and starts being a
+            // wall the size of the screen again.
+            //
+            // Pinned by its tail, like the crocodile, and for the same reason.
+            // Across the loop the crest swells and flattens and leans forward as
+            // it goes, and the crops follow it: 435 wide at the tallest, 448 at
+            // the flattest. Overlaying all 24 by each rule, the tail keeps the
+            // base still and lets the crest move, which is the animation; by the
+            // right edge the base slides under a crest that is pinned to spray.
+            new SetSpec { Folder = "wave", Height = 5.0f, AnchorTail = true },
+
+            // Venom, who chases the runner through level 14. 2.45 against the
+            // runner's 1.75: half a head taller than him while hunched over into
+            // a run, so he reads as bigger without filling the screen.
+            new SetSpec { Folder = "venom_running", Height = 2.45f, AnchorHead = true },
+
+            // What he does when he catches the runner. 3.0 rather than the run's
+            // 2.45 because he is upright in most of it, and because the two sets
+            // are not drawn at the same size: his skull measures 191px across the
+            // run and 139 here, so this folder is drawn at 0.73 of the other one.
+            // Imported at its own face value he would shrink by a quarter at the
+            // moment he arrives. 374px of drawing at that scale is 2.98.
+            //
+            // No anchor flag. Overlaying the 24 frames, the centre of mass holds
+            // the body steadier than either edge does - he crouches, lunges and
+            // straightens up on the spot, so nothing about him travels the way a
+            // runner's head or a crocodile's tail does.
+            new SetSpec { Folder = "venomGrab", Height = 3.0f }
         };
 
         private static readonly Dictionary<string, Sprite[]> Cache =
@@ -127,8 +231,10 @@ namespace ArvinRunner.EditorTools
                 if (paths.Length > 0)
                     found.Add(new KeyValuePair<SetSpec, string[]>(spec, paths));
                 else
-                    Debug.LogWarning($"[ArvinRunner] No frames in {RootFolder}/{spec.Folder}. " +
-                                     "That obstacle falls back to a plain box.");
+                    Debug.LogWarning($"[ArvinRunner] No folder called '{spec.Folder}' under " +
+                                     $"{string.Join(" or ", SearchRoots)}, so it falls back to a " +
+                                     "plain box. The name here is the folder's, not the frames' - " +
+                                     "venom_running, not venomRunning.");
             }
 
             if (found.Count == 0) return;
@@ -262,7 +368,20 @@ namespace ArvinRunner.EditorTools
                         continue;
                     }
 
-                    pivot = SpriteMeasure.PivotFor(figure, texture.width, texture.height);
+                    if (spec.AnchorTail)
+                    {
+                        pivot = new Vector2(figure.Bounds.x / (float)texture.width,
+                                            figure.Bounds.y / (float)texture.height);
+                    }
+                    else if (spec.AnchorHead)
+                    {
+                        pivot = new Vector2(figure.HeadX / texture.width,
+                                            figure.Bounds.y / (float)texture.height);
+                    }
+                    else
+                    {
+                        pivot = SpriteMeasure.PivotFor(figure, texture.width, texture.height);
+                    }
                 }
 
                 SpriteMeasure.ApplyFrame(path, pivot, pixelsPerUnit);
@@ -476,13 +595,16 @@ namespace ArvinRunner.EditorTools
 
         private static string FindFolder(string folder)
         {
-            if (!Directory.Exists(RootFolder)) return null;
-
-            foreach (string candidate in Directory.GetDirectories(RootFolder))
+            foreach (string root in SearchRoots)
             {
-                if (string.Equals(Path.GetFileName(candidate), folder,
-                                  System.StringComparison.OrdinalIgnoreCase))
-                    return candidate.Replace('\\', '/');
+                if (!Directory.Exists(root)) continue;
+
+                foreach (string candidate in Directory.GetDirectories(root))
+                {
+                    if (string.Equals(Path.GetFileName(candidate), folder,
+                                      System.StringComparison.OrdinalIgnoreCase))
+                        return candidate.Replace('\\', '/');
+                }
             }
 
             return null;

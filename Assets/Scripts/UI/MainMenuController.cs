@@ -29,6 +29,11 @@ namespace ArvinRunner
         [SerializeField] private Button quitButton;
         [SerializeField] private Text totalPickupsText;
 
+        [Header("Difficulty")]
+        [Tooltip("Easy, Normal and Hard, in that order.")]
+        [SerializeField] private Button[] difficultyButtons;
+        [SerializeField] private Text difficultyHint;
+
         [Header("Levels")]
         [SerializeField] private RectTransform levelGrid;
         [SerializeField] private Button levelButtonTemplate;
@@ -44,6 +49,16 @@ namespace ArvinRunner
             if (backButton != null) backButton.onClick.AddListener(() => ShowLevels(false));
             if (quitButton != null) quitButton.onClick.AddListener(Quit);
             if (resetProgressButton != null) resetProgressButton.onClick.AddListener(ResetProgress);
+
+            for (int i = 0; difficultyButtons != null && i < difficultyButtons.Length; i++)
+            {
+                if (difficultyButtons[i] == null) continue;
+
+                // Captured per button, because the listener runs long after the
+                // loop has finished and i would be past the end by then.
+                var choice = (Difficulty)i;
+                difficultyButtons[i].onClick.AddListener(() => ChooseDifficulty(choice));
+            }
 
             // The menu can be reached mid-run from the pause screen, which may
             // have left time stopped.
@@ -70,6 +85,8 @@ namespace ArvinRunner
 
             if (totalPickupsText != null)
                 totalPickupsText.text = SaveData.TotalPickups + " collected";
+
+            RefreshDifficulty();
 
             RefreshLevelButtons();
         }
@@ -123,6 +140,44 @@ namespace ArvinRunner
         }
 
         // ---------------------------------------------------------------- //
+
+        /// <summary>
+        /// Stores the choice and repaints the row. It takes effect on the next
+        /// level loaded, which from here is always the next one started - the
+        /// GameManager reads it once when the game scene comes up.
+        /// </summary>
+        private void ChooseDifficulty(Difficulty choice)
+        {
+            SaveData.Difficulty = choice;
+            RefreshDifficulty();
+        }
+
+        /// <summary>
+        /// Lights the chosen one and dims the rest. The buttons carry no state of
+        /// their own; what is saved is the only truth about which is picked.
+        /// </summary>
+        private void RefreshDifficulty()
+        {
+            Difficulty current = SaveData.Difficulty;
+
+            for (int i = 0; difficultyButtons != null && i < difficultyButtons.Length; i++)
+            {
+                if (difficultyButtons[i] == null) continue;
+
+                bool chosen = i == (int)current;
+
+                var image = difficultyButtons[i].targetGraphic as Image;
+                if (image != null)
+                    image.color = chosen ? new Color(0.92f, 0.72f, 0.20f, 0.85f)
+                                         : new Color(0f, 0f, 0f, 0.42f);
+
+                Text label = difficultyButtons[i].GetComponentInChildren<Text>();
+                if (label != null)
+                    label.color = chosen ? new Color(0.10f, 0.09f, 0.06f) : Color.white;
+            }
+
+            if (difficultyHint != null) difficultyHint.text = DifficultyTuning.Describe(current);
+        }
 
         private void PlayFromProgress()
         {

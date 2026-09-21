@@ -28,7 +28,11 @@ namespace ArvinRunner
 
         /// <summary>Over the finish line: easing to a stop, then celebrating.
         /// Not under player control.</summary>
-        Victory
+        Victory,
+
+        /// <summary>Holding a rope or a hook, carried by it until it lets go.
+        /// Scripted: the body is kinematic and follows the grab point.</summary>
+        Swinging
     }
 
     /// <summary>
@@ -111,7 +115,17 @@ namespace ArvinRunner
         /// <summary>Still falling out of the level once DeathFall has tipped the
         /// runner into the dive: the struggle, looped for as long as the body is
         /// on screen.</summary>
-        DeathFallLoop
+        DeathFallLoop,
+
+        /// <summary>Hanging from a rope or a hook and being carried by it. The
+        /// Swinging state, which is scripted - the body is moved by the grab
+        /// point, not by the physics.</summary>
+        Swing,
+
+        /// <summary>Flat on the ground, going under something too low to slide
+        /// under. The Sliding state, chosen instead of Slide and SkateOn - see
+        /// PlayerController.</summary>
+        Crawl
     }
 
     /// <summary>What killed the player - used for the death message / VFX.</summary>
@@ -119,6 +133,9 @@ namespace ArvinRunner
     {
         Hazard,
         Fell,
-        Crushed
+        Crushed,
+        Burned,
+        Eaten,
+        Caught
     }
 }

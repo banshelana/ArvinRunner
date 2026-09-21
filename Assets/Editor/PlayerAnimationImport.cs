@@ -67,7 +67,7 @@ namespace ArvinRunner.EditorTools
         /// </summary>
         private static readonly string[] SetNames =
         {
-            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump", "Victory", "Skating", "Fallout", "overJump"
+            "Idle", "Run", "Jump", "FlipJump", "BigJump", "LowFlip", "Fall", "Tackle", "Climb", "Lose", "HandJump", "Victory", "Skating", "Fallout", "overJump", "rope", "crawl"
         };
 
         /// <summary>
@@ -134,6 +134,25 @@ namespace ArvinRunner.EditorTools
             // own standing frame: 1.19 by height, 1.16 by area; the run-out against
             // the run cycle: 1.16 and 1.10 once the run's own 1.02 is taken off.
             ["overJump"] = 1.15f,
+
+            // The rope. Its run-in frames match overJump's frame for frame, so it
+            // was drawn on the same canvas and takes the same scale.
+            ["rope"] = 1.15f,
+
+            // The crawl, drawn very nearly twice the size of everything else.
+            //
+            // There is no standing frame in the folder to measure against the
+            // jump's, so this is taken two other ways and they agree. By area:
+            // 25,500 solid pixels against the jump's standing 7,075, and area
+            // goes as the square of the scale, so 1.90 - a little high, because a
+            // body on all fours has its limbs out to the side of the torso rather
+            // than folded over it. By proportion: the drawing is 420 long, and a
+            // crawl with one arm reaching is about 1.15 times a stature, which
+            // puts the stature at 365 against the jump's 185, so 1.97.
+            //
+            // At 1.90 the figure comes out 0.65 tall and 2.09 long, and its hood
+            // and its legs measure the same thickness as the standing runner's.
+            ["crawl"] = 1.90f,
 
             // Height and area agree; body thickness (0.72) does not, for the same
             // reason as Lose - that runner is drawn leaner, not smaller.

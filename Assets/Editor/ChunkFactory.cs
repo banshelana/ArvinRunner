@@ -77,6 +77,17 @@ namespace ArvinRunner.EditorTools
             // People on benches. Also kept out of the assembled levels' pool.
             chunks.AddRange(CreateBystanderChunks());
 
+            // Pits with fire and crocodiles, and the ropes and hooks over them.
+            // Out of the pool for the same reason.
+            chunks.AddRange(CreatePitChunks());
+
+            // Galleries and laser beams too low to slide under. Out of the pool
+            // for the same reason.
+            chunks.AddRange(CreateCrawlChunks());
+
+            // The container port: belts, steam vents, stacks. Out of the pool too.
+            chunks.AddRange(CreateDockChunks());
+
             return chunks.ToArray();
         }
 

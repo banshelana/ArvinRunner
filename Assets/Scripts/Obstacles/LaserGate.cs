@@ -27,7 +27,36 @@ namespace ArvinRunner
     [RequireComponent(typeof(Hazard))]
     public class LaserGate : MonoBehaviour
     {
+        /// <summary>What the cycle is measured against.</summary>
+        public enum GateTiming
+        {
+            /// <summary>
+            /// The runner's approach. The beam is in the same state at the same
+            /// place on every attempt, so a corridor is a fixed pattern to solve.
+            /// The right choice for anything the runner cannot time.
+            /// </summary>
+            Approach,
+
+            /// <summary>
+            /// The clock, reset at the start of every attempt.
+            ///
+            /// Only fair where the player can choose when to arrive - which, since
+            /// the brake, they can. A steam vent stands on the floor, so unlike a
+            /// laser it cannot be slid under; on approach timing it is open or shut
+            /// before the runner gets near it, decided by where it was authored and
+            /// by nothing the player does. On the clock it opens and shuts in front
+            /// of them, and it can be jumped or waited out.
+            ///
+            /// Never use this for anything the runner cannot slow down before.
+            /// </summary>
+            RunClock
+        }
+
         [Header("Cycle")]
+        [SerializeField] private GateTiming timing = GateTiming.Approach;
+
+        [Tooltip("Seconds per full cycle, for RunClock timing.")]
+        [SerializeField] private float period = 2.4f;
         [Tooltip("World units of approach per full on/off cycle. Smaller blinks faster.")]
         [SerializeField] private float wavelength = 6f;
 
@@ -102,6 +131,16 @@ namespace ArvinRunner
         /// </summary>
         private float CurrentPhase()
         {
+            if (timing == GateTiming.RunClock)
+            {
+                // The run's own clock, which LoadLevel resets - so every attempt
+                // starts the pattern in the same place, and the player is timing
+                // themselves against it rather than against whatever the scene's
+                // clock happened to be at.
+                float clock = GameManager.Instance != null ? GameManager.Instance.RunTime : Time.time;
+                return Mathf.Repeat(clock / Mathf.Max(0.1f, period) + arrivalPhase, 1f);
+            }
+
             Transform player = Player();
 
             if (player == null || wavelength <= 0.01f)

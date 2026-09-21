@@ -195,6 +195,80 @@ namespace ArvinRunner
         private static bool IsOverhead(Collider2D hit, float low) =>
             hit != null && !hit.isTrigger && hit.bounds.min.y >= low - 0.05f;
 
+        /// <summary>
+        /// The nearest thing ahead that is too low to slide under but high enough
+        /// to crawl under, and how far it runs. False when there is none.
+        ///
+        /// A separate probe from <see cref="FindOverhead"/> rather than a wider
+        /// band on it, because the two ask different questions and want different
+        /// answers about triggers. An overhead is something the runner goes under
+        /// and must not stand up beneath, so a press head - a trigger that comes
+        /// down on them - is deliberately not one. A low bar is something they
+        /// have to get under, and a laser strung at knee height is exactly that:
+        /// it is not solid, it cannot be leaned on, and it is the reason to be
+        /// flat. So hazards count here and nowhere else.
+        ///
+        /// Asked once, when a slide starts. Anything reaching the floor is a wall
+        /// rather than a bar - there is no getting under it.
+        /// </summary>
+        public bool FindLowBar(float lookAhead, float crawlHeight, float slideHeight,
+                               out float startX, out float endX)
+        {
+            startX = endX = 0f;
+            if (_capsule == null) return false;
+
+            float feet = FeetPosition.y;
+            float low = feet + crawlHeight + 0.02f;
+            float high = feet + slideHeight;
+            if (high <= low) return false;
+
+            float from = _capsule.bounds.min.x;
+            float band = (low + high) * 0.5f;
+            float nearest = float.MaxValue;
+
+            LayerMask mask = GameLayers.SolidMask | GameLayers.HazardMask;
+
+            foreach (Collider2D hit in Physics2D.OverlapBoxAll(new Vector2(from + lookAhead * 0.5f, band),
+                                                               new Vector2(lookAhead, high - low), 0f,
+                                                               mask))
+            {
+                if (!IsLowBar(hit, low, high) || hit.bounds.max.x < from) continue;
+                if (hit.bounds.min.x >= nearest) continue;
+
+                nearest = hit.bounds.min.x;
+                endX = hit.bounds.max.x;
+            }
+
+            if (nearest == float.MaxValue) return false;
+            startX = nearest;
+
+            // A gallery of them end to end, or a run of beams on one frame, is one
+            // stretch to stay flat through - the same joining FindOverhead does.
+            for (int guard = 0; guard < 16; guard++)
+            {
+                bool grew = false;
+                foreach (Collider2D hit in Physics2D.OverlapBoxAll(new Vector2(endX + 1.5f, band),
+                                                                   new Vector2(3f, high - low), 0f,
+                                                                   mask))
+                {
+                    if (!IsLowBar(hit, low, high) || hit.bounds.max.x <= endX + 0.01f) continue;
+                    endX = hit.bounds.max.x;
+                    grew = true;
+                }
+
+                if (!grew) break;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Its underside is in the band: above where a crawling runner's back is,
+        /// and below where a sliding one's would clear.
+        /// </summary>
+        private static bool IsLowBar(Collider2D hit, float low, float high) =>
+            hit != null && hit.bounds.min.y >= low - 0.05f && hit.bounds.min.y < high;
+
         private void SampleCeiling()
         {
             Bounds b = _capsule.bounds;

@@ -22,6 +22,11 @@ namespace ArvinRunner
                  "obstacle do not beat in unison.")]
         [SerializeField] private float startOffset;
 
+        [Tooltip("The frame to open on. Whole frames rather than seconds, so a row " +
+                 "of the same fire can be dealt a different part of the loop each " +
+                 "and never catch up with itself.")]
+        [SerializeField] private int startFrame;
+
         private float _timer;
         private int _index;
         private int _first;
@@ -37,7 +42,11 @@ namespace ArvinRunner
             _first = 0;
             _last = frames != null && frames.Length > 0 ? frames.Length - 1 : 0;
 
-            if (HasFrames) target.sprite = frames[_index = _first];
+            _index = frames != null && frames.Length > 0
+                ? ((startFrame % frames.Length) + frames.Length) % frames.Length
+                : 0;
+
+            if (HasFrames) target.sprite = frames[_index];
         }
 
         private bool HasFrames => target != null && frames != null && frames.Length > 0;
@@ -68,6 +77,13 @@ namespace ArvinRunner
 
         /// <summary>True once a non-looping range has reached its last frame.</summary>
         public bool Finished => _finished;
+
+        /// <summary>
+        /// Changes the rate. For art where one folder holds two speeds - a snake
+        /// idling through its coils and then striking out of them - which one clip
+        /// at one rate cannot have both of.
+        /// </summary>
+        public void SetRate(float framesPerSecond) => fps = Mathf.Max(1f, framesPerSecond);
 
         private void Update()
         {

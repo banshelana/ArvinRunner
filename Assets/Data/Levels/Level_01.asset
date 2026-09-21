@@ -56,3 +56,7 @@ MonoBehaviour:
   theme: {fileID: 11400000, guid: dd4a664bd4c76b04b80f0d75e330fc7e, type: 2}
   music: {fileID: 0}
   parTime: 45
+  chase: 0
+  chasePace: 0.83
+  chaseLeash: 14
+  chaseStartLag: 6

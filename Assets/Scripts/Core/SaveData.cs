@@ -11,6 +11,7 @@ namespace ArvinRunner
         private const string UnlockedKey = "arvin.unlocked";
         private const string BestTimeKey = "arvin.best.";
         private const string PickupsKey = "arvin.pickups";
+        private const string DifficultyKey = "arvin.difficulty";
 
         /// <summary>Highest level index the player may enter. Level 0 is always open.</summary>
         public static int UnlockedLevelIndex
@@ -21,6 +22,18 @@ namespace ArvinRunner
                 PlayerPrefs.SetInt(UnlockedKey, Mathf.Max(value, UnlockedLevelIndex));
                 PlayerPrefs.Save();
             }
+        }
+
+        /// <summary>
+        /// How forgiving the game is. Normal until the player says otherwise, and
+        /// remembered between sessions - it is a preference, not progress, so
+        /// ResetAll leaves it alone.
+        /// </summary>
+        public static Difficulty Difficulty
+        {
+            get => (Difficulty)Mathf.Clamp(PlayerPrefs.GetInt(DifficultyKey, (int)Difficulty.Normal),
+                                           0, (int)Difficulty.Hard);
+            set { PlayerPrefs.SetInt(DifficultyKey, (int)value); PlayerPrefs.Save(); }
         }
 
         public static int TotalPickups

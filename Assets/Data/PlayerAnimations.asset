@@ -588,6 +588,168 @@ MonoBehaviour:
     followVault: 0
     landing: 
     exitToFrame: 23
+  - anim: 24
+    frames:
+    - {fileID: 21300000, guid: 4eec9583c979f9d4dbda165c84567eff, type: 3}
+    - {fileID: 21300000, guid: 0b5a22e7dc7ae4549a4135333679bad6, type: 3}
+    - {fileID: 21300000, guid: d2a0f116df5affd4296e91b9412beb3a, type: 3}
+    - {fileID: 21300000, guid: 612906e1f8462564c8eaee07485e385c, type: 3}
+    - {fileID: 21300000, guid: 5d4781b0d18912b4b875986d43cfe3ab, type: 3}
+    - {fileID: 21300000, guid: 1a9d9aaeef8014445a45e163504e40fa, type: 3}
+    - {fileID: 21300000, guid: a36263b6187ab2b41bbe0ba2d4feb373, type: 3}
+    - {fileID: 21300000, guid: d0f554173f16b4843b2e60fb1c52035b, type: 3}
+    - {fileID: 21300000, guid: a7042320ce07e2a41bb477af49cdd652, type: 3}
+    - {fileID: 21300000, guid: 942edb4f60e55e543ad4a255f31237b2, type: 3}
+    - {fileID: 21300000, guid: 01b3f55dcfa7f7a4badf5befcbd17d08, type: 3}
+    - {fileID: 21300000, guid: ed90a4edcf254b04aae90452e0ca901d, type: 3}
+    - {fileID: 21300000, guid: 58bf27742fbf5e4468e1df2a2af0f270, type: 3}
+    - {fileID: 21300000, guid: 6d77d31913382344c82d0dfbfa77effd, type: 3}
+    - {fileID: 21300000, guid: 13ff5d188e1fc77449101170eb951ccb, type: 3}
+    - {fileID: 21300000, guid: fb169dbc2c3118c4b9f75a573c240a78, type: 3}
+    - {fileID: 21300000, guid: d6783f9b23cde0348aa111868f25cfac, type: 3}
+    - {fileID: 21300000, guid: c3c8090152d04e14dafee15fd462bc6b, type: 3}
+    - {fileID: 21300000, guid: f491458e59d6bf54183a3dcd8ce5be67, type: 3}
+    - {fileID: 21300000, guid: 9b91d11464a115e4d8de72df8d0db62a, type: 3}
+    - {fileID: 21300000, guid: 5238e6ea3c99b8841a20dee6af369ec8, type: 3}
+    - {fileID: 21300000, guid: 7c16a6b0f49f3c54180af1ff2b5f13cd, type: 3}
+    - {fileID: 21300000, guid: e8f9378d4274ed14fbb7049749331eb3, type: 3}
+    - {fileID: 21300000, guid: 386ca2dc4b2c1cf41b86393df0146ccc, type: 3}
+    fps: 102.31579
+    loop: 1
+    strideDistance: 0.95
+    strideReferenceSpeed: 4.0499997
+    strideGrowth: 0.85
+    name: 
+    weights: []
+    offsets:
+    - {x: -0.022746496, y: 0}
+    - {x: -0.023223149, y: 0}
+    - {x: -0.024225282, y: 0}
+    - {x: -0.021804877, y: 0}
+    - {x: -0.019774774, y: 0}
+    - {x: -0.015987998, y: 0}
+    - {x: -0.011202087, y: 0}
+    - {x: -0.00636212, y: 0}
+    - {x: -0.0027801068, y: 0}
+    - {x: 0.0031924786, y: 0}
+    - {x: 0.009326229, y: 0}
+    - {x: 0.015667358, y: 0}
+    - {x: 0.020421667, y: 0}
+    - {x: 0.023972077, y: 0}
+    - {x: 0.025174513, y: 0}
+    - {x: 0.024408594, y: 0}
+    - {x: 0.022333508, y: 0}
+    - {x: 0.020092107, y: 0}
+    - {x: 0.014203796, y: 0}
+    - {x: 0.0076479847, y: 0}
+    - {x: 0.00037746277, y: 0}
+    - {x: -0.0072017037, y: 0}
+    - {x: -0.0133886635, y: 0}
+    - {x: -0.018121596, y: 0}
+    followJump: 0
+    apexFrame: 0
+    followVault: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 23
+    frames:
+    - {fileID: 21300000, guid: 287cb806bb39a294095cf934b9b4df70, type: 3}
+    - {fileID: 21300000, guid: ed4a3d6fb3cac2f4eacf1e0008f39941, type: 3}
+    - {fileID: 21300000, guid: 40b09a9dcd5f8db4d84517efdaa875be, type: 3}
+    - {fileID: 21300000, guid: 1de8d59902bad824ea71aab65b27af19, type: 3}
+    - {fileID: 21300000, guid: 6b3a2bb4fc0c90d459b2e646f48628c2, type: 3}
+    - {fileID: 21300000, guid: e52f53fd061a2cf48a4bd3ff5d9d818d, type: 3}
+    - {fileID: 21300000, guid: 6b5d582a08e319b4e8120769dc06025f, type: 3}
+    fps: 15.217391
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: 
+    weights:
+    - 0.8
+    - 1.4
+    - 1.4
+    - 1
+    - 1
+    - 1
+    - 1
+    offsets:
+    - {x: -0.22194424, y: 0.05180394}
+    - {x: 0.001191657, y: -0.08973167}
+    - {x: 0.057349443, y: -0.10638292}
+    - {x: 0.10519454, y: 0.2099908}
+    - {x: 0.15271443, y: 0.2432933}
+    - {x: 0.09888903, y: 0.31822392}
+    - {x: 0.15443261, y: 0.3765033}
+    followJump: 0
+    apexFrame: 0
+    followVault: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 23
+    frames:
+    - {fileID: 21300000, guid: ed4a3d6fb3cac2f4eacf1e0008f39941, type: 3}
+    - {fileID: 21300000, guid: 40b09a9dcd5f8db4d84517efdaa875be, type: 3}
+    - {fileID: 21300000, guid: 1de8d59902bad824ea71aab65b27af19, type: 3}
+    - {fileID: 21300000, guid: 40b09a9dcd5f8db4d84517efdaa875be, type: 3}
+    fps: 3.0769231
+    loop: 1
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: hang_hook
+    weights: []
+    offsets:
+    - {x: 0.001191657, y: -0.08973167}
+    - {x: 0.057349443, y: -0.10638292}
+    - {x: 0.10519454, y: 0.2099908}
+    - {x: 0.057349443, y: -0.10638292}
+    followJump: 0
+    apexFrame: 0
+    followVault: 0
+    landing: 
+    exitToFrame: -1
+  - anim: 2
+    frames:
+    - {fileID: 21300000, guid: 5d61af70aa39da248a0bb37bee1daed3, type: 3}
+    - {fileID: 21300000, guid: 6b7d5f30dd311804aaa86171ffc544ba, type: 3}
+    - {fileID: 21300000, guid: ed7b2fd878a65d74cbbb6e34e107438f, type: 3}
+    fps: 4.9180326
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: rope_release
+    weights: []
+    offsets:
+    - {x: 0, y: -0.07983115}
+    - {x: 0, y: -0.068687044}
+    - {x: 0.000000031759736, y: -0.10579455}
+    followJump: 1
+    apexFrame: 1
+    followVault: 0
+    landing: land_rope
+    exitToFrame: -1
+  - anim: 15
+    frames:
+    - {fileID: 21300000, guid: 944c899a7dabf5d4bb758938987dad94, type: 3}
+    - {fileID: 21300000, guid: a1b1cb027c1b2cb458eb041819e1887d, type: 3}
+    fps: 7.692308
+    loop: 0
+    strideDistance: 0
+    strideReferenceSpeed: 0
+    strideGrowth: 0
+    name: land_rope
+    weights: []
+    offsets:
+    - {x: -0.052330103, y: 0}
+    - {x: 0.05233012, y: 0}
+    followJump: 0
+    apexFrame: 0
+    followVault: 0
+    landing: 
+    exitToFrame: 23
   - anim: 4
     frames:
     - {fileID: 21300000, guid: b2434a7d98ddd724caf784558c0e7299, type: 3}

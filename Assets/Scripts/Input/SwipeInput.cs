@@ -32,6 +32,13 @@ namespace ArvinRunner
         [Tooltip("How long a gesture stays available for a state to consume.")]
         [SerializeField] private float bufferTime = 0.15f;
 
+        /// <summary>How long a swipe is remembered for. Widened or narrowed by the difficulty.</summary>
+        public float BufferTime
+        {
+            get => bufferTime;
+            set => bufferTime = Mathf.Max(0f, value);
+        }
+
         [Header("Debug")]
         [SerializeField] private bool logGestures;
 
@@ -41,8 +48,20 @@ namespace ArvinRunner
         /// <summary>True while at least one finger (or the mouse) is held down.</summary>
         public bool IsHolding { get; private set; }
 
+        /// <summary>
+        /// True while the player is asking to slow down: the down key held, or a
+        /// downward swipe whose finger has stayed on the glass.
+        ///
+        /// A tap down still slides. Holding is what brakes, so the two live on
+        /// the same input without either needing a second button - and a hold
+        /// that starts with a slide is harmless, because a slide on open ground
+        /// costs nothing.
+        /// </summary>
+        public bool Braking { get; private set; }
+
         private readonly Dictionary<int, TouchTrack> _tracks = new Dictionary<int, TouchTrack>();
         private Swipe _buffered = Swipe.None;
+        private Swipe _lastGesture = Swipe.None;
         private float _bufferedAt = -99f;
 
         private struct TouchTrack
@@ -72,6 +91,7 @@ namespace ArvinRunner
             ReadTouches();
             ReadMouse();
             ReadKeyboard();
+            ReadBrake();
 
             // Expire the buffer so a stale gesture cannot fire much later.
             if (_buffered != Swipe.None && Time.unscaledTime - _bufferedAt > bufferTime)
@@ -176,6 +196,13 @@ namespace ArvinRunner
             }
         }
 
+        /// <summary>See <see cref="Braking"/>.</summary>
+        private void ReadBrake()
+        {
+            bool key = Input.GetKey(KeyCode.DownArrow) || Input.GetKey(KeyCode.S);
+            Braking = key || (IsHolding && _lastGesture == Swipe.Down);
+        }
+
         private void ReadKeyboard()
         {
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
@@ -230,6 +257,7 @@ namespace ArvinRunner
 
         private void Fire(Swipe swipe)
         {
+            _lastGesture = swipe;
             if (swipe == Swipe.None) return;
             _buffered = swipe;
             _bufferedAt = Time.unscaledTime;

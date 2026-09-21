@@ -437,5 +437,151 @@ namespace ArvinRunner.EditorTools
 
             return image;
         }
+        /// <summary>
+        /// A line of ship-to-shore gantry cranes, for the layer the city's towers
+        /// usually fill.
+        ///
+        /// A crane is told from a tower by three lines: a long boom out over the
+        /// water, a mast standing above the legs, and the stays running from the
+        /// top of that mast down to each end of the boom. The first cut of this
+        /// had legs, a beam and a boom and read as scaffolding - it was the
+        /// missing mast and stays. They are drawn thick enough to survive being
+        /// scaled down and tinted into the far distance.
+        ///
+        /// Nothing is allowed to cross the right edge. The sprite is tiled, so a
+        /// boom hanging over the end comes back as a shape sliced off mid-air at
+        /// every repeat.
+        /// </summary>
+        public static PaintImage Gantries(int width, int height, int seed, float grey)
+        {
+            var image = new PaintImage(width, height);
+            var random = new Random(seed);
+            float shade = grey * DetailShade;
+
+            int x = 16;
+            while (x < width - 200)
+            {
+                float legH = height * (0.40f + 0.14f * (float)random.NextDouble());
+                float span = 84 + random.Next(46);        // between the legs
+                float leg = 15 + random.Next(7);
+                float boom = 130 + random.Next(70);       // out over the water
+                float tail = 54 + random.Next(26);        // the short end, landward
+
+                // Everything this crane will occupy. If it does not fit before the
+                // edge, stop rather than draw half of one.
+                float total = tail + span + leg + boom;
+                if (x + total > width - 8) break;
+
+                float bodyX = x + tail;
+
+                // Legs on a sill beam.
+                image.Rect(bodyX, 0, leg, legH, grey);
+                image.Rect(bodyX + span, 0, leg, legH, grey);
+                image.Rect(bodyX - 6, 0, span + leg + 12, 11, shade);
+
+                // A brace across the legs, halfway up, which is what stops the
+                // gap between them reading as a doorway.
+                image.Rect(bodyX + leg, legH * 0.52f, span - leg, 8, shade);
+
+                // The portal beam, and the machinery house on it.
+                float head = legH;
+                image.Rect(bodyX - 8, head, span + leg + 16, 17, grey);
+                image.Rect(bodyX + span * 0.2f, head + 17, span * 0.55f, 26, shade);
+
+                // The boom: the long line, from the tail end out over the water.
+                float boomY = head + 43;
+                image.Rect(x, boomY, total, 13, grey);
+
+                // The mast above the legs, and the stays down to each end of it.
+                float mastX = bodyX + span * 0.5f;
+                float mastTop = boomY + 74 + random.Next(30);
+                image.Rect(mastX - 7, boomY, 14, mastTop - boomY, grey);
+
+                Stay(image, mastX, mastTop, x + 6, boomY + 10, shade);
+                Stay(image, mastX, mastTop, x + total - 6, boomY + 10, shade);
+
+                // The trolley, hung under the boom out over the water.
+                float trolley = bodyX + span + leg + boom * (0.25f + 0.45f * (float)random.NextDouble());
+                image.Rect(trolley, boomY - 15, 22, 15, shade);
+                image.Rect(trolley + 7, boomY - 34, 8, 19, shade);
+
+                x += (int)total + 30 + random.Next(70);
+            }
+
+            return image;
+        }
+
+        /// <summary>A straight line of a given thickness, drawn a column at a time.</summary>
+        private static void Stay(PaintImage image, float x0, float y0, float x1, float y1, float grey)
+        {
+            float dx = x1 - x0, dy = y1 - y0;
+            int steps = (int)Math.Max(Math.Abs(dx), Math.Abs(dy));
+
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = steps == 0 ? 0f : i / (float)steps;
+                image.Rect(x0 + dx * t - 2f, y0 + dy * t - 2f, 4f, 4f, grey);
+            }
+        }
+
+        /// <summary>
+        /// Stacks of shipping containers, for the layer the houses usually fill.
+        ///
+        /// Blocks one to seven high with the odd lane between them. Every box gets
+        /// a darker band along its top edge: at this distance that one line is all
+        /// that separates a stack into containers instead of leaving it a slab,
+        /// and each box is tinted a little differently so the yard has depth
+        /// rather than looking painted.
+        /// </summary>
+        public static PaintImage Containers(int width, int height, int seed, float grey, float ground)
+        {
+            var image = new PaintImage(width, height);
+            var random = new Random(seed);
+            float shade = grey * DetailShade;
+
+            const float boxW = 84f, boxH = 40f;
+
+            // The quay they all stand on, which reaches the bottom of the screen
+            // so a gap between rooftops never shows sky under them.
+            image.Rect(0, 0, width, ground, shade);
+
+            float x = 6;
+            while (x < width - boxW)
+            {
+                // A lane through the yard now and then, so the cranes behind show.
+                if (random.NextDouble() < 0.14)
+                {
+                    x += boxW * (0.5f + 0.5f * (float)random.NextDouble());
+                    continue;
+                }
+
+                int across = 1 + random.Next(4);
+                int high = 2 + random.Next(5);
+
+                for (int c = 0; c < across && x + boxW <= width; c++)
+                {
+                    // A block is rarely square: each column loses or gains one.
+                    int columnHigh = Math.Max(1, high + random.Next(3) - 1);
+
+                    for (int b = 0; b < columnHigh; b++)
+                    {
+                        float y = ground + b * boxH;
+                        if (y + boxH > height) break;
+
+                        float tone = grey * (0.88f + 0.18f * (float)random.NextDouble());
+
+                        image.Rect(x, y, boxW - 4f, boxH - 3f, tone);
+                        image.Rect(x, y + boxH - 6f, boxW - 4f, 3f, shade);
+                    }
+
+                    x += boxW;
+                }
+
+                x += 4 + random.Next(10);
+            }
+
+            return image;
+        }
+
     }
 }

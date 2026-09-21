@@ -265,6 +265,9 @@ namespace ArvinRunner
             {
                 case DeathCause.Fell:    return "You fell.";
                 case DeathCause.Crushed: return "You hit the wall.";
+                case DeathCause.Burned:  return "You fell into the fire.";
+                case DeathCause.Eaten:   return "The crocodiles got you.";
+                case DeathCause.Caught:  return "Venom caught you.";
                 default:                 return "You did not make it.";
             }
         }

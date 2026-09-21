@@ -76,6 +76,13 @@ namespace ArvinRunner.EditorTools
             WriteSprite("houses", ToTexture(BackdropPainter.Houses(1024, 1024, 43, BackdropPainter.HouseGrey, 640f)),
                 tileable: true, pixelsPerUnit: backdropPpu);
 
+            // The dockside: cranes where the city has towers, container stacks
+            // where it has houses. Same two layers, a different place.
+            WriteSprite("gantries", ToTexture(BackdropPainter.Gantries(1024, 768, 61, BackdropPainter.TowerGrey)),
+                tileable: true, pixelsPerUnit: backdropPpu);
+            WriteSprite("containers", ToTexture(BackdropPainter.Containers(1024, 1024, 71, BackdropPainter.HouseGrey, 640f)),
+                tileable: true, pixelsPerUnit: backdropPpu);
+
             // The single-row skylines these replaced.
             foreach (string old in new[] { "skyline_far", "skyline_mid", "skyline_near" })
             {

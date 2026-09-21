@@ -57,10 +57,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Editor\ChunkFactoryWarzone.cs" />
+    <Compile Include="Assets\Editor\ChunkFactoryCrawl.cs" />
     <Compile Include="Assets\Editor\CoinPainter.cs" />
     <Compile Include="Assets\Editor\BackdropPainter.cs" />
     <Compile Include="Assets\Editor\SpriteMeasure.cs" />
     <Compile Include="Assets\Editor\StrikePainter.cs" />
+    <Compile Include="Assets\Editor\ChunkFactoryPits.cs" />
     <Compile Include="Assets\Editor\ChunkFactory.cs" />
     <Compile Include="Assets\Editor\CraneRig.cs" />
     <Compile Include="Assets\Editor\ChunkFactoryBystanders.cs" />
@@ -79,6 +81,7 @@
     <Compile Include="Assets\Editor\PlayerAnimationImport.cs" />
     <Compile Include="Assets\Editor\AudioImport.cs" />
     <Compile Include="Assets\Editor\MovingObstacleImport.cs" />
+    <Compile Include="Assets\Editor\ChunkFactoryDocks.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

@@ -21,6 +21,9 @@ namespace ArvinRunner
                  "here; the rest keep playing whatever the scene started with.")]
         [SerializeField] private MusicPlayer music;
 
+        [Tooltip("Whatever chases the runner, for levels that have one. Stood down for the rest.")]
+        [SerializeField] private VenomChase chase;
+
         [Header("Content")]
         [SerializeField] private LevelSet campaign;
         [Tooltip("Forces a level for testing. Leave at -1 so the main menu decides, " +
@@ -44,6 +47,9 @@ namespace ArvinRunner
         /// <summary>(time, newRecord)</summary>
         public event System.Action<float, bool> OnLevelCompleted;
         public event System.Action<int> OnPickupsChanged;
+
+        /// <summary>What the player picked in the menu, applied once at startup.</summary>
+        public Difficulty Difficulty { get; private set; } = Difficulty.Normal;
 
         public GameState State { get; private set; } = GameState.Ready;
         public int CurrentLevelIndex { get; private set; }
@@ -90,9 +96,28 @@ namespace ArvinRunner
             if (!ValidateReferences()) return;
 
             player.OnDied += HandlePlayerDied;
+            ApplyDifficulty();
 
             int index = startLevelIndex >= 0 ? startLevelIndex : GameSession.ConsumeRequestedLevel();
             LoadLevel(index);
+        }
+
+        /// <summary>
+        /// Reads the saved difficulty and hands the runner a tuned copy of his
+        /// config. Done once, here, rather than per level: it is a preference for
+        /// the whole session, and re-tuning between levels would make a new copy
+        /// every time.
+        /// </summary>
+        private void ApplyDifficulty()
+        {
+            Difficulty = SaveData.Difficulty;
+
+            PlayerConfig tuned = DifficultyTuning.Tune(player.Config, Difficulty);
+            if (tuned != null) player.ApplyConfig(tuned);
+
+            if (SwipeInput.Instance != null)
+                SwipeInput.Instance.BufferTime =
+                    DifficultyTuning.SwipeBuffer(Difficulty, SwipeInput.Instance.BufferTime);
         }
 
         private bool ValidateReferences()
@@ -151,6 +176,7 @@ namespace ArvinRunner
             builder.Build(level);
 
             player.ResetForLevel(builder.SpawnPoint);
+            if (chase != null) chase.Arm(level, builder.SpawnPoint);
             if (cameraFollow != null) cameraFollow.SnapToTarget();
             if (background != null && level.theme != null) background.SetTheme(level.theme);
 

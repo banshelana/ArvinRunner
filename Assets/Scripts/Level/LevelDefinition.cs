@@ -57,6 +57,25 @@ namespace ArvinRunner
         [Tooltip("Time under which the level counts as a fast clear, in seconds.")]
         public float parTime = 45f;
 
+        [Header("Chase")]
+        [Tooltip("Venom runs the level down behind the runner, and kills him if he " +
+                 "catches him. See VenomChase.")]
+        public bool chase;
+
+        [Tooltip("His speed, as a share of the runner's nominal pace. Under 1, so a " +
+                 "clean run always pulls away and only slow moves let him gain. Tune it " +
+                 "against the slowest clean line through the level, never an average one.")]
+        [Range(0.5f, 1f)] public float chasePace = 0.83f;
+
+        [Tooltip("The furthest behind the runner he is ever allowed to fall. Caps the " +
+                 "lead a fast start can bank, so every slow move is paid out of the same " +
+                 "few units. 14 sits just off the left of the screen.")]
+        public float chaseLeash = 14f;
+
+        [Tooltip("How far behind the spawn he starts. Small enough to be on screen, so " +
+                 "the player sees what is behind him before he has to outrun it.")]
+        public float chaseStartLag = 6f;
+
         // ---------------------------------------------------------------- //
 
         /// <summary>

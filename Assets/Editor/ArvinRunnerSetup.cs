@@ -78,6 +78,21 @@ namespace ArvinRunner.EditorTools
                 // Dust hanging over the war zone. Paler than Golden, which already
                 // clears the contrast bar, so this one does too.
                 ParallaxTheme dust = CreateTheme("Theme_Dust", new Color(0.98f, 0.90f, 0.78f));
+                // Green light off the canopy, for the crossings. Pale enough that
+                // the black runner still reads against it.
+                ParallaxTheme jungle = CreateTheme("Theme_Jungle", new Color(0.88f, 0.96f, 0.86f));
+                // Under the city: sodium light on damp concrete. The dimmest theme
+                // in the set, and still pale enough to hold the black runner.
+                ParallaxTheme sodium = CreateTheme("Theme_Sodium", new Color(0.82f, 0.78f, 0.70f));
+                // Storm light over the flood: cold and wet, and paler than it
+                // looks, so the runner still reads against it.
+                ParallaxTheme storm = CreateTheme("Theme_Storm", new Color(0.80f, 0.86f, 0.92f));
+
+                // The docks. The first theme that is not the same city in a
+                // different light: the two nearest bands are cranes and container
+                // stacks instead of towers and houses.
+                ParallaxTheme docks = CreateTheme("Theme_Docks", new Color(0.93f, 0.90f, 0.82f),
+                                                  farSprite: "gantries", nearSprite: "containers");
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Building prefabs", 0.45f);
                 TrickSet tricks = CreateTrickSet();
@@ -91,7 +106,8 @@ namespace ArvinRunner.EditorTools
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Authoring levels", 0.75f);
                 LevelSet campaign = CreateLevels(chunks, morning, afternoon, golden,
-                                                 haze, overcast, sunrise, fog, dust);
+                                                 haze, overcast, sunrise, fog, dust, jungle,
+                                                 sodium, storm, docks);
 
                 EditorUtility.DisplayProgressBar("ArvinRunner", "Assembling the game scene", 0.88f);
                 BuildScene(player, pad, finish, killZone, campaign, morning);
@@ -157,11 +173,19 @@ namespace ArvinRunner.EditorTools
             Mass,
 
             /// <summary>Centre of mass held still both ways: turning in the air.</summary>
-            Air
+            Air,
+
+            /// <summary>Hanging: the raised hand held still, because the hand is what
+            /// is holding on and the body swings under it.</summary>
+            Hand
         }
 
         // So a build run out of order says it once rather than once per clip.
         private static bool _warnedUnmeasured;
+
+        // How far above the feet a hanging clip holds its hand, from the config
+        // the set is being cut for - see FrameAnchor.Hand.
+        private static float _gripReach = 2f;
 
         /// <summary>
         /// The runner's animation set, cut from the drawn frames in
@@ -197,6 +221,7 @@ namespace ArvinRunner.EditorTools
         {
             var set = ScriptableObject.CreateInstance<SpriteAnimationSet>();
             _warnedUnmeasured = false;
+            _gripReach = config.gripReach;
 
             // Whatever we can stand on if a folder is missing: the hand-made
             // runner, then the generated silhouette.
@@ -426,6 +451,106 @@ namespace ArvinRunner.EditorTools
                 // twenty-four - so that is where the stride picks up.
                 Add(PlayerAnim.Land, "overJump", new[] { 17, 18, 19 }, FrameAnchor.Feet, 0.3f, false, "land_over")
                     .exitToFrame = RunFrame(15);
+            }
+
+            // ---- flat on the ground ------------------------------------------- //
+
+            // The crawl: 24 drawings of one cycle, already filed in the order the
+            // body moves - the solid box grows from 404 to 429 and back as the
+            // reach goes out and is gathered in, once, with no second hump. Read
+            // straight through.
+            //
+            // Registered on the head like the run, and for the same reason: on a
+            // crawl the hood is the still thing and the limbs swing under it. The
+            // centre of mass slides 13px back and forth through the cycle, which
+            // on a figure this long would show as the whole body surging.
+            //
+            // <b>Paced by ground covered, like the run</b>, because it is the only
+            // other gait in the game and the alternative is hands that skate. A
+            // reach on all fours carries a body about half its own length, and
+            // this figure is 2.09 long, so 0.95 is that reach taken generously -
+            // this is a runner going flat out on his hands, not someone crossing a
+            // carpet.
+            //
+            // That number is what sets crawlSpeedMultiplier, rather than the other
+            // way round. Cadence is what the eye reads, and the run does a stride
+            // every 0.256s; 0.95 against a crawl at 0.45 of running speed is
+            // 0.235s, so the two gaits turn over at the same rate and the crawl
+            // looks as settled as the run already does. Left at the slide speed it
+            // would want a stride of 1.85 - a whole body length a reach - and no
+            // pacing hides that.
+            if (PlayerAnimationImport.Frames("crawl").Length > 1)
+            {
+                int[] crawl = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
+                                13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 };
+
+                const float crawlStride = 0.95f;
+                float crawlSpeed = Mathf.Max(0.1f, config.runSpeed * config.crawlSpeedMultiplier);
+
+                SpriteAnimationClip flat = Add(PlayerAnim.Crawl, "crawl", crawl, FrameAnchor.Feet,
+                                               crawlStride / crawlSpeed, true);
+                flat.strideDistance = crawlStride;
+                flat.strideReferenceSpeed = crawlSpeed;
+
+                // The same split the run uses between a longer reach and a quicker
+                // one. A crawl has less room to lengthen than a stride does, but
+                // the speed ramp it sees is small too.
+                flat.strideGrowth = 0.85f;
+            }
+            else
+            {
+                // No crawl frames: the tackle, held flat. Wrong in the details and
+                // right in the one thing that matters - the runner is on the floor.
+                Add(PlayerAnim.Crawl, "Tackle", new[] { 8, 9, 10, 9 }, FrameAnchor.Mass, 0.6f, true);
+            }
+
+            // ---- the rope and the hook ---------------------------------------- //
+
+            // The rope folder is one crossing drawn end to end: 1-5 run in, 6 the
+            // reach up, 7-9 hanging by one hand, 10-13 the legs swinging through,
+            // 14 the release, 15-16 the flight, 17-18 the landing and 19-22 the
+            // run out. The run-in and run-out are not used - the game's own run is
+            // what this leaves and comes back to - and 9 is skipped: it is clipped
+            // off square down its right edge, and cuts an arm in half on screen.
+            //
+            // Hanging clips are registered on the hand, not the feet or the centre
+            // of mass. The hand is the one part of the body that is not moving -
+            // it is holding the rope - and anchoring anywhere else slides the grip
+            // around under the knot as the legs swing.
+            if (PlayerAnimationImport.Frames("rope").Length > 1)
+            {
+                // The catch and the swing through, timed to the ride. Longest on
+                // 7 and 8 - the hang is where the swing spends its time, and
+                // 10-13 are the legs coming through at the end of it.
+                Add(PlayerAnim.Swing, "rope", new[] { 6, 7, 8, 10, 11, 12, 13 }, FrameAnchor.Hand,
+                    0.46f, false, null,
+                    new[] { 0.8f, 1.4f, 1.4f, 1f, 1f, 1f, 1f });
+
+                // The hook carries the runner for as long as the cable lasts,
+                // which is not a fixed time, so it hangs in a loop instead: on the
+                // hand, rocking between the two hanging drawings.
+                Add(PlayerAnim.Swing, "rope", new[] { 7, 8, 10, 8 }, FrameAnchor.Hand,
+                    1.3f, true, "hang_hook");
+
+                // Letting go: opening out (14), the flight (15) and the legs
+                // coming down for the ground (16). Follows the release arc the
+                // same way a jump clip follows a jump.
+                SpriteAnimationClip release = Add(PlayerAnim.JumpRise, "rope", new[] { 14, 15, 16 },
+                                                  FrameAnchor.Air, 0.61f, false, "rope_release");
+                release.followJump = true;
+                release.apexFrame = 1;
+                release.landing = "land_rope";
+
+                // Down into the crouch (17) and up out of it (18), handed back to
+                // the run where the run-out picks it up.
+                Add(PlayerAnim.Land, "rope", new[] { 17, 18 }, FrameAnchor.Feet, 0.26f, false, "land_rope")
+                    .exitToFrame = RunFrame(15);
+            }
+            else
+            {
+                // No rope frames: hang off the wall clips, which are the only
+                // other drawings of the runner holding on to something.
+                Add(PlayerAnim.Swing, "Climb", new[] { 13, 14, 15, 14 }, FrameAnchor.Mass, 0.6f, true);
             }
 
             // The double jump: the kick that makes it (8, 9), the tuck on the way
@@ -720,6 +845,13 @@ namespace ArvinRunner.EditorTools
                         point = new Vector2(shape.CentroidX, shape.Bounds.y);
                         break;
 
+                    // The top of the figure is the hand on the rope, so the
+                    // transform - the feet - hangs a grip's reach below it.
+                    case FrameAnchor.Hand:
+                        point = new Vector2(shape.HeadX,
+                                            shape.Bounds.y + shape.Bounds.height - _gripReach * ppu);
+                        break;
+
                     default:
                         point = new Vector2(shape.CentroidX, shape.CentroidY - standingCentre * ppu);
                         break;
@@ -923,7 +1055,19 @@ namespace ArvinRunner.EditorTools
         /// of the sky gradient (which runs 1.00 at the horizon to 0.93 overhead),
         /// so any gap above the sky strip matches it.
         /// </summary>
-        private static ParallaxTheme CreateTheme(string assetName, Color tint)
+        /// <summary>
+        /// A theme, optionally somewhere other than the city.
+        ///
+        /// The two nearest bands are the only ones that say where the level is -
+        /// the sky, the sun and the hills behind them are the same anywhere - so
+        /// swapping those two sprites is the whole of a new place. Everything
+        /// before <see cref="Theme_Dockside"/> left them alone and changed only
+        /// the tint, which is why every level looked like the same afternoon in
+        /// the same city.
+        /// </summary>
+        private static ParallaxTheme CreateTheme(string assetName, Color tint,
+                                                 string farSprite = "towers",
+                                                 string nearSprite = "houses")
         {
             var theme = ScriptableObject.CreateInstance<ParallaxTheme>();
             theme.skyColour = new Color(tint.r * 0.965f, tint.g * 0.965f, tint.b * 0.965f);
@@ -969,13 +1113,13 @@ namespace ArvinRunner.EditorTools
                 },
                 new ParallaxLayerDef
                 {
-                    name = "Towers", sprite = PlaceholderArt.Load("towers"),
+                    name = "Towers", sprite = PlaceholderArt.Load(farSprite),
                     parallax = 0.38f, verticalParallax = 0.55f, yOffset = 2.9f,
                     sortingOrder = -150, tint = tint
                 },
                 new ParallaxLayerDef
                 {
-                    name = "Houses", sprite = PlaceholderArt.Load("houses"),
+                    name = "Houses", sprite = PlaceholderArt.Load(nearSprite),
                     parallax = 0.62f, verticalParallax = 0.4f, yOffset = -4.3f,
                     sortingOrder = -100, tint = tint
                 }
@@ -1150,7 +1294,9 @@ namespace ArvinRunner.EditorTools
                                              ParallaxTheme morning, ParallaxTheme afternoon,
                                              ParallaxTheme golden, ParallaxTheme haze,
                                              ParallaxTheme overcast, ParallaxTheme sunrise,
-                                             ParallaxTheme fog, ParallaxTheme dust)
+                                             ParallaxTheme fog, ParallaxTheme dust,
+                                             ParallaxTheme jungle, ParallaxTheme sodium,
+                                             ParallaxTheme storm, ParallaxTheme docks)
         {
             LevelChunk Find(string name)
             {
@@ -1197,7 +1343,9 @@ namespace ArvinRunner.EditorTools
             // quietly rearrange both levels for players who have learned them.
             var classic = new List<LevelChunk>();
             foreach (LevelChunk chunk in chunks)
-                if (chunk != null && !ChunkFactory.IsWarzone(chunk) && !ChunkFactory.IsBystander(chunk))
+                if (chunk != null && !ChunkFactory.IsWarzone(chunk) && !ChunkFactory.IsBystander(chunk)
+                    && !ChunkFactory.IsPitCrossing(chunk) && !ChunkFactory.IsCrawl(chunk)
+                    && !ChunkFactory.IsDockside(chunk))
                     classic.Add(chunk);
 
             LevelDefinition four = Assembled(4, "Skyline", "Watch the beam rhythm before you commit.",
@@ -1285,14 +1433,271 @@ namespace ArvinRunner.EditorTools
                 Find("Chunk_ParkBench"), Find("Chunk_DroneBarrage"), Find("Chunk_RuinStrike"),
                 Find("Chunk_Flat"));
 
+            // ---- the crossings -----------------------------------------------
+            //
+            // The rope, taught and then asked for three more times, with the rest
+            // of the game's vocabulary in between so it never becomes a level of
+            // one move. Chunk_RopeFire first, on its own and over the narrowest
+            // pit: one jump, one catch, one release, and nothing else to think
+            // about. Then a slide, then the hook - the same catch held for a ride
+            // rather than a swing - then traffic and a wall, and only then the two
+            // ropes in a row, which is the level's hardest thing and wants the
+            // single rope learned first.
+            //
+            // It finishes with a rope taken under a drone, which is the one place
+            // two systems are asked for at once: the crossing is committed to
+            // before the mark lights, so the bomb is answered on landing.
+            LevelDefinition twelve = Sequenced(12, "Wild Crossing",
+                "Jump for the rope and it will carry you. Let go and it will throw you - you do not have to aim.",
+                jungle, 120f,
+                Find("Chunk_Flat"), Find("Chunk_RopeFire"), Find("Chunk_SlideGate"),
+                Find("Chunk_HookCroc"), Find("Chunk_Traffic"), Find("Chunk_WallClimb"),
+                Find("Chunk_RopeChain"), Find("Chunk_StepsDown"), Find("Chunk_GunNest"),
+                Find("Chunk_BenchRow"), Find("Chunk_RopeStrike"), Find("Chunk_Flat"));
+
+            // ---- under the city ----------------------------------------------
+            //
+            // The crawl, and snakes in the pits the rope already crosses.
+            //
+            // Taught the way every move here is: the solid thing first. The
+            // gallery in Chunk_DuctCrawl is plainly too low and stops a runner who
+            // misreads it, so the height is learned at the cost of a bump. Only
+            // then the laser, which asks the same question and answers a wrong
+            // guess with a death.
+            //
+            // The snakes arrive on a crossing the player already owns -
+            // Chunk_RopeSnake is Chunk_RopeFire with something else at the bottom -
+            // so the new thing in it is the one thing that is new. Chunk_HookSnake
+            // puts the two moves of the level back to back, and comes last of the
+            // three because it is the only one that asks for both at once.
+            //
+            // Heights stay flat almost throughout: a crawl is read off the
+            // silhouette of what is ahead, and a roof that is stepping up and down
+            // under it would make that read harder for no gain.
+            LevelDefinition thirteen = Sequenced(13, "Under the City",
+                "Swipe down for anything too low to slide under - he will get flat for it. It costs you pace.",
+                sodium, 135f,
+                Find("Chunk_Flat"), Find("Chunk_DuctCrawl"), Find("Chunk_Barriers"),
+                Find("Chunk_LaserCrawl"), Find("Chunk_RopeSnake"), Find("Chunk_Traffic"),
+                Find("Chunk_CrawlGauntlet"), Find("Chunk_WallClimb"), Find("Chunk_HookSnake"),
+                Find("Chunk_BenchRow"), Find("Chunk_CrawlStrike"), Find("Chunk_Flat"));
+
+            // ---- the chase -----------------------------------------------------
+            //
+            // Nothing new to meet. Every chunk here is one the player has already
+            // learned, and the level is new because of what is behind them: a
+            // crawl or a climb that used to cost time now costs ground.
+            //
+            // Laid out against a simulation of the slowest clean line - every
+            // crawl, every climb, taken with nothing to spare - at pace 0.83 and a
+            // leash of 14. Venom never comes within 5.7 of the runner on that line,
+            // and he closes to between 5.7 and 8 at exactly four places: the two
+            // crawls, the wall climb, and the start. Those are the moments he is on
+            // screen. Everywhere else he is a pulse at the left edge.
+            //
+            // What the simulation ruled out matters as much. CrawlGauntlet is
+            // lethal under this chase - two long crawls a few units apart, and he
+            // is past the runner before the second ends - and LaserCrawl's twelve
+            // joined units leave under three. Neither is here. The crawls that are
+            // (DuctCrawl, CrawlStrike) are the short ones.
+            //
+            // The pace of the level is spent where he is: a slow move, then at
+            // least one chunk of open running to buy the ground back before the
+            // next one. The crocodile pit on the hook is the one place the runner
+            // goes faster than he can run.
+            LevelDefinition fourteen = Chased(14, "Hunted",
+                "Venom is behind you. Every crawl and every climb lets him gain - run clean in between.",
+                storm, 70f, pace: 0.83f, leash: 14f, startLag: 6f,
+                Find("Chunk_Flat"), Find("Chunk_VaultRow"), Find("Chunk_DuctCrawl"),
+                Find("Chunk_Gap"), Find("Chunk_RopeFire"), Find("Chunk_Traffic"),
+                Find("Chunk_WallClimb"), Find("Chunk_StepsDown"), Find("Chunk_HookCroc"),
+                Find("Chunk_Barriers"), Find("Chunk_CrawlStrike"), Find("Chunk_RopeChain"),
+                Find("Chunk_SlideGate"), Find("Chunk_Flat"));
+
+            // ---- the docks -----------------------------------------------------
+            //
+            // A place rather than a tint. Every level up to here has been the same
+            // skyline under a different colour of sky; this one puts gantry cranes
+            // where the towers were and a container yard where the houses were, so
+            // it is the first level that looks like somewhere else.
+            //
+            // The new thing to learn is the belt, and it is taught the way the
+            // crawl was: the harmless version first. Chunk_BeltRun has one belt
+            // each way with nothing to fall into, so the chevrons get to mean
+            // something before anything depends on them. Chunk_BeltGap is the same
+            // belt with a gap at the end of it - and the gap has a lower deck
+            // under it, because the first time something changes the length of
+            // your jump it should not also end the run.
+            //
+            // The vents come in on their own next, then the two together: a belt
+            // running against the runner through a pair of vents, which is the
+            // point of having both. The vents are timed off when he arrives, and
+            // the belt changes how long he takes to cross them, so the rhythm he
+            // learned two chunks ago is not the rhythm here and he has to read the
+            // steam instead of counting it.
+            //
+            // Between them, the port's own version of moves he already has: the
+            // container stack is Chunk_WallClimb where what is being climbed is
+            // obviously climbable, and the crane gap is the crane he has swung
+            // past since level 8.
+            LevelDefinition fifteen = Sequenced(15, "Dockside",
+                "Hold down to slow up. The steam opens and shuts - wait for it rather than run at it.",
+                docks, 125f,
+                Find("Chunk_Flat"), Find("Chunk_BeltRun"), Find("Chunk_Crates"),
+                Find("Chunk_BeltGap"), Find("Chunk_ContainerYard"), Find("Chunk_SteamVents"),
+                Find("Chunk_Traffic"), Find("Chunk_BeltVents"), Find("Chunk_CraneGap"),
+                Find("Chunk_SlideGate"), Find("Chunk_BeltGap"), Find("Chunk_Flat"));
+
             var campaign = ScriptableObject.CreateInstance<LevelSet>();
-            campaign.levels = new[] { one, two, three, four, five, six, seven, eight, nine, ten, eleven };
+            campaign.levels = new[] { one, two, three, four, five, six, seven, eight, nine, ten,
+                                      eleven, twelve, thirteen, fourteen, fifteen };
             return EditorUtil.CreateAsset(campaign, $"{DataFolder}/Campaign.asset");
+        }
+
+        /// <summary>
+        /// Just behind the runner, who is on 20.
+        ///
+        /// Behind rather than over, which is what the first cut had. He comes from
+        /// behind and takes hold of the runner from behind, and the catch drawing
+        /// has no victim in it - so with Venom in front, the runner vanished under
+        /// him at the one moment the player wants to see what happened. Behind, his
+        /// arms close around a runner who stays visible.
+        /// </summary>
+        private const int ChaseSortingOrder = 18;
+
+        /// <summary>
+        /// Venom, the chaser: the drawn run from Art/Chasing/venom_running on a
+        /// holder pinned under his head, so VenomChase can stand him on the roof
+        /// and run him along it. A dark box of about his size if the frames are
+        /// not imported.
+        /// </summary>
+        private static VenomChase CreateVenom()
+        {
+            var root = new GameObject("Venom");
+            var chase = root.AddComponent<VenomChase>();
+            EditorUtil.SetObject(chase, "block", PlaceholderArt.Load("box"));
+
+            var holder = new GameObject("Body");
+            holder.transform.SetParent(root.transform, false);
+
+            var visual = new GameObject("Visual");
+            visual.transform.SetParent(holder.transform, false);
+
+            var renderer = visual.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = ChaseSortingOrder;
+
+            Sprite[] frames = MovingObstacleImport.Frames("venom_running");
+            float width;
+
+            if (frames.Length > 0)
+            {
+                renderer.sprite = frames[0];
+
+                var book = visual.AddComponent<SpriteFlipbook>();
+                EditorUtil.SetObject(book, "target", renderer);
+                EditorUtil.SetObjectArray(book, "frames", frames);
+                EditorUtil.SetBool(book, "loop", true);
+
+                // Overwritten every frame from how fast he is actually going - see
+                // VenomChase.strideDistance. This is only what he opens on.
+                EditorUtil.SetFloat(book, "fps", 30f);
+                EditorUtil.SetObject(chase, "run", book);
+
+                // The widest drawing, which is his reach at its longest, used for
+                // every frame: following each crop would slide him back and forth
+                // under his own claws.
+                float widest = 0f;
+                foreach (Sprite frame in frames) widest = Mathf.Max(widest, frame.bounds.size.x);
+                width = widest;
+            }
+            else
+            {
+                // Loudly, because a silent fallback here is a level with nothing
+                // chasing the runner through it and no sign of why.
+                Debug.LogWarning($"[ArvinRunner] No frames in {MovingObstacleImport.ChasingFolder}" +
+                                 "/venom_running, so the chase is a box. Run " +
+                                 "ArvinRunner/Re-import Moving Obstacles.");
+
+                const float fallbackWidth = 2.7f, fallbackHeight = 2.45f;
+                renderer.sprite = PlaceholderArt.Load("box");
+                renderer.drawMode = SpriteDrawMode.Tiled;
+                renderer.tileMode = SpriteTileMode.Continuous;
+                renderer.size = new Vector2(fallbackWidth, fallbackHeight);
+                renderer.color = new Color(0.09f, 0.08f, 0.12f, 0.95f);
+                visual.transform.localPosition = new Vector3(0f, fallbackHeight * 0.5f, 0f);
+                width = fallbackWidth;
+            }
+
+            EditorUtil.SetObject(chase, "body", holder.transform);
+            EditorUtil.SetFloat(chase, "width", width);
+
+            // The catch, on its own holder: a different drawing of him at a
+            // different scale, so it cannot share the run's.
+            Sprite[] caught = MovingObstacleImport.Frames("venomGrab");
+            if (caught.Length > 0)
+            {
+                var grabHolder = new GameObject("Catch");
+                grabHolder.transform.SetParent(root.transform, false);
+
+                var grabVisual = grabHolder.AddComponent<SpriteRenderer>();
+                grabVisual.sprite = caught[0];
+                grabVisual.sortingOrder = ChaseSortingOrder;
+
+                var grabBook = grabHolder.AddComponent<SpriteFlipbook>();
+                EditorUtil.SetObject(grabBook, "target", grabVisual);
+                EditorUtil.SetObjectArray(grabBook, "frames", caught);
+                EditorUtil.SetBool(grabBook, "loop", false);
+                EditorUtil.SetFloat(grabBook, "fps", 24f);
+
+                EditorUtil.SetObject(chase, "grabBody", grabHolder.transform);
+                EditorUtil.SetObject(chase, "grab", grabBook);
+            }
+            else
+            {
+                Debug.LogWarning($"[ArvinRunner] No frames in {MovingObstacleImport.ChasingFolder}" +
+                                 "/venomGrab, so the catch falls back to a held pose and a spike.");
+            }
+
+            return chase;
         }
 
         private static LevelDefinition Sequenced(int number, string title, string hint,
                                                  ParallaxTheme theme, float parTime,
                                                  params LevelChunk[] order)
+        {
+            return Write(Define(number, title, hint, theme, parTime, order));
+        }
+
+        /// <summary>
+        /// A level with something chasing the runner through it - see VenomChase.
+        ///
+        /// <b>The chase is set before the asset is written, not after.</b> It used
+        /// to be turned on by assigning the fields on what Sequenced returned and
+        /// calling EditorUtility.SetDirty. CreateAsset writes the file the moment
+        /// it is called, so that left the change living only on the dirty flag,
+        /// and it did not survive the scene being rebuilt later in the same run:
+        /// every build wrote Level_14 with chase off, and level 14 played with
+        /// nothing behind the runner at all. Anything that has to be in an asset
+        /// belongs on the object before it is handed to CreateAsset.
+        /// </summary>
+        private static LevelDefinition Chased(int number, string title, string hint,
+                                              ParallaxTheme theme, float parTime,
+                                              float pace, float leash, float startLag,
+                                              params LevelChunk[] order)
+        {
+            LevelDefinition level = Define(number, title, hint, theme, parTime, order);
+
+            level.chase = true;
+            level.chasePace = pace;
+            level.chaseLeash = leash;
+            level.chaseStartLag = startLag;
+
+            return Write(level);
+        }
+
+        private static LevelDefinition Define(int number, string title, string hint,
+                                              ParallaxTheme theme, float parTime,
+                                              LevelChunk[] order)
         {
             var level = ScriptableObject.CreateInstance<LevelDefinition>();
             level.levelNumber = number;
@@ -1302,9 +1707,11 @@ namespace ArvinRunner.EditorTools
             level.sequence = order;
             level.theme = theme;
             level.parTime = parTime;
-
-            return EditorUtil.CreateAsset(level, $"{LevelFolder}/Level_{number:00}.asset");
+            return level;
         }
+
+        private static LevelDefinition Write(LevelDefinition level) =>
+            EditorUtil.CreateAsset(level, $"{LevelFolder}/Level_{level.levelNumber:00}.asset");
 
         private static LevelDefinition Assembled(int number, string title, string hint,
                                                  ParallaxTheme theme, float parTime,
@@ -1373,7 +1780,12 @@ namespace ArvinRunner.EditorTools
 
             MusicPlayer music = Music(AudioImport.GameplayTrack, 0.5f);
 
+            // Venom. In every scene and armed only by the levels that have a
+            // chase, so a level turns him on with a tick box rather than a scene.
+            VenomChase chase = CreateVenom();
+
             var manager = systems.AddComponent<GameManager>();
+            EditorUtil.SetObject(manager, "chase", chase);
             EditorUtil.SetObject(manager, "music", music);
             EditorUtil.SetObject(manager, "builder", builder);
             EditorUtil.SetObject(manager, "player", controller);
@@ -1495,7 +1907,35 @@ namespace ArvinRunner.EditorTools
             Button levels = MakeButton(home, "LevelsButton", new Vector2(0f, -100f), "Levels");
             levels.GetComponent<RectTransform>().sizeDelta = new Vector2(460f, 100f);
 
-            Button quit = MakeButton(home, "QuitButton", new Vector2(0f, -230f), "Quit");
+            // ---- difficulty -------------------------------------------------
+            //
+            // On the home panel rather than behind a settings screen: it is one
+            // row, it is read before the first run rather than after a few
+            // failures, and a runner has nothing else to configure.
+            Label(home, "DifficultyTitle", CentreAnchor, CentreAnchor, new Vector2(0f, -196f),
+                  new Vector2(700f, 44f), "DIFFICULTY", 30, TextAnchor.MiddleCenter);
+
+            var difficultyButtons = new Button[3];
+            string[] names = { "Easy", "Normal", "Hard" };
+
+            for (int i = 0; i < names.Length; i++)
+            {
+                Button choice = MakeButton(home, names[i] + "Button",
+                                           new Vector2((i - 1) * 156f, -252f), names[i]);
+                choice.GetComponent<RectTransform>().sizeDelta = new Vector2(148f, 74f);
+                choice.GetComponentInChildren<Text>().fontSize = 30;
+                difficultyButtons[i] = choice;
+            }
+
+            // What the setting actually does, under it. The words come from
+            // DifficultyTuning so the menu cannot describe one thing while the
+            // game does another.
+            Text difficultyHint = Label(home, "DifficultyHint", CentreAnchor, CentreAnchor,
+                                        new Vector2(0f, -302f), new Vector2(900f, 40f),
+                                        DifficultyTuning.Describe(Difficulty.Normal), 26,
+                                        TextAnchor.MiddleCenter);
+
+            Button quit = MakeButton(home, "QuitButton", new Vector2(0f, -378f), "Quit");
             quit.GetComponent<RectTransform>().sizeDelta = new Vector2(460f, 100f);
 
             Text pickups = Label(home, "PickupTotal", new Vector2(0.5f, 0f), new Vector2(0.5f, 0f),
@@ -1554,6 +1994,8 @@ namespace ArvinRunner.EditorTools
             EditorUtil.SetObject(controller, "levelsButton", levels);
             EditorUtil.SetObject(controller, "quitButton", quit);
             EditorUtil.SetObject(controller, "totalPickupsText", pickups);
+            EditorUtil.SetObjectArray(controller, "difficultyButtons", difficultyButtons);
+            EditorUtil.SetObject(controller, "difficultyHint", difficultyHint);
             EditorUtil.SetObject(controller, "levelGrid", gridRect);
             EditorUtil.SetObject(controller, "levelButtonTemplate", template);
             EditorUtil.SetObject(controller, "backButton", back);

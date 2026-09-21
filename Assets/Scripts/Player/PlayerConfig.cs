@@ -56,6 +56,32 @@ namespace ArvinRunner
         [Tooltip("How far ahead a slide looks for the overhead it is going under.")]
         public float skateLookAhead = 8f;
 
+        [Header("Brake")]
+        [Tooltip("What the runner's speed drops to while the player holds down. " +
+                 "0.45 of the run, which over eight units of approach shifts when he " +
+                 "arrives by about three quarters of a second - enough to step past a " +
+                 "steam vent's armed window, which is what it is for.\n\n" +
+                 "Only on the ground. Braking in mid-air would shorten a jump that had " +
+                 "already been committed to, which is the one thing a brake must not do.")]
+        [Range(0.2f, 1f)] public float brakeSpeedMultiplier = 0.45f;
+
+        [Header("Crawl")]
+        [Tooltip("Collider height while crawling, as a fraction of the standing height. " +
+                 "Under the slide's 0.45, because the whole point of a crawl is to get " +
+                 "under something a slide does not fit beneath. 0.36 is 0.63, and the " +
+                 "drawn crawl is 0.65 tall.")]
+        [Range(0.2f, 0.9f)] public float crawlHeightFraction = 0.36f;
+
+        [Tooltip("Speed multiplier while crawling. Well under 1, unlike the slide and " +
+                 "the skateboard, which are both faster than running: going flat to get " +
+                 "under something costs the runner their pace, and that is what makes a " +
+                 "crawl a different obstacle rather than a second look for a slide.\n\n" +
+                 "0.45 is set by the drawing, not by taste. A reach on all fours carries " +
+                 "a body about half its length, and the animation is paced by ground " +
+                 "covered like the run is - so a faster crawl does not play faster, it " +
+                 "plays with the hands sliding. See the crawl clip in ArvinRunnerSetup.")]
+        public float crawlSpeedMultiplier = 0.45f;
+
         [Header("Roll")]
         [Tooltip("Falling faster than this on landing forces a roll.")]
         public float hardLandingSpeed = 16f;
@@ -135,6 +161,13 @@ namespace ArvinRunner
 
         [Tooltip("Fastest a body falling out of the level drops.")]
         public float falloutMaxSpeed = 12f;
+
+        [Header("Rope and hook")]
+        [Tooltip("How far above the feet the raised hand closes on a rope or a hook.")]
+        public float gripReach = 2.0f;
+
+        [Tooltip("How near that hand has to pass a grip to catch it.")]
+        public float grabRadius = 1.5f;
 
         [Header("Finish")]
         [Tooltip("Distance the runner takes to ease to a stop after crossing the " +

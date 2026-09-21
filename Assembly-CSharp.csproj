@@ -66,9 +66,11 @@
     <Compile Include="Assets\Scripts\Obstacles\Collectible.cs" />
     <Compile Include="Assets\Scripts\Camera\ParallaxBackground.cs" />
     <Compile Include="Assets\Scripts\Obstacles\MovingObstacle.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\GrabPoint.cs" />
     <Compile Include="Assets\Scripts\Obstacles\SwingingCrane.cs" />
     <Compile Include="Assets\Scripts\Player\SpriteAnimationSet.cs" />
     <Compile Include="Assets\Scripts\Core\GameSession.cs" />
+    <Compile Include="Assets\Scripts\Level\VenomChase.cs" />
     <Compile Include="Assets\Scripts\Obstacles\CollapsingPlatform.cs" />
     <Compile Include="Assets\Scripts\Core\GameManager.cs" />
     <Compile Include="Assets\Scripts\Obstacles\MissileStrike.cs" />
@@ -78,6 +80,7 @@
     <Compile Include="Assets\Scripts\Level\FinishLine.cs" />
     <Compile Include="Assets\Scripts\Obstacles\HelicopterStrike.cs" />
     <Compile Include="Assets\Scripts\Obstacles\CrusherPress.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\SwingRope.cs" />
     <Compile Include="Assets\Scripts\Obstacles\BreakableGlass.cs" />
     <Compile Include="Assets\Scripts\Level\LevelChunk.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerAnimatorDriver.cs" />
@@ -85,6 +88,7 @@
     <Compile Include="Assets\Scripts\Input\SwipeInput.cs" />
     <Compile Include="Assets\Scripts\Obstacles\SpriteFlipbook.cs" />
     <Compile Include="Assets\Scripts\Core\GameLayers.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\LurkingAnimal.cs" />
     <Compile Include="Assets\Scripts\Level\LevelDefinition.cs" />
     <Compile Include="Assets\Scripts\Level\GroundStrip.cs" />
     <Compile Include="Assets\Scripts\Obstacles\MovingPlatform.cs" />
@@ -96,14 +100,12 @@
     <Compile Include="Assets\Scripts\Obstacles\Trampoline.cs" />
     <Compile Include="Assets\Scripts\Player\SuperJumpMeter.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerController.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\ZipHook.cs" />
     <Compile Include="Assets\Scripts\Obstacles\GustZone.cs" />
     <Compile Include="Assets\Scripts\Level\LevelBuilder.cs" />
     <Compile Include="Assets\Scripts\Player\PlayerConfig.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\GrabPoint.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\CrocodileSnap.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\SwingRope.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\FireFlicker.cs" />
-    <Compile Include="Assets\Scripts\Obstacles\ZipHook.cs" />
+    <Compile Include="Assets\Scripts\Obstacles\ConveyorStrip.cs" />
+    <Compile Include="Assets\Scripts\Core\Difficulty.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="UnityEngine">

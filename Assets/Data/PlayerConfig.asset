@@ -28,6 +28,9 @@ MonoBehaviour:
   airDiveSpeed: 22
   skateMinWidth: 3
   skateLookAhead: 8
+  brakeSpeedMultiplier: 0.45
+  crawlHeightFraction: 0.36
+  crawlSpeedMultiplier: 0.45
   hardLandingSpeed: 16
   rollDuration: 0.5
   rollHeightFraction: 0.5
@@ -55,6 +58,8 @@ MonoBehaviour:
   falloutMargin: 1.5
   falloutGravity: 0.45
   falloutMaxSpeed: 12
+  gripReach: 2
+  grabRadius: 1.5
   victoryStopDistance: 2.2
   deathSlowMoDuration: 0.6
   deathTimeScale: 0.25
